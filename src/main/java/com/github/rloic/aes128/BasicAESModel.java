@@ -9,32 +9,24 @@ import org.chocosolver.solver.variables.IntVar;
 import java.util.ArrayList;
 import java.util.List;
 
-class BasicModelAES128 extends Model {
+class BasicAESModel extends Model {
 
-    private final BoolVar[][][] DX;
-    private final BoolVar[][][] DZ;
-    private final BoolVar[][][] DK;
-    private final BoolVar[][][] DY;
-    private final BoolVar[] sBoxes;
     private final int r;
-    private final int objStep1;
-
     private static final int NB_BYTES = 4;
 
-    BasicModelAES128(int rounds, int objStep1) {
+    BasicAESModel(int rounds, int objStep1) {
         r = rounds;
-        this.objStep1 = objStep1;
-        DX = roundsVar(r);
-        DZ = roundsVar(r);
-        DK = roundsVar(r);
-        DY = shiftRows(DX); // C4
-        sBoxes = linkSBoxes(DX, DK);
+        BoolVar[][][] DX = createRoundVariables();
+        BoolVar[][][] DZ = createRoundVariables();
+        BoolVar[][][] DK = createRoundVariables();
+        BoolVar[][][] DY = shiftRows(DX); // C4
+        BoolVar[] sBoxes = linkSBoxes(DX, DK);
 
-        enable(numberOfActiveSBoxes()); // C1
+        enable(numberOfActiveSBoxes(sBoxes, objStep1)); // C1
         enable(subBytes()); // C2
-        enable(addRoundKey()); // C3
-        enable(mixColumns()); // C5 & C6
-        enable(keySchedule()); // C7 & C8
+        enable(addRoundKey(DX, DK, DZ)); // C3
+        enable(mixColumns(DY, DZ)); // C5 & C6
+        enable(keySchedule(DK)); // C7 & C8
     }
 
     private void enable(Constraint constraint) throws SolverException {
@@ -47,9 +39,9 @@ class BasicModelAES128 extends Model {
         }
     }
 
-    private BoolVar[][][] roundsVar(int rounds) {
-        BoolVar[][][] result = new BoolVar[rounds][][];
-        for (int i = 0; i < rounds; i++) result[i] = boolVarMatrix(NB_BYTES, NB_BYTES);
+    private BoolVar[][][] createRoundVariables() {
+        BoolVar[][][] result = new BoolVar[r][][];
+        for (int i = 0; i < r; i++) result[i] = boolVarMatrix(NB_BYTES, NB_BYTES);
         return result;
     }
 
@@ -79,7 +71,7 @@ class BasicModelAES128 extends Model {
         Constraint C1 : Number of active sBoxes
         obj Step1 = Sum(δB ∈ Sboxes) { ∆B }
      */
-    private Constraint numberOfActiveSBoxes() {
+    private Constraint numberOfActiveSBoxes(BoolVar[] sBoxes, int objStep1) {
         return sum(sBoxes, "=", objStep1);
     }
 
@@ -96,7 +88,7 @@ class BasicModelAES128 extends Model {
         Constraint C3 : AddRoundKey
         ∀i ∈ [0, r − 2], ∀j, k ∈ [0, 3], XOR(∆Z_{i}[j][k], ∆K_{i+1}[j][k], ∆X_{i+1}[j][k])
      */
-    private List<Constraint> addRoundKey() {
+    private List<Constraint> addRoundKey(BoolVar[][][] DX, BoolVar[][][] DK, BoolVar[][][] DZ) {
         List<Constraint> constraints = new ArrayList<>();
         for (int i = 0; i < r - 1; i++) {
             for (int j = 0; j < 4; j++) {
@@ -130,7 +122,7 @@ class BasicModelAES128 extends Model {
         Constraint C6 : Mix Columns 2/2
         ∀j, k ∈ [0, 3], ∆Z_{r−1}[j][k] = ∆Y_{r−1}[j][k]
      */
-    private List<Constraint> mixColumns() {
+    private List<Constraint> mixColumns(BoolVar[][][] DY, BoolVar[][][] DZ) {
         final int[] possibleAnswers = new int[]{0, 5, 6, 7, 8};
         List<Constraint> constraints = new ArrayList<>();
         // C5
@@ -160,7 +152,7 @@ class BasicModelAES128 extends Model {
         ∀i ∈ [0, r − 2], ∀j ∈ [0, 3], ∀k ∈ [1, 3], XOR(∆K_{i+1}[j][k], ∆K_{i+1}[j][k − 1], ∆K_{i}[j][k])
                  ^^^^^
      */
-    private List<Constraint> keySchedule() {
+    private List<Constraint> keySchedule(BoolVar[][][] DK) {
         List<Constraint> constraints = new ArrayList<>();
         for (int i = 0; i < r - 1; i++) {
             for (int j = 0; j < 4; j++) {

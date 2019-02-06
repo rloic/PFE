@@ -13,7 +13,7 @@ public class App {
     private static void bench(int r, int objStep1) {
         System.out.println("r=" + r + " and objStep1=" + objStep1);
         //new BasicAESSolver(null, r, objStep1);
-        Solver s = new BasicModelAES128(r, objStep1).getSolver();
+        Solver s = new BasicAESModel(r, objStep1).getSolver();
         while (s.solve()) {
         }
         s.printShortStatistics();
