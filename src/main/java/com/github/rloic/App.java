@@ -1,13 +1,15 @@
-package com.github.rloic.aes128;
+package com.github.rloic;
 
+import com.github.rloic.aes.AdvancedAESModel;
+import com.github.rloic.aes.aes128.BasicAESModel;
+import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
 
 public class App {
 
     public static void main(String[] args) {
-        bench(3, 2);
-        bench(3, 3);
-        bench(3, 4);
+        AdvancedAESModel model = new AdvancedAESModel(5, 2);
+        model.buildXorList();
     }
 
     private static void bench(int r, int objStep1) {

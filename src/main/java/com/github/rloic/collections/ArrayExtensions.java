@@ -1,4 +1,4 @@
-package com.github.rloic;
+package com.github.rloic.collections;
 
 import com.github.rloic.kt.aes128.TriFunction;
 
@@ -8,6 +8,13 @@ import java.util.function.Supplier;
 
 public class ArrayExtensions {
 
+    public static int[] intArrayOf(int... i) {
+        return i;
+    }
+
+    public static <T> T[] arrayOf(T... args) {
+        return args;
+    }
 
     public static <T> T[] Array(int size) {
         @SuppressWarnings("unchecked")
