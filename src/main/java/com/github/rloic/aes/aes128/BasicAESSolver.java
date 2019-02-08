@@ -1,9 +1,8 @@
-package com.github.rloic.aes128;
+package com.github.rloic.aes.aes128;
 
 import java.io.PrintWriter;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
-import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 

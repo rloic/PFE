@@ -93,15 +93,15 @@ combineXOR(L1,L2) = Lxor =>
             NewXOR := [X1X2|NewXOR]
         end
     end,
-    print("    Number of new XOR = "), writeln(len(NewXOR)),
+    print("   [CombineXOR] Number of new XOR = "), writeln(len(NewXOR)), println("----------"), writeln(NewXOR), println("----------"),
     Lxor = NewXOR ++ combineXOR(NewXOR,NewXOR ++ L2).
 
 %%% merge(L1,L2) returns (L1 union L2) \ (L1 intersection L2)
 merge([],L2) = L3 => L3=L2.
 merge(L1,[]) = L3 => L3=L1.
-merge([X1|L1],[X2|L2]) = L3, X1 @< X2 => L3 = [X1|merge(L1,[X2|L2])].
-merge([X1|L1],[X2|L2]) = L3, X2 @< X1 => L3 = [X2|merge([X1|L1],L2)].
-merge([X|L1],[X|L2]) = L3 => L3 = merge(L1,L2).
+merge([H1|T1],[H2|T2]) = L3, H1 @< H2 => L3 = [H1|merge(T1,[H2|T2])].
+merge([H1|T1],[H2|T2]) = L3, H2 @< H1 => L3 = [H2|merge([H1|T1],T2)].
+merge([H|T1],[H|T2]) = L3 => L3 = merge(T1,T2).
 
 xor(L, DK, DIFF), L = [[IA,J,KA],[IB,J,KB],[IC,J,KC]] =>
     DIFF[IA,J,KA,IB,KB] = DK[IC,J,KC],
@@ -153,4 +153,4 @@ isInitialKey(8,2,_) => true.
 
 
 
-
+

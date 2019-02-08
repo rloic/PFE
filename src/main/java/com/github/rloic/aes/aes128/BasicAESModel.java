@@ -1,4 +1,4 @@
-package com.github.rloic.aes128;
+package com.github.rloic.aes.aes128;
 
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
@@ -10,12 +10,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @SuppressWarnings("NonAsciiCharacters")
+public
 class BasicAESModel extends Model {
 
     private final int r;
     private static final int NB_BYTES = 4;
 
-    BasicAESModel(int rounds, int objStep1) {
+    public BasicAESModel(int rounds, int objStep1) {
         r = rounds;
         BoolVar[][][] ΔX = createRoundVariables();
         BoolVar[][][] ΔZ = createRoundVariables();
