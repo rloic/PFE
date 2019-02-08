@@ -16,7 +16,7 @@ public class BasicAESSolver {
       // Declare variables
       BoolVar[][][] DX = new BoolVar[r][][]; // forall i in [0,r-1], DX[i] = text at the beginning of round i (DX[r] = cipher text)
       BoolVar[][][] DZ = new BoolVar[r][][]; // forall i in [0,r-1], DZ[i] = text after MC at round i
-      BoolVar[][][] DK = new BoolVar[r][][]; // forall i in [0,r-1], DK[i] = subkey at round i (DK[0] = initial key)
+      BoolVar[][][] DK = new BoolVar[r][][]; // forall i in [0,r-1], c7PrimC8PrimC9PrimForDK[i] = subkey at round i (c7PrimC8PrimC9PrimForDK[0] = initial key)
       for (int i = 0; i < r; i++) {
          DX[i] = m.boolVarMatrix(4, 4);
          DK[i] = m.boolVarMatrix(4, 4);
@@ -24,7 +24,7 @@ public class BasicAESSolver {
       }
       // Redundant variables
       BoolVar[][][] DY = new BoolVar[r][4][4];// forall i in [0,r-1], DY[i] = text after SB and SR at round i
-      BoolVar[] sBoxes = new BoolVar[20 * r]; // all variables that pass through an S-box
+      BoolVar[] sBoxes = new BoolVar[20 * r]; // deepAll variables that pass through an S-box
       linkSBoxes(DX, DK, sBoxes, r);
 
       // Declare constraints: Number of active SBoxes (C1)
@@ -81,7 +81,7 @@ public class BasicAESSolver {
    }
 
    private void linkSBoxes(BoolVar[][][] DX, BoolVar[][][] DK, BoolVar[] sBoxes, int r) {
-      // Link sBoxes with all variables that pass through an Sbox (variables of DX, and variables in the last column of DK)
+      // Link sBoxes with deepAll variables that pass through an Sbox (variables of DX, and variables in the last column of c7PrimC8PrimC9PrimForDK)
       // Link DSR with DX according to ShiftRows operation
       int cpt = 0;
       for (int i = 0; i < r; i++) {

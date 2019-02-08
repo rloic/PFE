@@ -9,6 +9,7 @@ import org.chocosolver.solver.variables.IntVar;
 import java.util.ArrayList;
 import java.util.List;
 
+@SuppressWarnings("NonAsciiCharacters")
 class BasicAESModel extends Model {
 
     private final int r;
@@ -16,17 +17,17 @@ class BasicAESModel extends Model {
 
     BasicAESModel(int rounds, int objStep1) {
         r = rounds;
-        BoolVar[][][] DX = createRoundVariables();
-        BoolVar[][][] DZ = createRoundVariables();
-        BoolVar[][][] DK = createRoundVariables();
-        BoolVar[][][] DY = shiftRows(DX); // C4
-        BoolVar[] sBoxes = linkSBoxes(DX, DK);
+        BoolVar[][][] ΔX = createRoundVariables();
+        BoolVar[][][] ΔZ = createRoundVariables();
+        BoolVar[][][] ΔK = createRoundVariables();
+        BoolVar[][][] ΔY = shiftRows(ΔX); // C4
+        BoolVar[] sBoxes = linkSBoxes(ΔX, ΔK);
 
         enable(numberOfActiveSBoxes(sBoxes, objStep1)); // C1
         enable(subBytes()); // C2
-        enable(addRoundKey(DX, DK, DZ)); // C3
-        enable(mixColumns(DY, DZ)); // C5 & C6
-        enable(keySchedule(DK)); // C7 & C8
+        enable(addRoundKey(ΔX, ΔK, ΔZ)); // C3
+        enable(mixColumns(ΔY, ΔZ)); // C5 & C6
+        enable(keySchedule(ΔK)); // C7 & C8
     }
 
     private void enable(Constraint constraint) throws SolverException {
@@ -49,17 +50,17 @@ class BasicAESModel extends Model {
         return sum(variables, "!=", 1);
     }
 
-    private BoolVar[] linkSBoxes(BoolVar[][][] DX, BoolVar[][][] DK) {
-        // Link sBoxes with all variables that pass through an S-box (variables of ∆X, and variables in the last column of ∆K)
-        // Link ∆SR with ∆X according to ShiftRows operation
+    private BoolVar[] linkSBoxes(BoolVar[][][] ΔX, BoolVar[][][] ΔK) {
+        // Link sBoxes with deepAll variables that pass through an S-box (variables of ∆X, and variables in the last column of ∆K)
+        // Link ΔSR with ∆X according to ShiftRows operation
         BoolVar[] sBoxes = new BoolVar[20 * r];
         int cpt = 0;
         for (int i = 0; i < r; i++) {
             for (int j = 0; j < 4; j++) {
                 for (int k = 0; k < 4; k++) {
-                    sBoxes[cpt++] = DX[i][j][k];
+                    sBoxes[cpt++] = ΔX[i][j][k];
                     if (k == 3) {
-                        sBoxes[cpt++] = DK[i][j][k];
+                        sBoxes[cpt++] = ΔK[i][j][k];
                     }
                 }
             }
@@ -86,15 +87,15 @@ class BasicAESModel extends Model {
 
     /*
         Constraint C3 : AddRoundKey
-        ∀i ∈ [0, r − 2], ∀j, k ∈ [0, 3], XOR(∆Z_{i}[j][k], ∆K_{i+1}[j][k], ∆X_{i+1}[j][k])
+        ∀i ∈ [0, r − 2], ∀j, k ∈ [0, 3], xor(∆Z_{i}[j][k], ∆K_{i+1}[j][k], ∆X_{i+1}[j][k])
      */
-    private List<Constraint> addRoundKey(BoolVar[][][] DX, BoolVar[][][] DK, BoolVar[][][] DZ) {
+    private List<Constraint> addRoundKey(BoolVar[][][] ΔX, BoolVar[][][] ΔK, BoolVar[][][] ΔZ) {
         List<Constraint> constraints = new ArrayList<>();
         for (int i = 0; i < r - 1; i++) {
             for (int j = 0; j < 4; j++) {
                 for (int k = 0; k < 4; k++) {
                     constraints.add(
-                            xor(DZ[i][j][k], DK[i + 1][j][k], DX[i + 1][j][k])
+                            xor(ΔZ[i][j][k], ΔK[i + 1][j][k], ΔX[i + 1][j][k])
                     );
                 }
             }
@@ -106,12 +107,12 @@ class BasicAESModel extends Model {
         Constraint C4
         ∀i ∈ [0, r − 1], ∀j, k ∈ [0, 3], ∆Y_{i}[j][k] = ∆SX_{i}[j][(j + k)%4]
      */
-    private BoolVar[][][] shiftRows(BoolVar[][][] DX) {
+    BoolVar[][][] shiftRows(BoolVar[][][] ΔX) {
         BoolVar[][][] DY = new BoolVar[r][NB_BYTES][NB_BYTES];
         for (int i = 0; i < r; i++)
             for (int j = 0; j < 4; j++)
                 for (int k = 0; k < 4; k++)
-                    DY[i][j][k] = DX[i][j][(j + k) % 4];
+                    DY[i][j][k] = ΔX[i][j][(j + k) % 4];
         return DY;
     }
 
@@ -122,15 +123,15 @@ class BasicAESModel extends Model {
         Constraint C6 : Mix Columns 2/2
         ∀j, k ∈ [0, 3], ∆Z_{r−1}[j][k] = ∆Y_{r−1}[j][k]
      */
-    private List<Constraint> mixColumns(BoolVar[][][] DY, BoolVar[][][] DZ) {
+    private List<Constraint> mixColumns(BoolVar[][][] ΔY, BoolVar[][][] ΔZ) {
         final int[] possibleAnswers = new int[]{0, 5, 6, 7, 8};
         List<Constraint> constraints = new ArrayList<>();
         // C5
         for (int i = 0; i < r - 1; i++) {
             for (int k = 0; k < 4; k++) {
                 constraints.add(sum(new IntVar[]{
-                                DY[i][0][k], DY[i][1][k], DY[i][2][k], DY[i][3][k],
-                                DZ[i][0][k], DZ[i][1][k], DZ[i][2][k], DZ[i][3][k]},
+                                ΔY[i][0][k], ΔY[i][1][k], ΔY[i][2][k], ΔY[i][3][k],
+                                ΔZ[i][0][k], ΔZ[i][1][k], ΔZ[i][2][k], ΔZ[i][3][k]},
                         "=", intVar(possibleAnswers)));
             }
         }
@@ -138,7 +139,7 @@ class BasicAESModel extends Model {
         // C6 : Last round
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
-                constraints.add(arithm(DZ[r - 1][j][k], "=", DY[r - 1][j][k]));
+                constraints.add(arithm(ΔZ[r - 1][j][k], "=", ΔY[r - 1][j][k]));
             }
         }
         return constraints;
@@ -146,21 +147,21 @@ class BasicAESModel extends Model {
 
     /*
         C7 : Key Schedule 1/2
-        ∀i ∈ [0, r − 2], ∀j ∈ [0, 3], XOR(∆K_{i+1}[j][0], ∆K_{i}[j][0], ∆SK_{i}[(j + 1)%4][3])
+        ∀i ∈ [0, r − 2], ∀j ∈ [0, 3], xor(∆K_{i+1}[j][0], ∆K_{i}[j][0], ∆SK_{i}[(j + 1)%4][3])
                  ^^^^^
         C8 : Key Schedule 2/2
-        ∀i ∈ [0, r − 2], ∀j ∈ [0, 3], ∀k ∈ [1, 3], XOR(∆K_{i+1}[j][k], ∆K_{i+1}[j][k − 1], ∆K_{i}[j][k])
+        ∀i ∈ [0, r − 2], ∀j ∈ [0, 3], ∀k ∈ [1, 3], xor(∆K_{i+1}[j][k], ∆K_{i+1}[j][k − 1], ∆K_{i}[j][k])
                  ^^^^^
      */
-    private List<Constraint> keySchedule(BoolVar[][][] DK) {
+    private List<Constraint> keySchedule(BoolVar[][][] ΔK) {
         List<Constraint> constraints = new ArrayList<>();
         for (int i = 0; i < r - 1; i++) {
             for (int j = 0; j < 4; j++) {
                 // C7
-                constraints.add(xor(DK[i + 1][j][0], DK[i][j][0], DK[i][(j + 1) % 4][3]));
+                constraints.add(xor(ΔK[i + 1][j][0], ΔK[i][j][0], ΔK[i][(j + 1) % 4][3]));
                 for (int k = 1; k < 4; k++) {
                     // C8
-                    constraints.add(xor(DK[i + 1][j][k], DK[i + 1][j][k - 1], DK[i][j][k]));
+                    constraints.add(xor(ΔK[i + 1][j][k], ΔK[i + 1][j][k - 1], ΔK[i][j][k]));
                 }
             }
         }

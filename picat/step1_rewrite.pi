@@ -1,0 +1,49 @@
+import sat.
+
+step1a(R, ObjStep1) =>
+  model(R, ObjStep1, DX, DK),
+  solve_all([DX[I,J,K] : I in 1..R, J in 1..4, K in 1..4] ++ [DK[I,J,4] : I in 1..R, J in 1..4]) = Solutions,
+  write(len(Solutions)), print(" ").
+
+model(R, ObjStep1, DX, DK) =>
+  /* Define ΔX */
+  DX = new_array(R, 4, 4), DX :: 0..1,
+  /* Define ΔK */
+  DK = new_array(R, 4, 4), DK :: 0..1,
+  /* Define ΔZ */
+  DZ = new_array(R, 4, 4), DZ :: 0..1,
+
+  /* Define ΔY with implicit Constraint C4 */
+  DY = new_array(R, 4, 4),
+  foreach(I in 1..R, J in 1..4, K in 1..4)
+    DY[I, J, K] = DX[I, J, ((J + K - 2) mod 4) + 1]
+  end,
+
+  /* Constraint C3 */
+  foreach(I in 1..R - 1, J in 1..4, K in 1..4)
+      xor(DZ[I, J, K], DK[I + 1, J, K], DX[I + 1, J, K]),
+  end,
+
+  /* Constraint C5 */
+  foreach(I in 1..R - 1, K in 1..4)
+    ValidSet :: [0, 5, 6, 7, 8],
+    sum([ DY[I, J, K] : J in 1..4 ]) + sum([ DZ[I, J, K] : J in 1..4 ]) #= ValidSet
+  end,
+
+  /* Constraint C6 */
+  foreach(J in 1..4, K in 1..4)
+    DZ[R - 1, J, K] #= DY[R - 1, J, K]
+  end,
+
+  /* Constraint C7 & C8 */
+  foreach(I in 1..R - 1, J in 1..4)
+    xor(DK[I + 1, J, 1], DK[I, J, 1], DK[I,(J mod 4) + 1, 4]),
+    foreach(K in 2..4)
+      xor(DK[I + 1, J, K], DK[I + 1, J, K - 1], DK[I, J, K]),
+    end
+  end,
+
+  /* Constraint C1 */
+  sum([ DX[I,J,K] : I in 1..R, J in 1..4, K in 1..4 ]) + sum([ DK[I, J, 4] : I in 1..R, J in 1..4 ]) #= ObjStep1.
+
+xor(A, B, C) => A + B + C #!= 1.

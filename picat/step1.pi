@@ -1,0 +1,156 @@
+import sat.
+
+step1a(KC,R,ObjStep1) => % KC = number of columns in the key, R = number of rounds, ObjStep1 = number of active Sboxes
+    model(KC, R, ObjStep1, DX, _, DK, buildXORlist(KC,R)),
+    solve_all([DX[I,J,K] : I in 1..R, J in 1..4, K in 1..4] ++ [DK[I,J,K] : I in 1..R, J in 1..4, K in 4+1..4+nbSCol(KC,I)]) = Solutions,
+    write(len(Solutions)), print(" "). % supprimer "len" pour afficher les solutions (au lieu du nb de solutions)
+
+model(KC, R, ObjStep1, DX, DZ, DK, LXor) => % transitivity constraints only on triples of DK variables that occur in a same xor
+    DX = new_array(R,4,4), DX :: 0..1,   %%% DX[I,J,K] = difference at row J and column K in the text at the beginning of round I
+    DY = new_array(R,4,4),               %%% DY[I,J,K] = difference at row J and column K in the text at round I after shift rows
+    DZ = new_array(R,4,4), DZ :: 0..1, %%% DZ[I,J,K] = difference at row J and column K in the text at round I after mix columns
+    DK = new_array(R,4,5), DK :: 0..1,   %%% DK[I,J,K] = difference at row J and column K in the subkey of round I if K<5
+                                         %%% DK[I,J,5] = difference after sub-byte
+    DIFFK = new_array(R,4,5,R,5), DIFFK :: 0..1,    %%% DIFFK[I1,J,K1,I2,K2] = 1 if dK[I1,J,K1]!=dK[I2,J,K2], and 0 otherwise
+    DIFFY = new_array(R-1,4,4,R-1,4), DIFFY :: 0..1,%%% DIFFY[I1,J,K1,I2,K2] = 1 if dY[I1,J,K1]!=dY[I2,J,K2], and 0 otherwise
+    DIFFZ = new_array(R-1,4,4,R-1,4), DIFFZ :: 0..1,%%% DIFFZ[I1,J,K1,I2,K2] = 1 if dZ[I1,J,K1]!=dZ[I2,J,K2], and 0 otherwise
+    foreach(I in 1..R, J in 1..4, K in 1..4)
+        if (isSB(KC,I,K)) then                  %%% relate key bytes before and after s-boxes
+            if (KC < 8 || I mod 2 == 1) then
+                DK[I,J,K] = DK[I,((J-2) mod 4)+1,5]
+            else
+                DK[I,J,K] = DK[I,J,5]
+            end
+        end
+    end,
+    foreach(I in 2..R, J in 1..4, K in 1..4)
+        DZ[I-1,J,K] + DK[I,J,K] + DX[I,J,K] #!= 1            %%% Add Round Key constraint (C3')
+    end,
+    foreach(I in 1..R-1, K in 1..4)
+        S :: [0,5,6,7,8],                                    %%% Mix Columns constraint (C5')
+        sum([DY[I,J,K] : J in 1..4]) + sum([DZ[I,J,K] : J in 1..4]) #= S
+    end,
+    foreach(I in 1..R, J in 1..4, K in 1..4)
+        DY[I,J,K] = DX[I, J, ((J+K-2) mod 4)+1],            %%% Shift Rows constraint (C4')
+    end,
+    foreach(J in 1..4, K in 1..4)
+        DZ[R,J,K] = DY[R,J,K],                           %%% (C6')
+    end,
+    foreach(I1 in 2..R, J in 1..4, K1 in 1..5, I2 in 2..I1, K2 in 1..5, [I1,K1] @> [I2,K2])
+        DIFFK[I1,J,K1,I2,K2] = DIFFK[I2,J,K2,I1,K1],                   %%% Symmetry constraint on DIFFK (C7')
+        if (sameXOR([I1,J,K1],[I2,J,K2],LXor)) then
+            DIFFK[I1,J,K1,I2,K2] + DK[I1,J,K1] + DK[I2,J,K2] #!= 1,    %%% Constraint relating DIFFK and DK variables (C9')
+            foreach(I3 in 2..I2, K3 in 1..5, [I2,K2] @> [I3,K3], sameXOR([I1,J,K1],[I2,J,K2],[I3,J,K3],LXor))
+                DIFFK[I1,J,K1,I2,K2] + DIFFK[I2,J,K2,I3,K3] + DIFFK[I1,J,K1,I3,K3] #!= 1 %%% Transitivity constraint on DIFFK (C8')
+            end
+        end
+    end,
+    foreach(I1 in 1..R-1, J in 1..4, K1 in 1..4, I2 in 1..I1, K2 in 1..4, [I1,K1] @> [I2,K2])
+        DY[I1,J,K1] + DY[I2,J,K2] + DIFFY[I1,J,K1,I2,K2] #!= 1,        %%% Constraint relating DIFFY and DY variables (C9')
+        DZ[I1,J,K1] + DZ[I2,J,K2] + DIFFZ[I1,J,K1,I2,K2] #!= 1,        %%% Constraint relating DIFFZ and DZ variables (C9')
+        DIFFZ[I1,J,K1,I2,K2] = DIFFZ[I2,J,K2,I1,K1],                   %%% Symmetry constraint on DIFFZ (C7')
+        DIFFY[I1,J,K1,I2,K2] = DIFFY[I2,J,K2,I1,K1],                   %%% Symmetry constraint on DIFFY (C7')
+        DIFFK[I1+1,J,K1,I2+1,K2] + DIFFZ[I1,J,K1,I2,K2] + DX[I1+1,J,K1] + DX[I2+1,J,K2] #!= 1,
+        foreach(I3 in 1..I2, K3 in 1..4, [I2,K2] @> [I3,K3])
+            DIFFY[I1,J,K1,I2,K2] + DIFFY[I2,J,K2,I3,K3] + DIFFY[I1,J,K1,I3,K3] #!= 1, %%% Transitivity constraint on DIFFY (C8')
+            DIFFZ[I1,J,K1,I2,K2] + DIFFZ[I2,J,K2,I3,K3] + DIFFZ[I1,J,K1,I3,K3] #!= 1  %%% Transitivity constraint on DIFFZ (C8')
+        end
+    end,
+    foreach(I1 in 1..R-1, K1 in 1..4, I2 in I1..R-1, K2 in 1..4, [I2,K2] @> [I1,K1])
+        S2 :: [0,5,6,7,8],                                    %%% MDS property (C12')
+        sum([DIFFY[I1,J,K1,I2,K2] : J in 1..4]) + sum([DIFFZ[I1,J,K1,I2,K2] : J in 1..4]) #= S2
+    end,
+    foreach(XOR in LXor) %%% (C10' and C11')
+        xor(XOR,DK,DIFFK)
+    end,
+    sum([DX[I,J,K] : I in 1..R, J in 1..4, K in 1..4]) + sum([DK[I,J,K] : I in 1..R, J in 1..4, K in 4+1..4+nbSCol(KC,I)]) #= ObjStep1.
+
+sameXOR(A,B,[X|_]), membchk(A,X), membchk(B,X) => true.
+sameXOR(A,B,[_|L]) => sameXOR(A,B,L).
+sameXOR(A,B,C,[X|_]), membchk(A,X), membchk(B,X), membchk(C,X) => true.
+sameXOR(A,B,C,[_|L]) => sameXOR(A,B,C,L).
+
+buildXORlist(KC,R) = LXOR =>
+    LKS = [sort([[I,J,K] | xorKS(KC,I,J,K)]) : I in 2..R, J in 1..4, K in 1..4, not isInitialKey(KC,I,K)],
+    print("Number of initial XOR coming from KS = "), writeln(len(LKS)),
+    NewXOR = combineXOR(LKS,LKS),
+    print("Number of new XORs = "), writeln(len(NewXOR)),
+    LXOR3 = [X : X in NewXOR, len(X)==3] ++ LKS,
+    print("Number of XORs of length 3 = "),
+    writeln(len(LXOR3)),
+    LXOR4 = [X : X in NewXOR, len(X)==4],
+    print("Number of XORs of length 4 = "),
+    writeln(len(LXOR4)),
+    LXOR = LXOR3 ++ LXOR4.
+
+combineXOR([],_) = Lxor => Lxor = [].
+combineXOR(L1,L2) = Lxor =>
+    NewXOR = [],
+    foreach(X1 in L1, X2 in L2, X1 != X2)
+        X1X2 = merge(X1,X2),
+        if (len(X1X2)<min(len(X1)+len(X2),5), not membchk(X1X2,L2), not membchk(X1X2,NewXOR)) then
+            %write(X1), print(" + "), write(X2), print(" = "), writeln(X1X2),
+            NewXOR := [X1X2|NewXOR]
+        end
+    end,
+    print("    Number of new XOR = "), writeln(len(NewXOR)),
+    Lxor = NewXOR ++ combineXOR(NewXOR,NewXOR ++ L2).
+
+%%% merge(L1,L2) returns (L1 union L2) \ (L1 intersection L2)
+merge([],L2) = L3 => L3=L2.
+merge(L1,[]) = L3 => L3=L1.
+merge([X1|L1],[X2|L2]) = L3, X1 @< X2 => L3 = [X1|merge(L1,[X2|L2])].
+merge([X1|L1],[X2|L2]) = L3, X2 @< X1 => L3 = [X2|merge([X1|L1],L2)].
+merge([X|L1],[X|L2]) = L3 => L3 = merge(L1,L2).
+
+xor(L, DK, DIFF), L = [[IA,J,KA],[IB,J,KB],[IC,J,KC]] =>
+    DIFF[IA,J,KA,IB,KB] = DK[IC,J,KC],
+    DIFF[IA,J,KA,IC,KC] = DK[IB,J,KB],
+    DIFF[IB,J,KB,IC,KC] = DK[IA,J,KA].
+xor(L, _, DIFF), L = [[IA,J,KA],[IB,J,KB],[IC,J,KC],[ID,J,KD]] =>
+    DIFF[IA,J,KA,IB,KB] = DIFF[IC,J,KC,ID,KD],
+    DIFF[IA,J,KA,IC,KC] = DIFF[IB,J,KB,ID,KD],
+    DIFF[IA,J,KA,ID,KD] = DIFF[IB,J,KB,IC,KC].
+
+
+%%% xorKS(KC,I,J,K): KC = number of columns in the initial key (KC=4 for AES-128, 6 for AES-192 and 8 for AES-256)
+%%% precondition: K[I,J,K] is not a byte in the initial key
+%%% return L=[[I1,J1,K1],[I2,J2,K2]] such that K[I,J,K]=K[I1,J1,K1] xor K[I2,J2,K2]
+xorKS(4,I,J,1) = L => L = sort([[I-1,J,1],[I-1,J,5]]).           %%% DK[I,J,1] = DK[I-1,J,1] xor S(DK[I-1,(J mod 4)+1,4])
+xorKS(4,I,J,K) = L => L = [[I-1,J,K],[I,J,K-1]].                 %%% DK[I,J,K] = DK[I-1,J,K] xor DK[I,J,K-1]
+
+xorKS(6,I,J,2) = L => L=[[I-2,J,4],[I,J,1]].
+xorKS(6,I,J,4) = L => L=[[I-1,J,2],[I,J,3]].
+xorKS(6,I,J,1) = L, I mod 3 == 1 => L = [[I-2,J,3],[I-1,J,5]].  %xorKS(6,I,J,1) = L, I mod 3 == 1 => L = [[I-2,J,3],[I-1,1+(J mod 4),5]].
+xorKS(6,I,J,1) = L => L = [[I-2,J,3],[I-1,J,4]].
+xorKS(6,I,J,3) = L, I mod 3 == 2 => L = [[I-1,J,1],[I,J,5]].    %xorKS(6,I,J,3) = L, I mod 3 == 2 => L = [[I-1,J,1],[I,1+(J mod 4),5]].
+xorKS(6,I,J,3) = L => L = [[I-1,J,1],[I,J,2]].
+
+xorKS(8,I,J,1) = L, I mod 2 == 1 => L = [[I-2,J,1],[I-1,J,5]].  %xorKS(8,I,J,1) = L, I mod 2 == 1 => L = [[I-2,J,1],[I-1,1+(J mod 4),5]].
+xorKS(8,I,J,1) = L => L = [[I-2,J,1],[I-1,J,5]].
+xorKS(8,I,J,K) = L => L = [[I-2,J,K],[I,J,K-1]].
+
+%%% isSB(KC,I,K): KC = number of columns in the initial key (KC=4 for AES-128, 6 for AES-192 and 8 for AES-256)
+%%% succeeds if the bytes at column K / round I pass through S boxes
+isSB(4,_,4) => true.
+isSB(6,I,K), (4*(I-1)+K-1) mod 6  == 5 => true.
+isSB(8,I,4), I > 1 => true.
+
+%%% nbSCol(KC,I): KC = number of columns in the initial key (KC=4 for AES-128, 6 for AES-192 and 8 for AES-256)
+%%% return the number of key columns that pass through an Sbox during round I
+nbSCol(4, _) = N => N=1.
+nbSCol(6, I) = N, (I mod 3) == 0 => N=1.
+nbSCol(6, I) = N, (I mod 3) == 2 => N=1.
+nbSCol(6, _) = N => N=0.
+nbSCol(8, 1) = N => N=0.
+nbSCol(8, _) = N => N=1.
+
+%%% isInitialKey(KC,I,K) succeeds if column K at round I is the initial key when the number of columns in the initial key is KC
+isInitialKey(_,1,_) => true.
+isInitialKey(6,2,K), K <= 2 => true.
+isInitialKey(8,2,_) => true.
+
+
+
+
+
