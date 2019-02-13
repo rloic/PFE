@@ -93,7 +93,7 @@ combineXOR(L1,L2) = Lxor =>
             NewXOR := [X1X2|NewXOR]
         end
     end,
-    print("   [CombineXOR] Number of new XOR = "), writeln(len(NewXOR)),
+    print("   [CombineXOR] Number of new XOR = "), writeln(len(NewXOR)), println("----------"), writeln(NewXOR), println("----------"),
     Lxor = NewXOR ++ combineXOR(NewXOR,NewXOR ++ L2).
 
 %%% merge(L1,L2) returns (L1 union L2) \ (L1 intersection L2)
@@ -149,6 +149,7 @@ nbSCol(8, _) = N => N=1.
 isInitialKey(_,1,_) => true.
 isInitialKey(6,2,K), K <= 2 => true.
 isInitialKey(8,2,_) => true.
+
 
 
 
