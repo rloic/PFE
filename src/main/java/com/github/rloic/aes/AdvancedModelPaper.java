@@ -9,6 +9,8 @@ import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,18 +40,21 @@ public class AdvancedModelPaper {
         this.r = r;
         this.KEY_BITS = keyBits;
 
-        BoolVar[][][] ΔX = buildΔ(r, 4, 4);
-        BoolVar[][][] ΔZ = buildΔ(r, 4, 4);
-        BoolVar[][][] ΔK = buildΔK(r, 4, 5);
-
-        sBoxes = c1(ΔX, ΔK, objStep1);
-        c2();
+        BoolVar[][][] ΔX = buildΔX(r, 4, 4);
         BoolVar[][][] ΔY = c4(ΔX); // C'4 shift rows
+        BoolVar[][][] ΔZ = c6(ΔY);
+        BoolVar[][][] ΔK = buildΔK(r, 4, 5);
+        sBoxes = c1(ΔX, ΔK, objStep1);
+
+        c2();
         c3(ΔZ, ΔK, ΔX);
         c5(ΔY, ΔZ);
-        c6(ΔY, ΔZ);
 
         MathSet<XOREquation> xorEql = xorEq();
+        if (Logger.isDebug()) {
+            check(xorEql);
+        }
+
         BoolVar[][][][][] diffK = c7DiffK();
         BoolVar[][][][][] diffY = c7DiffY();
         BoolVar[][][][][] diffZ = c7DiffZ();
@@ -60,33 +65,31 @@ public class AdvancedModelPaper {
         c13(diffK, diffZ, ΔX);
     }
 
-    private BoolVar[][][] buildΔ(int r, int rows, int columns) {
+    private BoolVar[][][] buildΔX(int r, int rows, int columns) {
         BoolVar[][][] result = new BoolVar[r][][];
         for (int i = 0; i < r; i++) result[i] = m.boolVarMatrix(rows, columns);
         return result;
     }
 
     private BoolVar[][][] buildΔK(int r, int rows, int columns) {
-        BoolVar[][][] result = buildΔ(r, rows, columns);
-       /* for (int i = 0; i < r; i++) {
+        BoolVar[][][] result = new BoolVar[r][rows][columns];
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < rows; j++) {
+                for (int k = 0; k < columns - 1; k++) {
+                    result[i][j][k] = m.boolVar();
+                }
+            }
+        }
+        for (int i = 0; i < r; i++) {
             for (int j = 0; j < rows; j++) {
                 if (KEY_BITS.isSBRound(i)) {
-                    if (KEY_BITS != AES_256 || i % 2 == 1) {
-                        m.arithm(result[i][j][4], "=", result[i][(j + 1) % 4][getNbCol(i)]).post();
+                    if (KEY_BITS == AES_256 && i % 2 == 0) {
+                        result[i][j][4] = result[i][j][getNbCol(i)];
                     } else {
-                        m.arithm(result[i][j][4], "=", result[i][j][getNbCol(i)]).post();
+                        result[i][j][4] = result[i][(j + 1) % 4][getNbCol(i)];
                     }
-                } else {
-                    m.arithm(result[i][j][4], "=", 0).post();
                 }
-
             }
-        }*/
-        for (int i = 0; i < r; i++) {
-            m.arithm(result[i][0][3], "=", result[i][3][4]).post();
-            m.arithm(result[i][1][3], "=", result[i][0][4]).post();
-            m.arithm(result[i][2][3], "=", result[i][1][4]).post();
-            m.arithm(result[i][3][3], "=", result[i][2][4]).post();
         }
         return result;
     }
@@ -120,7 +123,7 @@ public class AdvancedModelPaper {
                 }
             }
         }
-        for (int i = 0; i < r - 1; i++) {
+        for (int i = 0; i <= r - 1; i++) {
             for (int j = 0; j <= 3; j++) {
                 if (KEY_BITS.isSBRound(i)) {
                     sBoxesList.add(ΔK[i][j][4]);
@@ -180,19 +183,25 @@ public class AdvancedModelPaper {
         }
     }
 
-    private void c6(BoolVar[][][] ΔY, BoolVar[][][] ΔZ) {
+    private BoolVar[][][] c6(BoolVar[][][] ΔY) {
+        BoolVar[][][] ΔZ = new BoolVar[r][4][4];
         // ∀j, k ∈ [0, 3]
         for (int j = 0; j <= 3; j++) {
             for (int k = 0; k <= 3; k++) {
+                for (int i = 0; i <= r - 2; i++) {
+                    ΔZ[i][j][k] = m.boolVar();
+                }
                 // C6: ∆Z[r−1][j][k] = ∆Y[r−1][j][k]
-                m.arithm(ΔZ[r - 1][j][k], "=", ΔY[r - 1][j][k]).post();
+                ΔZ[r - 1][j][k] = ΔY[r - 1][j][k];
             }
         }
+        return ΔZ;
     }
 
     // C'7 diffK
     private BoolVar[][][][][] c7DiffK() {
         BoolVar[][][][][] diffK = new BoolVar[4][r][5][r][5];
+        // j ∈ [0, 3] i ∈ [0, r - 1], k ∈ [0, 3 + 1] pour δSK
         for (int j = 0; j <= 3; j++) {
             for (int i1 = 0; i1 <= r - 1; i1++) {
                 for (int k1 = 0; k1 <= 4; k1++) {
@@ -243,6 +252,7 @@ public class AdvancedModelPaper {
             BoolVar[][][] ΔK,
             MathSet<XOREquation> xorEq
     ) {
+        // j ∈ [0, 3] i ∈ [0, r - 1], k ∈ [0, 3 + 1] pour δSK
         for (int j = 0; j <= 3; j++) {
             for (int i1 = 0; i1 <= r - 1; i1++) {
                 for (int k1 = 0; k1 <= 4; k1++) {
@@ -251,20 +261,23 @@ public class AdvancedModelPaper {
                         for (int k2 = k2Init; k2 <= 4; k2++) {
                             BytePosition B1 = new BytePosition(i1, j, k1);
                             BytePosition B2 = new BytePosition(i2, j, k2);
+                            if(sameXor(xorEq, B1, B2)) {
 
-                            //C'9: diff(δB_{1},δB_{2}) + ∆B_{1} + ∆B_{2} != 1
-                            BoolVar diff_δ1_δ2 = diffOf(diffK, B1, B2);
-                            m.sum(arrayOf(diff_δ1_δ2, deltaOf(ΔK, B1), deltaOf(ΔK, B2)), "!=", 1).post();
+                                //C'9: diff(δB_{1},δB_{2}) + ∆B_{1} + ∆B_{2} != 1
+                                BoolVar diff_δ1_δ2 = diffOf(diffK, B1, B2);
+                                m.sum(arrayOf(diff_δ1_δ2, deltaOf(ΔK, B1), deltaOf(ΔK, B2)), "!=", 1).post();
 
-                            for (int i3 = i2; i3 < r - 1; i3++) {
-                                int k3Init = (i2 == i3) ? k2 + 1 : 0;
-                                for (int k3 = k3Init; k3 <= 4; k3++) {
-                                    BytePosition B3 = new BytePosition(i3, j, k3);
-
-                                    // C'8 diffK: diff(δB1,δB2) + diff(δB2,δB3) + diff(δB1,δB3) != 1
-                                    BoolVar diff_δ2_δ3 = diffOf(diffK, B2, B3);
-                                    BoolVar diff_δ1_δ3 = diffOf(diffK, B1, B3);
-                                    m.sum(arrayOf(diff_δ1_δ2, diff_δ2_δ3, diff_δ1_δ3), "!=", 1).post();
+                                for (int i3 = i2; i3 < r - 1; i3++) {
+                                    int k3Init = (i2 == i3) ? k2 + 1 : 0;
+                                    for (int k3 = k3Init; k3 <= 4; k3++) {
+                                        BytePosition B3 = new BytePosition(i3, j, k3);
+                                        if(sameXor(xorEq, B1, B2, B3)) {
+                                            // C'8 diffK: diff(δB1,δB2) + diff(δB2,δB3) + diff(δB1,δB3) != 1
+                                            BoolVar diff_δ2_δ3 = diffOf(diffK, B2, B3);
+                                            BoolVar diff_δ1_δ3 = diffOf(diffK, B1, B3);
+                                            m.sum(arrayOf(diff_δ1_δ2, diff_δ2_δ3, diff_δ1_δ3), "!=", 1).post();
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -499,11 +512,9 @@ public class AdvancedModelPaper {
     private boolean sameXor(MathSet<XOREquation> xorEq, BytePosition... coordinates) {
         List<BytePosition> checkedCoordinates = Arrays.asList(coordinates);
         for (XOREquation eq : xorEq) {
-            if(checkedCoordinates.stream().anyMatch(c -> !eq.contains(c))) {
-                return false;
-            }
+            if (eq.containsAll(checkedCoordinates)) return true;
         }
-        return true;
+        return false;
     }
 
     private BoolVar diffOf(BoolVar[][][][][] diff, BytePosition B1, BytePosition B2) {
@@ -516,5 +527,41 @@ public class AdvancedModelPaper {
         return Δ[B.i][B.j][B.k];
     }
 
+    private void check(MathSet<XOREquation> xorEq) {
+        int KC = 0;
+        if (KEY_BITS == AES_128) KC = 4;
+        if (KEY_BITS == AES_192) KC = 6;
+        if (KEY_BITS == AES_256) KC = 8;
 
+        String[] xorEqStrings = new String[xorEq.size()];
+        int i = 0;
+        for (XOREquation eq : xorEq) {
+            XOREquation picatEq = new XOREquation();
+            for (BytePosition bPos : eq) {
+                picatEq.add(bPos.javaToPicat());
+            }
+            xorEqStrings[i++] = picatEq.toString().replace(" ", "");
+        }
+        Arrays.sort(xorEqStrings);
+
+        try {
+            Process picatBuildXorList = Runtime.getRuntime().exec("/opt/Picat/picat picat/build_xor_list.pi " + KC + " " + r);
+            StringBuilder content = new StringBuilder();
+            InputStream is = picatBuildXorList.getInputStream();
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = is.read(buffer)) != -1) {
+                content.append(new String(buffer, 0, len));
+            }
+            String[] picatTuples = content.toString().split("\n");
+            Arrays.sort(picatTuples);
+            if( Arrays.deepEquals(xorEqStrings, picatTuples) ) {
+                Logger.debug("Generated XORs == Picat BuildXORList");
+            } else {
+                Logger.warn("Generated XORs != Picat BuildXORList: false");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

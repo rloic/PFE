@@ -8,9 +8,11 @@ import org.chocosolver.solver.exception.SolverException;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.github.rloic.Logger.DebugLogger.DEBUG;
+import static com.github.rloic.Logger.TraceLogger.TRACE;
 import static com.github.rloic.aes.KeyBits.AES128.AES_128;
 import static com.github.rloic.aes.KeyBits.AES192.AES_192;
 import static com.github.rloic.aes.KeyBits.AES256.AES_256;
@@ -20,13 +22,6 @@ public class App {
     private static final int DEFAULT_ROUND = 3;
     private static final int DEFAULT_OBJ_STEP_1 = 5;
     private static final KeyBits DEFAULT_VERSION = AES_128;
-
-    private static boolean any(String[] strArray, String content) {
-        for (String strA : strArray) {
-            if (strA.equals(content)) return true;
-        }
-        return false;
-    }
 
     public static void main(String[] args) {
         Logger.level(DEBUG);
@@ -82,6 +77,7 @@ public class App {
                 formatter.printHelp(" ", options);
             }
         } catch (Exception e) {
+            e.printStackTrace();
             Logger.err(e);
         }
     }
@@ -108,11 +104,10 @@ public class App {
 
 
     private static void printSBoxes(BoolVar[] sBoxes) {
-        StringBuilder solution = new StringBuilder("Solution:\t");
-        for (int i = 0; i < sBoxes.length; i++) {
-                solution.append(sBoxes[i].getValue()+ ",");
-        }
-        Logger.info(solution);
+        List<Integer> values = Arrays.stream(sBoxes)
+                .map(IntVar::getValue)
+                .collect(Collectors.toList());
+        Logger.info("Solution: " + values);
     }
 
 }

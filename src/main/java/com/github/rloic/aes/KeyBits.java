@@ -23,8 +23,6 @@ public abstract class KeyBits {
 
     abstract int getNbCol(int i);
 
-    abstract boolean isSBOutput(int i, int k);
-
     public static class AES128 extends KeyBits {
 
         public final static AES128 AES_128 = new AES128();
@@ -64,11 +62,6 @@ public abstract class KeyBits {
 
         @Override
         boolean isSBRound(int i) {
-            return true;
-        }
-
-        @Override
-        boolean isSBOutput(int i, int k) {
             return true;
         }
 
@@ -133,11 +126,6 @@ public abstract class KeyBits {
         }
 
         @Override
-        boolean isSBOutput(int i, int k) {
-            return  (4 * i + k) % 6 == 5;
-        }
-
-        @Override
         public String toString() {
             return "AES-192";
         }
@@ -185,11 +173,6 @@ public abstract class KeyBits {
         @Override
         int getNbCol(int i) {
             return 3;
-        }
-
-        @Override
-        boolean isSBOutput(int i, int k) {
-            return i > 0;
         }
 
         @Override

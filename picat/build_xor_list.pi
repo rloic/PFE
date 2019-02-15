@@ -1,0 +1,52 @@
+main([A1, A2]) =>
+    foreach(Line in buildXORList(A1.to_integer(), A2.to_integer()))
+        writeln(Line),
+    end.
+
+buildXORList(KC,R) = LXOR =>
+    LKS = [sort([[I,J,K] | xorKS(KC,I,J,K)]) : I in 2..R, J in 1..4, K in 1..4, not isInitialKey(KC,I,K)],
+    NewXOR = combineXOR(LKS,LKS),
+    LXOR3 = [X : X in NewXOR, len(X)==3] ++ LKS,
+    LXOR4 = [X : X in NewXOR, len(X)==4],
+    LXOR = LXOR3 ++ LXOR4.
+
+%%% xorKS(KC,I,J,K): KC = number of columns in the initial key (KC=4 for AES-128, 6 for AES-192 and 8 for AES-256)
+%%% precondition: K[I,J,K] is not a byte in the initial key
+%%% return L=[[I1,J1,K1],[I2,J2,K2]] such that K[I,J,K]=K[I1,J1,K1] xor K[I2,J2,K2]
+xorKS(4,I,J,1) = L => L = sort([[I-1,J,1],[I-1,J,5]]).           %%% DK[I,J,1] = DK[I-1,J,1] xor S(DK[I-1,(J mod 4)+1,4])
+xorKS(4,I,J,K) = L => L = [[I-1,J,K],[I,J,K-1]].                 %%% DK[I,J,K] = DK[I-1,J,K] xor DK[I,J,K-1]
+
+xorKS(6,I,J,2) = L => L=[[I-2,J,4],[I,J,1]].
+xorKS(6,I,J,4) = L => L=[[I-1,J,2],[I,J,3]].
+xorKS(6,I,J,1) = L, I mod 3 == 1 => L = [[I-2,J,3],[I-1,J,5]].  %xorKS(6,I,J,1) = L, I mod 3 == 1 => L = [[I-2,J,3],[I-1,1+(J mod 4),5]].
+xorKS(6,I,J,1) = L => L = [[I-2,J,3],[I-1,J,4]].
+xorKS(6,I,J,3) = L, I mod 3 == 2 => L = [[I-1,J,1],[I,J,5]].    %xorKS(6,I,J,3) = L, I mod 3 == 2 => L = [[I-1,J,1],[I,1+(J mod 4),5]].
+xorKS(6,I,J,3) = L => L = [[I-1,J,1],[I,J,2]].
+
+xorKS(8,I,J,1) = L, I mod 2 == 1 => L = [[I-2,J,1],[I-1,J,5]].  %xorKS(8,I,J,1) = L, I mod 2 == 1 => L = [[I-2,J,1],[I-1,1+(J mod 4),5]].
+xorKS(8,I,J,1) = L => L = [[I-2,J,1],[I-1,J,5]].
+xorKS(8,I,J,K) = L => L = [[I-2,J,K],[I,J,K-1]].
+
+%%% merge(L1,L2) returns (L1 union L2) \ (L1 intersection L2)
+merge([],L2) = L3 => L3=L2.
+merge(L1,[]) = L3 => L3=L1.
+merge([H1|T1],[H2|T2]) = L3, H1 @< H2 => L3 = [H1|merge(T1,[H2|T2])].
+merge([H1|T1],[H2|T2]) = L3, H2 @< H1 => L3 = [H2|merge([H1|T1],T2)].
+merge([H|T1],[H|T2]) = L3 => L3 = merge(T1,T2).
+
+combineXOR([],_) = Lxor => Lxor = [].
+combineXOR(L1,L2) = Lxor =>
+    NewXOR = [],
+    foreach(X1 in L1, X2 in L2, X1 != X2)
+        X1X2 = merge(X1,X2),
+        if (len(X1X2)<min(len(X1)+len(X2),5), not membchk(X1X2,L2), not membchk(X1X2,NewXOR)) then
+            %write(X1), print(" + "), write(X2), print(" = "), writeln(X1X2),
+            NewXOR := [X1X2|NewXOR]
+        end
+    end,
+    Lxor = NewXOR ++ combineXOR(NewXOR,NewXOR ++ L2).
+
+%%% isInitialKey(KC,I,K) succeeds if column K at round I is the initial key when the number of columns in the initial key is KC
+isInitialKey(_,1,_) => true.
+isInitialKey(6,2,K), K <= 2 => true.
+isInitialKey(8,2,_) => true.
