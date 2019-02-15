@@ -103,7 +103,7 @@ public abstract class Logger {
 
         @Override
         final protected void _err(Object o) {
-            System.out.println("[" + ANSI_ERROR + "err" + ANSI_RESET + "]\t" + o);
+            System.out.println(ANSI_ERROR + "[error]\t" + o + ANSI_RESET);
         }
 
         @Override
@@ -121,7 +121,7 @@ public abstract class Logger {
 
         @Override
         final protected void _warn(Object o) {
-            System.out.println("[" + ANSI_WARN + "warn" + ANSI_RESET + "]\t" + o);
+            System.out.println(ANSI_WARN + "[warn]\t" + o + ANSI_RESET);
         }
 
         @Override
@@ -138,7 +138,7 @@ public abstract class Logger {
 
         @Override
         final protected void _info(Object o) {
-            System.out.println("[" + ANSI_INFO + "info" + ANSI_RESET + "]\t" + o);
+            System.out.println(ANSI_INFO + "[info]\t" + o + ANSI_RESET);
         }
 
         @Override
@@ -155,7 +155,7 @@ public abstract class Logger {
 
         @Override
         final protected void _debug(Object o) {
-            System.out.println("[" + ANSI_DEBUG + "debug" + ANSI_RESET + "]\t" + o);
+            System.out.println(ANSI_DEBUG + "[debug]\t" + o + ANSI_RESET);
         }
 
         @Override
@@ -173,7 +173,7 @@ public abstract class Logger {
 
         @Override
         final protected void _trace(Object o) {
-            System.out.println("[" + ANSI_TRACE + "trace" + ANSI_RESET + "]\t" + o);
+            System.out.println(ANSI_TRACE + "[trace]\t" + o + ANSI_RESET);
         }
 
         @Override

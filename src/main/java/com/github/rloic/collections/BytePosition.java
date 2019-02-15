@@ -1,12 +1,12 @@
 package com.github.rloic.collections;
 
-public class Coordinates {
+public class BytePosition {
 
     public final int i;
     public final int j;
     public final int k;
 
-    public Coordinates(int i, int j, int k) {
+    public BytePosition(int i, int j, int k) {
         this.i = i;
         this.j = j;
         this.k = k;
@@ -15,19 +15,19 @@ public class Coordinates {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Coordinates)) return false;
-        Coordinates tuple = (Coordinates) o;
+        if (!(o instanceof BytePosition)) return false;
+        BytePosition tuple = (BytePosition) o;
         return i == tuple.i &&
                 j == tuple.j &&
                 k == tuple.k;
     }
 
-    public Coordinates picatToJava() {
-        return new Coordinates(i - 1, j - 1, k - 1);
+    public BytePosition picatToJava() {
+        return new BytePosition(i - 1, j - 1, k - 1);
     }
 
-    public Coordinates javaToPicat() {
-        return new Coordinates(i + 1, j + 1, k + 1);
+    public BytePosition javaToPicat() {
+        return new BytePosition(i + 1, j + 1, k + 1);
     }
 
     @Override

@@ -16,6 +16,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     compile group: 'org.choco-solver', name: 'choco-solver', version: '4.10.0'
     compile "it.unimi.dsi:fastutil:8.2.2"
+    compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.4.0'
 }
 

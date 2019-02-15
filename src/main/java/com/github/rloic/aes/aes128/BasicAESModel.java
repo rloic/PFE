@@ -18,6 +18,7 @@ class BasicAESModel extends Model {
 
     private final int r;
     private static final int NB_BYTES = 4;
+    public final BoolVar[] sBoxes;
 
     public BasicAESModel(int rounds, int objStep1) {
         super("Basic AES Model(r=" + rounds + ", objStep1=" + objStep1 + ")");
@@ -26,7 +27,7 @@ class BasicAESModel extends Model {
         BoolVar[][][] ΔZ = createRoundVariables();
         BoolVar[][][] ΔK = createRoundVariables();
         BoolVar[][][] ΔY = shiftRows(ΔX); // C4
-        BoolVar[] sBoxes = linkSBoxes(ΔX, ΔK);
+        sBoxes = linkSBoxes(ΔX, ΔK);
 
         numberOfActiveSBoxes(sBoxes, objStep1); // C1
         subBytes(); // C2
@@ -54,10 +55,8 @@ class BasicAESModel extends Model {
             for (int j = 0; j < 4; j++) {
                 for (int k = 0; k < 4; k++) {
                     sBoxes[cpt++] = ΔX[i][j][k];
-                    if (k == 3) {
-                        sBoxes[cpt++] = ΔK[i][j][k];
-                    }
                 }
+                sBoxes[cpt++] = ΔK[i][j][3];
             }
         }
         return sBoxes;

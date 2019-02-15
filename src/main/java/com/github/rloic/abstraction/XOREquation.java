@@ -1,19 +1,18 @@
 package com.github.rloic.abstraction;
 
-import com.github.rloic.collections.Coordinates;
+import com.github.rloic.collections.BytePosition;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Set;
 
 import static com.github.rloic.collections.LexComparator.LEX_COMPARATOR;
 
-public class XOREquation extends MathSet<Coordinates> {
+public class XOREquation extends MathSet<BytePosition> {
 
     public XOREquation() {}
 
-    public XOREquation(Coordinates... elements) {
+    public XOREquation(BytePosition... elements) {
         addAll(Arrays.asList(elements));
     }
 
@@ -21,7 +20,7 @@ public class XOREquation extends MathSet<Coordinates> {
         super(origin);
     }
 
-    public XOREquation(@NotNull Collection<? extends Coordinates> c) {
+    public XOREquation(@NotNull Collection<? extends BytePosition> c) {
         super(c);
     }
 
@@ -49,12 +48,12 @@ public class XOREquation extends MathSet<Coordinates> {
      */
     public XOREquation merge(XOREquation other) {
         XOREquation mergeEq = new XOREquation();
-        for (Coordinates tuple : this) {
+        for (BytePosition tuple : this) {
             if (!other.contains(tuple)) {
                 mergeEq.add(tuple);
             }
         }
-        for (Coordinates tuple : other) {
+        for (BytePosition tuple : other) {
             if (!contains(tuple)) {
                 mergeEq.add(tuple);
             }

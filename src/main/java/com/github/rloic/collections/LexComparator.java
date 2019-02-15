@@ -2,14 +2,14 @@ package com.github.rloic.collections;
 
 import java.util.Comparator;
 
-public class LexComparator implements Comparator<Coordinates> {
+public class LexComparator implements Comparator<BytePosition> {
 
     public static final LexComparator LEX_COMPARATOR = new LexComparator();
 
     private LexComparator() {}
 
     @Override
-    public int compare(Coordinates a, Coordinates b) {
+    public int compare(BytePosition a, BytePosition b) {
         if (a.i != b.i) return a.i - b.i;
         if (a.j != b.j) return a.j - b.j;
         return a.k - b.k;
@@ -17,10 +17,10 @@ public class LexComparator implements Comparator<Coordinates> {
 
     public static void main(String[] args) {
 
-        Coordinates a = new Coordinates(1, 1, 1);
-        Coordinates b = new Coordinates(1, 2, 1);
-        Coordinates c = new Coordinates(1, 1, 2);
-        Coordinates d = new Coordinates(3, 1, 1);
+        BytePosition a = new BytePosition(1, 1, 1);
+        BytePosition b = new BytePosition(1, 2, 1);
+        BytePosition c = new BytePosition(1, 1, 2);
+        BytePosition d = new BytePosition(3, 1, 1);
 
         System.out.println(LEX_COMPARATOR.compare(a, a)); //  0
         System.out.println(LEX_COMPARATOR.compare(a, b)); // -1

@@ -1,90 +1,118 @@
 package com.github.rloic;
 
-import com.github.rloic.aes.AESBlock;
-import com.github.rloic.aes.AdvancedAESModel;
-import com.github.rloic.aes.aes128.BasicAESModel;
+import com.github.rloic.aes.*;
+import org.apache.commons.cli.*;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
+import org.chocosolver.solver.exception.SolverException;
+import org.chocosolver.solver.variables.BoolVar;
+import org.chocosolver.solver.variables.IntVar;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import static com.github.rloic.Logger.DebugLogger.DEBUG;
-import static com.github.rloic.Logger.InfoLogger.INFO;
-import static com.github.rloic.Logger.TraceLogger.TRACE;
-import static com.github.rloic.Logger.WarnLogger.WARN;
-import static com.github.rloic.aes.AESBlock.AESBlock128.AES_BLOCK_128;
-import static com.github.rloic.aes.AESBlock.AESBlock192.AES_BLOCK_192;
-import static com.github.rloic.aes.AESBlock.AESBlock256.AES_BLOCK_256;
+import static com.github.rloic.aes.KeyBits.AES128.AES_128;
+import static com.github.rloic.aes.KeyBits.AES192.AES_192;
+import static com.github.rloic.aes.KeyBits.AES256.AES_256;
 
 public class App {
 
     private static final int DEFAULT_ROUND = 3;
-    private static final int DEFAULT_OBJ_STEP_1 = 3;
-    private static final AESBlock DEFAULT_BLOCK = AES_BLOCK_128;
+    private static final int DEFAULT_OBJ_STEP_1 = 5;
+    private static final KeyBits DEFAULT_VERSION = AES_128;
 
     private static boolean any(String[] strArray, String content) {
-        for(String strA : strArray) {
+        for (String strA : strArray) {
             if (strA.equals(content)) return true;
         }
         return false;
     }
 
     public static void main(String[] args) {
+        Logger.level(DEBUG);
+        try {
 
-        if (any(args, "--debug")) {
-            Logger.level(DEBUG);
-        } else if (any(args, "--trace")) {
-            Logger.level(TRACE);
-        } else {
-            Logger.level(INFO);
-        }
+            Options options = new Options();
+            Option solve = Option.builder()
+                    .longOpt("solve")
+                    .argName("ROUNDS> <NB ACTIVE S-BOXES> <AES-VERSION")
+                    .desc("Solve the problem with given arguments")
+                    .numberOfArgs(3)
+                    .valueSeparator(' ')
+                    .build();
 
-        int rounds = (args.length >= 2) ? Integer.valueOf(args[0]) : DEFAULT_ROUND;
-        int objStep1 = (args.length >= 2) ? Integer.valueOf(args[1]) : DEFAULT_OBJ_STEP_1;
-        AESBlock block = DEFAULT_BLOCK;
-        if (args.length >= 3) {
-            switch (args[2]) {
-                case "AES-128":
-                    // default do nothing
-                    break;
-                case "AES-192":
-                    block = AES_BLOCK_192;
-                    break;
-                case "AES-256":
-                    block = AES_BLOCK_256;
-                    break;
-                default:
-                    throw new RuntimeException("Invalid AES version, expected [AES-128, AES-192, AES-256], given: " + args[2]);
+            options.addOption("h", "help", false, "print the help");
+            options.addOption(solve);
+            HelpFormatter formatter = new HelpFormatter();
+            try {
+                CommandLineParser parser = new DefaultParser();
+                CommandLine commandLine = parser.parse(options, args);
+                if (commandLine.hasOption("h")) {
+                    formatter.printHelp(" ", options);
+                } else {
+                    if (commandLine.hasOption("solve")) {
+                        String[] arguments = commandLine.getOptionValues("solve");
+
+                        int rounds = Integer.valueOf(arguments[0]);
+                        int objStep1 = Integer.valueOf(arguments[1]);
+                        String aesVersion = arguments[2];
+
+                        KeyBits version;
+                        switch (aesVersion) {
+                            case "AES-128":
+                                version = AES_128;
+                                break;
+                            case "AES-192":
+                                version = AES_192;
+                                break;
+                            case "AES-256":
+                                version = AES_256;
+                                break;
+                            default:
+                                throw new IllegalArgumentException("Invalid parameter AES-Version, accepted: [AES-128, AES-192, AES-256], given: " + aesVersion);
+                        }
+
+                        AdvancedModelPaper model = new AdvancedModelPaper(rounds, objStep1, version);
+                        benchModel(model.m, model.sBoxes, objStep1);
+                    } else {
+                        formatter.printHelp(" ", options);
+                    }
+                }
+            } catch (ParseException e) {
+                formatter.printHelp(" ", options);
             }
+        } catch (Exception e) {
+            Logger.err(e);
         }
-
-        if (args.length < 2) {
-            Logger.info("\n" +
-                    "***********************************************************************************************************\n" +
-                    "Usage: java -jar file.jar [rounds] [objStep] [aes-version]\n" +
-                    "  rounds\t[default=" + DEFAULT_ROUND + "]\t\t| Valid values: [0..10] for AES-128, [0..12] for AES-192, [0..14] for AES-256\n" +
-                    "  objStep\t[default=" + DEFAULT_OBJ_STEP_1 + "]\n" +
-                    "  aes-version\t[default=" + DEFAULT_BLOCK + "]\t| Valid values: [AES-128, AES-192, AES-256]\n" +
-                    "***********************************************************************************************************"
-            );
-        }
-
-        Logger.info("Rounds: " + rounds);
-        Logger.info("ObjStep1: " + objStep1);
-        Logger.info("Block: " + block);
-
-        AdvancedAESModel advancedModel = new AdvancedAESModel(rounds, objStep1, block);
-        benchModel(advancedModel);
-
-        BasicAESModel basicModel = new BasicAESModel(rounds, objStep1);
-        benchModel(basicModel);
     }
 
-    private static void benchModel(Model model) {
+    private static void benchModel(Model model, BoolVar[] sBoxes, int objStep1) {
+        long start = System.currentTimeMillis();
         Solver solver = model.getSolver();
-        //noinspection StatementWithEmptyBody
-        while (solver.solve()) {
+        EnumFilter enumFilter = new EnumFilter(model, sBoxes, objStep1);
+        solver.plugMonitor(enumFilter);
+        try {
+            //noinspection StatementWithEmptyBody
+            while (solver.solve()) {
+                //solver.printShortStatistics();
+                printSBoxes(sBoxes);
+            }
+        } catch (SolverException s) {
+            Logger.warn(s);
         }
+
         solver.printShortStatistics();
+        long end = System.currentTimeMillis();
+        Logger.info("CPU Time: " + (end - start) + " ms");
     }
 
+
+    private static void printSBoxes(BoolVar[] sBoxes) {
+        StringBuilder solution = new StringBuilder("Solution:\t");
+        for (int i = 0; i < sBoxes.length; i++) {
+                solution.append(sBoxes[i].getValue()+ ",");
+        }
+        Logger.info(solution);
+    }
 
 }
