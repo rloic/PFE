@@ -19,7 +19,7 @@ public class AssignableComparison implements Comparator<XOREquation> {
 
     @Override
     public int compare(XOREquation lhs, XOREquation rhs) {
-        return -Integer.compare(assignedValues(lhs), assignedValues(rhs));
+        return Integer.compare(assignedValues(lhs), assignedValues(rhs));
     }
 
 
@@ -39,4 +39,19 @@ public class AssignableComparison implements Comparator<XOREquation> {
         }
         return assigned;
     }
+
+    public void insertionSort(List<XOREquation> equations) {
+        int n = equations.size();
+        for(int i = 1; i < n; i++) {
+            XOREquation key = equations.get(i);
+            int j = i;
+            while (j > 0 && compare(equations.get(j - 1), key) > 0) {
+                equations.set(j, equations.get(j - 1));
+                j = j - 1;
+            }
+            equations.set(j, key);
+        }
+    }
+
+
 }

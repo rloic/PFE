@@ -12,7 +12,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.github.rloic.Logger.DebugLogger.DEBUG;
+import static com.github.rloic.Logger.ErrorLogger.ERROR;
+import static com.github.rloic.Logger.InfoLogger.INFO;
 import static com.github.rloic.Logger.TraceLogger.TRACE;
+import static com.github.rloic.Logger.WarnLogger.WARN;
 import static com.github.rloic.aes.KeyBits.AES128.AES_128;
 import static com.github.rloic.aes.KeyBits.AES192.AES_192;
 import static com.github.rloic.aes.KeyBits.AES256.AES_256;
@@ -37,11 +40,31 @@ public class App {
                     .build();
 
             options.addOption("h", "help", false, "print the help");
+            options.addOption("l", "logger", true, "set the logger level");
             options.addOption(solve);
             HelpFormatter formatter = new HelpFormatter();
             try {
                 CommandLineParser parser = new DefaultParser();
                 CommandLine commandLine = parser.parse(options, args);
+
+                if (commandLine.hasOption("logger")) {
+                    String loggerLevel = commandLine.getOptionValue("logger");
+                    if (loggerLevel.equalsIgnoreCase("error")) {
+                        Logger.level(ERROR);
+                    } else if (loggerLevel.equalsIgnoreCase("warn")) {
+                        Logger.level(WARN);
+                    } else if (loggerLevel.equalsIgnoreCase("info")) {
+                        Logger.level(INFO);
+                    } else if (loggerLevel.equalsIgnoreCase("debug")) {
+                        Logger.level(DEBUG);
+                    } else if (loggerLevel.equalsIgnoreCase("trace")) {
+                        Logger.level(TRACE);
+                    } else {
+                        Logger.level(ERROR);
+                        throw new IllegalArgumentException("Invalid logger level, accepted: [ERROR, WARN, INFO, DEBUG, TRACE], given: '" + loggerLevel + "'");
+                    }
+                }
+
                 if (commandLine.hasOption("h")) {
                     formatter.printHelp(" ", options);
                 } else {
@@ -64,7 +87,7 @@ public class App {
                                 version = AES_256;
                                 break;
                             default:
-                                throw new IllegalArgumentException("Invalid parameter AES-Version, accepted: [AES-128, AES-192, AES-256], given: " + aesVersion);
+                                throw new IllegalArgumentException("Invalid parameter AES-Version, accepted: [AES-128, AES-192, AES-256], given: '" + aesVersion + "'");
                         }
 
                         AdvancedModelPaper model = new AdvancedModelPaper(rounds, objStep1, version);
@@ -96,10 +119,9 @@ public class App {
         } catch (SolverException s) {
             Logger.warn(s);
         }
-
-        solver.printShortStatistics();
         long end = System.currentTimeMillis();
         Logger.info("CPU Time: " + (end - start) + " ms");
+        solver.printShortStatistics();
     }
 
 

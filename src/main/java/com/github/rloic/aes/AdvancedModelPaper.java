@@ -407,12 +407,12 @@ public class AdvancedModelPaper {
             c10(diffK, ΔK, elements.get(0), elements.get(1), elements.get(2));
         }
 
-        Comparator<XOREquation> cmp = new AssignableComparison(diffK);
+        AssignableComparison cmp = new AssignableComparison(diffK);
         eqSize4.sort(cmp);
         while (!eqSize4.isEmpty()) {
-            List<BytePosition> head = new ArrayList<>(eqSize4.remove(0));
+            List<BytePosition> head = new ArrayList<>(eqSize4.remove(eqSize4.size() - 1));
             c11(diffK, head.get(0), head.get(1), head.get(2), head.get(3));
-            eqSize4.sort(cmp);
+            cmp.insertionSort(eqSize4);
         }
     }
 
