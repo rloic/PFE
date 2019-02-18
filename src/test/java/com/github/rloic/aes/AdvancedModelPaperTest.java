@@ -40,6 +40,11 @@ class AdvancedModelPaperTest {
         runTest(AES_256, 4, 3);
     }
 
+    @Test
+    void should_succeed_for_aes256_5_3() throws IOException {
+        runTest(AES_256, 5, 3);
+    }
+
     private List<String> readResponse(String keyBits, int r, int objStep1) throws IOException {
         ClassLoader cls = getClass().getClassLoader();
         File responseFile = new File(cls.getResource("picat_answers/solution_" + keyBits + "_" + r + "_" + objStep1).getFile());
