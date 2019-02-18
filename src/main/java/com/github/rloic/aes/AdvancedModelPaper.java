@@ -1,5 +1,6 @@
 package com.github.rloic.aes;
 
+import com.github.rloic.AssignableComparison;
 import com.github.rloic.Logger;
 import com.github.rloic.abstraction.MathSet;
 import com.github.rloic.abstraction.XOREquation;
@@ -11,10 +12,7 @@ import org.chocosolver.solver.variables.BoolVar;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.github.rloic.aes.KeyBits.AES128.AES_128;
@@ -55,19 +53,21 @@ public class AdvancedModelPaper {
             check(xorEql);
         }
 
-        BoolVar[][][][][] diffK = c7DiffK();
+        BoolVar[][][][][] diffK = new BoolVar[4][r][5][r][5];
+        // Must keep call order between c10c11 and c7DiffK
+        c10c11(diffK, ΔK, xorEql);
+        c7DiffK(diffK);
         BoolVar[][][][][] diffY = c7DiffY();
         BoolVar[][][][][] diffZ = c7DiffZ();
         c8c9(diffK, ΔK, xorEql);
         c8c9(diffY, ΔY, diffZ, ΔZ);
-        c10c11(diffK, ΔK, xorEql);
         c12(diffY, diffZ);
         c13(diffK, diffZ, ΔX);
     }
 
     private BoolVar[][][] buildΔX(int r, int rows, int columns) {
         BoolVar[][][] result = new BoolVar[r][][];
-        for (int i = 0; i < r; i++) result[i] = m.boolVarMatrix(rows, columns);
+        for (int i = 0; i < r; i++) result[i] = m.boolVarMatrix("ΔX[" + i + "]", rows, columns);
         return result;
     }
 
@@ -76,7 +76,7 @@ public class AdvancedModelPaper {
         for (int i = 0; i < r; i++) {
             for (int j = 0; j < rows; j++) {
                 for (int k = 0; k < columns - 1; k++) {
-                    result[i][j][k] = m.boolVar();
+                    result[i][j][k] = m.boolVar("ΔK[" + i + "][" + j + "][" + k + "]");
                 }
             }
         }
@@ -189,7 +189,7 @@ public class AdvancedModelPaper {
         for (int j = 0; j <= 3; j++) {
             for (int k = 0; k <= 3; k++) {
                 for (int i = 0; i <= r - 2; i++) {
-                    ΔZ[i][j][k] = m.boolVar();
+                    ΔZ[i][j][k] = m.boolVar("ΔZ[" + i + "][" + j + "][" + k + "]");
                 }
                 // C6: ∆Z[r−1][j][k] = ∆Y[r−1][j][k]
                 ΔZ[r - 1][j][k] = ΔY[r - 1][j][k];
@@ -199,8 +199,7 @@ public class AdvancedModelPaper {
     }
 
     // C'7 diffK
-    private BoolVar[][][][][] c7DiffK() {
-        BoolVar[][][][][] diffK = new BoolVar[4][r][5][r][5];
+    private void c7DiffK(BoolVar[][][][][] diffK) {
         // j ∈ [0, 3] i ∈ [0, r - 1], k ∈ [0, 3 + 1] pour δSK
         for (int j = 0; j <= 3; j++) {
             for (int i1 = 0; i1 <= r - 1; i1++) {
@@ -209,15 +208,43 @@ public class AdvancedModelPaper {
                         int k2Init = (i1 == i2) ? k1 + 1 : 0;
                         for (int k2 = k2Init; k2 <= 4; k2++) {
                             // C'7: diff(δB1,δB2) = diff(δB2,δB1)
-                            BoolVar diff_δk1_δk2 = m.boolVar();
-                            diffK[j][i1][k1][i2][k2] = diff_δk1_δk2;
-                            diffK[j][i2][k2][i1][k1] = diff_δk1_δk2;
+                            if (diffK[j][i1][k1][i2][k2] == null) {
+                                BoolVar diff_δk1_δk2 = m.boolVar("diffk[" + j + "][" + i1 + "][" + k1 + "][" + i2 + "][" + k2 + "]");
+                                diffK[j][i1][k1][i2][k2] = diff_δk1_δk2;
+                                diffK[j][i2][k2][i1][k1] = diff_δk1_δk2;
+                            } else {
+                                if (diffK[j][i1][k1][i2][k2] != diffK[j][i2][k2][i1][k1]) {
+                                    throw new IllegalStateException("");
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-        return diffK;
+    }
+
+    private void link(BoolVar[][][][][] diffK, BytePosition B1, BytePosition B2, BytePosition B3, BytePosition B4) {
+        if (diffOf(diffK, B1, B2) != null && diffOf(diffK, B3, B4) != null) {
+            if (diffOf(diffK, B1, B2) != diffOf(diffK, B3, B4)) {
+                m.arithm(diffOf(diffK, B1, B2), "=", diffOf(diffK, B3, B4)).post();
+            }
+        } else if (diffOf(diffK, B1, B2) != null) {
+            BoolVar diff_δ1_δ2 = diffOf(diffK, B1, B2);
+            setDiffOf(diffK, B3, B4, diff_δ1_δ2);
+            setDiffOf(diffK, B4, B3, diff_δ1_δ2);
+        } else if (diffOf(diffK, B3, B4) != null) {
+            BoolVar diff_δ1_δ2 = diffOf(diffK, B3, B4);
+            setDiffOf(diffK, B1, B2, diff_δ1_δ2);
+            setDiffOf(diffK, B2, B1, diff_δ1_δ2);
+        } else {
+            BoolVar diff_δ1_δ2 = m.boolVar();
+            setDiffOf(diffK, B1, B2, diff_δ1_δ2);
+            setDiffOf(diffK, B2, B1, diff_δ1_δ2);
+            setDiffOf(diffK, B3, B4, diff_δ1_δ2);
+            setDiffOf(diffK, B4, B3, diff_δ1_δ2);
+        }
+
     }
 
     // C'7 diffY
@@ -261,7 +288,7 @@ public class AdvancedModelPaper {
                         for (int k2 = k2Init; k2 <= 4; k2++) {
                             BytePosition B1 = new BytePosition(i1, j, k1);
                             BytePosition B2 = new BytePosition(i2, j, k2);
-                            if(sameXor(xorEq, B1, B2)) {
+                            if (sameXor(xorEq, B1, B2)) {
 
                                 //C'9: diff(δB_{1},δB_{2}) + ∆B_{1} + ∆B_{2} != 1
                                 BoolVar diff_δ1_δ2 = diffOf(diffK, B1, B2);
@@ -271,7 +298,7 @@ public class AdvancedModelPaper {
                                     int k3Init = (i2 == i3) ? k2 + 1 : 0;
                                     for (int k3 = k3Init; k3 <= 4; k3++) {
                                         BytePosition B3 = new BytePosition(i3, j, k3);
-                                        if(sameXor(xorEq, B1, B2, B3)) {
+                                        if (sameXor(xorEq, B1, B2, B3)) {
                                             // C'8 diffK: diff(δB1,δB2) + diff(δB2,δB3) + diff(δB1,δB3) != 1
                                             BoolVar diff_δ2_δ3 = diffOf(diffK, B2, B3);
                                             BoolVar diff_δ1_δ3 = diffOf(diffK, B1, B3);
@@ -336,11 +363,9 @@ public class AdvancedModelPaper {
             BytePosition B2,
             BytePosition B3
     ) {
-        if (B1.j == B2.j && B1.j == B3.j) {
-            // C11: (diff(δB1,δB2) = ∆B_{3}) ∧ (diff(δB1,δB3) = ∆B_{2}) ∧ (diff(δB2,δB3) = ∆B_{1})
-            m.arithm(diffOf(diffK, B1, B2), "=", deltaOf(ΔK, B3)).post();
-            m.arithm(diffOf(diffK, B1, B3), "=", deltaOf(ΔK, B2)).post();
-            m.arithm(diffOf(diffK, B2, B3), "=", deltaOf(ΔK, B1)).post();
+        if (B1.j == B2.j && B2.j == B3.j) {
+            setDiffOf(diffK, B1, B2, deltaOf(ΔK, B3));
+            setDiffOf(diffK, B2, B1, deltaOf(ΔK, B3));
         }
     }
 
@@ -353,12 +378,10 @@ public class AdvancedModelPaper {
             BytePosition B3,
             BytePosition B4
     ) {
-        if (B1.j == B2.j && B1.j == B3.j && B1.j == B4.j) {
-
-            // C11: (diff(δB1,δB2) = diff(δB3,δB4)) ∧ (diff(δB1,δB3) = diff(δB2,δB4)) ∧ (diff(δB1,δB4) = diff(δB2,δB3))
-            m.arithm(diffOf(diffK, B1, B2), "=", diffOf(diffK, B3, B4)).post();
-            m.arithm(diffOf(diffK, B1, B3), "=", diffOf(diffK, B2, B4)).post();
-            m.arithm(diffOf(diffK, B1, B4), "=", diffOf(diffK, B2, B3)).post();
+        if (B1.j == B2.j && B2.j == B3.j && B3.j == B4.j) {
+            link(diffK, B1, B2, B3, B4);
+            link(diffK, B1, B3, B2, B4);
+            link(diffK, B1, B4, B2, B3);
         }
     }
 
@@ -368,15 +391,28 @@ public class AdvancedModelPaper {
             BoolVar[][][] ΔK,
             MathSet<XOREquation> xorEq
     ) {
-        for (XOREquation eq : xorEq) {
-            List<BytePosition> elements = new ArrayList<>(eq);
-            if (elements.size() == 3) {
-                // C'10
-                c10(diffK, ΔK, elements.get(0), elements.get(1), elements.get(2));
-            } else {
-                // C'11
-                c11(diffK, elements.get(0), elements.get(1), elements.get(2), elements.get(3));
+        List<XOREquation> eqSize3 = new ArrayList<>();
+        List<XOREquation> eqSize4 = new ArrayList<>();
+        xorEq.forEach(eq -> {
+            if (eq.size() == 3) {
+                eqSize3.add(eq);
+            } else if (eq.size() == 4) {
+                eqSize4.add(eq);
             }
+        });
+
+        for (XOREquation eq : eqSize3) {
+            List<BytePosition> elements = new ArrayList<>(eq);
+            // C'10
+            c10(diffK, ΔK, elements.get(0), elements.get(1), elements.get(2));
+        }
+
+        Comparator<XOREquation> cmp = new AssignableComparison(diffK);
+        eqSize4.sort(cmp);
+        while (!eqSize4.isEmpty()) {
+            List<BytePosition> head = new ArrayList<>(eqSize4.remove(0));
+            c11(diffK, head.get(0), head.get(1), head.get(2), head.get(3));
+            eqSize4.sort(cmp);
         }
     }
 
@@ -523,6 +559,12 @@ public class AdvancedModelPaper {
         return diff[B1.j][B1.i][B1.k][B2.i][B2.k];
     }
 
+    private void setDiffOf(BoolVar[][][][][] diff, BytePosition B1, BytePosition B2, BoolVar diff_δ1_δ2) {
+        if (B1.j != B2.j)
+            throw new IllegalArgumentException("B1.j must be equals to B2.j. Given: B1=" + B1 + ", B2=" + B2 + ".");
+        diff[B1.j][B1.i][B1.k][B2.i][B2.k] = diff_δ1_δ2;
+    }
+
     private BoolVar deltaOf(BoolVar[][][] Δ, BytePosition B) {
         return Δ[B.i][B.j][B.k];
     }
@@ -555,7 +597,7 @@ public class AdvancedModelPaper {
             }
             String[] picatTuples = content.toString().split("\n");
             Arrays.sort(picatTuples);
-            if( Arrays.deepEquals(xorEqStrings, picatTuples) ) {
+            if (Arrays.deepEquals(xorEqStrings, picatTuples)) {
                 Logger.debug("Generated XORs == Picat BuildXORList");
             } else {
                 Logger.warn("Generated XORs != Picat BuildXORList: false");
