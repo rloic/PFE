@@ -1,6 +1,6 @@
 package com.github.rloic.aes;
 
-import com.github.rloic.Logger;
+import com.github.rloic.util.Logger;
 import com.github.rloic.abstraction.MathSet;
 import com.github.rloic.abstraction.XOREquation;
 import com.github.rloic.collections.BytePosition;
@@ -9,8 +9,6 @@ import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

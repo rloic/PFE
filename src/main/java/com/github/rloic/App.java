@@ -1,6 +1,7 @@
 package com.github.rloic;
 
 import com.github.rloic.aes.*;
+import com.github.rloic.util.Logger;
 import org.apache.commons.cli.*;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
@@ -11,8 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.github.rloic.Logger.DebugLogger.DEBUG;
-import static com.github.rloic.Logger.TraceLogger.TRACE;
+import static com.github.rloic.util.Logger.DebugLogger.DEBUG;
 import static com.github.rloic.aes.KeyBits.AES128.AES_128;
 import static com.github.rloic.aes.KeyBits.AES192.AES_192;
 import static com.github.rloic.aes.KeyBits.AES256.AES_256;

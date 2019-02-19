@@ -1,4 +1,4 @@
-package com.github.rloic;
+package com.github.rloic.util;
 
 public abstract class Logger {
 
