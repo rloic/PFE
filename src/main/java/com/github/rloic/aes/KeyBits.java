@@ -1,7 +1,7 @@
 package com.github.rloic.aes;
 
 import com.github.rloic.collections.BytePosition;
-import com.github.rloic.collections.Pair;
+import com.github.rloic.util.Pair;
 
 public abstract class KeyBits {
 

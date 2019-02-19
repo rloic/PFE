@@ -19,10 +19,6 @@ import static com.github.rloic.aes.KeyBits.AES256.AES_256;
 
 public class App {
 
-    private static final int DEFAULT_ROUND = 3;
-    private static final int DEFAULT_OBJ_STEP_1 = 5;
-    private static final KeyBits DEFAULT_VERSION = AES_128;
-
     public static void main(String[] args) {
         Logger.level(DEBUG);
         try {
@@ -101,7 +97,6 @@ public class App {
         long end = System.currentTimeMillis();
         Logger.info("CPU Time: " + (end - start) + " ms");
     }
-
 
     private static void printSBoxes(BoolVar[] sBoxes) {
         List<Integer> values = Arrays.stream(sBoxes)

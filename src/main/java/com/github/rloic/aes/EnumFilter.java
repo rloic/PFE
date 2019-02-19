@@ -1,12 +1,8 @@
 package com.github.rloic.aes;
 
 import org.chocosolver.solver.Model;
-import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.search.loop.monitors.IMonitorSolution;
 import org.chocosolver.solver.variables.BoolVar;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class EnumFilter implements IMonitorSolution {
 

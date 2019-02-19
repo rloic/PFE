@@ -1,4 +1,4 @@
-package com.github.rloic.collections;
+package com.github.rloic.util;
 
 import java.util.Objects;
 

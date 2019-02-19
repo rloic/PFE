@@ -4,7 +4,7 @@ import com.github.rloic.Logger;
 import com.github.rloic.abstraction.MathSet;
 import com.github.rloic.abstraction.XOREquation;
 import com.github.rloic.collections.BytePosition;
-import com.github.rloic.collections.Pair;
+import com.github.rloic.util.Pair;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
@@ -51,9 +51,6 @@ public class AdvancedModelPaper {
         c5(ΔY, ΔZ);
 
         MathSet<XOREquation> xorEql = xorEq();
-        if (Logger.isDebug()) {
-            check(xorEql);
-        }
 
         BoolVar[][][][][] diffK = c7DiffK();
         BoolVar[][][][][] diffY = c7DiffY();
@@ -525,43 +522,5 @@ public class AdvancedModelPaper {
 
     private BoolVar deltaOf(BoolVar[][][] Δ, BytePosition B) {
         return Δ[B.i][B.j][B.k];
-    }
-
-    private void check(MathSet<XOREquation> xorEq) {
-        int KC = 0;
-        if (KEY_BITS == AES_128) KC = 4;
-        if (KEY_BITS == AES_192) KC = 6;
-        if (KEY_BITS == AES_256) KC = 8;
-
-        String[] xorEqStrings = new String[xorEq.size()];
-        int i = 0;
-        for (XOREquation eq : xorEq) {
-            XOREquation picatEq = new XOREquation();
-            for (BytePosition bPos : eq) {
-                picatEq.add(bPos.javaToPicat());
-            }
-            xorEqStrings[i++] = picatEq.toString().replace(" ", "");
-        }
-        Arrays.sort(xorEqStrings);
-
-        try {
-            Process picatBuildXorList = Runtime.getRuntime().exec("/opt/Picat/picat picat/build_xor_list.pi " + KC + " " + r);
-            StringBuilder content = new StringBuilder();
-            InputStream is = picatBuildXorList.getInputStream();
-            byte[] buffer = new byte[1024];
-            int len;
-            while ((len = is.read(buffer)) != -1) {
-                content.append(new String(buffer, 0, len));
-            }
-            String[] picatTuples = content.toString().split("\n");
-            Arrays.sort(picatTuples);
-            if( Arrays.deepEquals(xorEqStrings, picatTuples) ) {
-                Logger.debug("Generated XORs == Picat BuildXORList");
-            } else {
-                Logger.warn("Generated XORs != Picat BuildXORList: false");
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
