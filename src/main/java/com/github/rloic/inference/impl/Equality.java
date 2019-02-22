@@ -1,4 +1,8 @@
-package com.github.rloic.inference;
+package com.github.rloic.inference.impl;
+
+import com.github.rloic.inference.Inference;
+import com.github.rloic.inference.InferenceMatrix;
+import com.github.rloic.util.Logger;
 
 public class Equality implements Inference {
 
@@ -12,12 +16,16 @@ public class Equality implements Inference {
 
     @Override
     public void apply(InferenceMatrix matrix) {
+        Logger.debug("Link var_" + lhs + " with var_" + rhs);
         matrix.link(lhs, rhs);
+        Logger.trace("\n" + matrix);
     }
 
     @Override
     public void unapply(InferenceMatrix matrix) {
+        Logger.debug("Unlink var_" + lhs + " from var_" + rhs);
         matrix.unlink(lhs);
+        Logger.trace("\n" + matrix);
     }
 
     @Override

@@ -39,7 +39,7 @@ public class UnionFind {
         }
     }
 
-    public void cut(int lhs) {
+    public void detach(int lhs) {
         parentOf[lhs] = lhs;
     }
 

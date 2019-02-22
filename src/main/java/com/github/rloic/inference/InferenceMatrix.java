@@ -59,6 +59,12 @@ public interface InferenceMatrix {
     void fix(int variable, boolean value);
 
     /**
+     * Unset the variable
+     * @param variable The index of the variable to unset
+     */
+    void unfix(int variable);
+
+    /**
      * Link the variable A to the variable B (A == B)
      * @param variableA A variable
      * @param variableB A second variable
@@ -72,13 +78,16 @@ public interface InferenceMatrix {
     void unlink(int variable);
 
     /**
-     * Unset the variable
-     * @param variable The index of the variable to unset
+     * Remove the variable to the base
+     * @param variable The variable to remove from the base
      */
-    void unfix(int variable);
-
     void removeFromBase(int variable);
 
+    /**
+     * Add the variable to the base with a given pivot
+     * @param variable The variable to append to the base
+     * @param pivot The pivot used by the base variable
+     */
     void appendToBase(int variable, int pivot);
 
     /**
@@ -93,16 +102,36 @@ public interface InferenceMatrix {
     boolean isUnknown(int row, int col);
 
     /**
+     * Return if the element at [row, col] is fixed to true
+     * @param row The row
+     * @param col The column
+     * @return true if the element at [row, col] is fixed to true
+     */
+    boolean isTrue(int row, int col);
+
+    /**
+     * Return if the element at [row, col] is fixed to false
+     * @param row The row
+     * @param col The column
+     * @return true if the element at [row, col] is fixed to false
+     */
+    boolean isFalse(int row, int col);
+
+    /**
      * Return the list of rows where the variable 'variable' is unknown
      * @param variable The variable
      * @return The list of rows where the variable 'variable' is unknown
      */
     IntList rowsWhereUnknown(int variable);
 
+    boolean isEquivalent(int varA, int varB);
+
     /**
-     * Return all the relationship that can be inferred from the current state
-     * @return All the relationship that can be inferred from the current state
+     * Return if all the variables are set to a value
+     * @return true if all the variables are set to a value else false
      */
-    Inferences infer();
+    boolean isAllFixed();
+
+    boolean isFixed(int variable);
 
 }

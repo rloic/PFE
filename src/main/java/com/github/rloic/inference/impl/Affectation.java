@@ -1,4 +1,8 @@
-package com.github.rloic.inference;
+package com.github.rloic.inference.impl;
+
+import com.github.rloic.inference.Inference;
+import com.github.rloic.inference.InferenceMatrix;
+import com.github.rloic.util.Logger;
 
 public class Affectation implements Inference {
 
@@ -12,12 +16,16 @@ public class Affectation implements Inference {
 
     @Override
     public void apply(InferenceMatrix matrix) {
+        Logger.debug("Fix var_" + variable + " to " + value);
         matrix.fix(variable, value);
+        Logger.trace("\n" + matrix);
     }
 
     @Override
     public void unapply(InferenceMatrix matrix) {
+        Logger.debug("Unfix var_" + variable);
         matrix.unfix(variable);
+        Logger.trace("\n" + matrix);
     }
 
     @Override

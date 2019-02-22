@@ -1,17 +1,21 @@
 package com.github.rloic;
 
-import com.github.rloic.inference.*;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
+import com.github.rloic.inference.Inference;
+import com.github.rloic.inference.InferenceEngine;
+import com.github.rloic.inference.impl.*;
+import com.github.rloic.util.Logger;
 
-import java.util.BitSet;
 import java.util.Scanner;
+
+import static com.github.rloic.util.Logger.TraceLogger.TRACE;
 
 public class GaussExample {
 
     static Scanner reader = new Scanner(System.in);
+    private static final InferenceEngine engine = new InferenceEngineImpl();
 
     public static void main(String[] args) {
+        Logger.level(TRACE);
 
         DenseMatrix m = new DenseMatrix(new int[][]{
                 new int[]{2, 5, 6},
@@ -23,52 +27,19 @@ public class GaussExample {
         DenseMatrix copy = new DenseMatrix(m);
 
         System.out.println("Initial matrix");
-        System.out.println(m);
-        Inferences step0 = runStep(m);
-        System.out.println(m);
-        cIsTrue().apply(m);
-        System.out.print(cIsTrue() + " => ");
-        Inferences step1 = runStep(m);
-        System.out.println(m);
+        Inferences step0 = engine.infer(m);
+        Affectation cIsTrue = engine.createAffectation(m, 2, true);
+        cIsTrue.apply(m);
+        System.out.print(cIsTrue + " => ");
+        Inferences step1 = engine.infer(m);
         fIsFalse.apply(m);
         System.out.print(fIsFalse + " => ");
-        Inferences step2 = runStep(m);
-        System.out.println(m);
-
-        System.out.println("Rollback");
-        step2.unapply(m);
-        fIsFalse.unapply(m);
-        step1.unapply(m);
-        cIsTrue().unapply(m);
-        step0.unapply(m);
-        System.out.println(m);
-
-        System.out.println(m.equals(copy));
+        Inferences step2 = engine.infer(m);
+        engine.createAffectation(m,4, false).apply(m);
+        engine.infer(m);
 
     }
 
-    private static Inferences runStep(InferenceMatrix m) {
-        Inferences step = new Inferences();
-        Inferences i;
-        do {
-            i = m.infer();
-            if (!i.isEmpty()) {
-                step.addAll(i);
-                i.apply(m);
-            }
-        } while (!i.isEmpty());
-        System.out.println("Inferences: " + step);
-        return step;
-    }
-
-    private static Inference cIsTrue() {
-
-        IntList xors = new IntArrayList();
-        xors.add(1);
-        xors.add(2);
-
-        return new AffectationWithBaseChange(2, true, 5, 0, xors, new IntArrayList());
-    };
     private static Inference fIsFalse = new AffectationWithBaseRemoval(5, false, 0);
 
 

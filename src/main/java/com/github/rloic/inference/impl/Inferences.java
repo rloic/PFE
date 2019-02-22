@@ -1,4 +1,7 @@
-package com.github.rloic.inference;
+package com.github.rloic.inference.impl;
+
+import com.github.rloic.inference.Inference;
+import com.github.rloic.inference.InferenceMatrix;
 
 import java.util.ArrayList;
 import java.util.Collection;
