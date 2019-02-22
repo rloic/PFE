@@ -5,7 +5,13 @@ import com.github.rloic.inference.impl.Inferences;
 
 public interface InferenceEngine {
 
-    Inferences infer(InferenceMatrix matrix);
+    default Inferences infer(InferenceMatrix matrix) {
+        Inferences inferences = inferAndUpdate(matrix);
+        inferences.unapply(matrix);
+        return inferences;
+    }
+
+    Inferences inferAndUpdate(InferenceMatrix matrix);
 
     Affectation createAffectation(
             InferenceMatrix matrix,

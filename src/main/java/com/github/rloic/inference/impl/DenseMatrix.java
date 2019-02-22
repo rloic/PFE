@@ -93,9 +93,30 @@ public class DenseMatrix implements InferenceMatrix {
 
     @Override
     public void fix(int variable, boolean value) {
+        int equivalent = links.find(variable);
         if (value) {
+            assert values[equivalent] == UNKNOWN || values[equivalent] == FIXED_TO_TRUE;
+            for(int row = 0; row < rows(); row++) {
+                int col = 0;
+                while (col < cols() && !isTrue(row, col) && !isUnknown(row, col)) {
+                    col++;
+                }
+                assert col != cols();
+            }
             values[variable] = FIXED_TO_TRUE;
         } else {
+            assert values[equivalent] == UNKNOWN || values[equivalent] == FIXED_TO_FALSE;
+            for(int row = 0; row < rows(); row++) {
+                int col = 0;
+                int nbTrues = 0;
+                while (col < cols && (col == variable || !isUnknown(row, col)) && nbTrues < 2) {
+                    if (isTrue(row, col)) {
+                        nbTrues += 1;
+                    }
+                    col++;
+                }
+                assert col != cols() || nbTrues != 1;
+            }
             values[variable] = FIXED_TO_FALSE;
         }
     }
@@ -216,15 +237,21 @@ public class DenseMatrix implements InferenceMatrix {
         return j != y + 1;
     }
 
+    private String columnName(int col) {
+        if (col < 27) {
+            return "  " + (char) ('A' + (char) col) + " ";
+        } else {
+            char tens = (char) ('A' + ((col / 27) - 1));
+            char units = (char) ('A' + (col % 27));
+            return " " + tens + units + " ";
+        }
+    }
+
     @Override
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder();
         for (int y = 0; y < cols; y++) {
-            if (isBase[y]) {
-                stringBuilder.append("  v ");
-            } else {
-                stringBuilder.append("    ");
-            }
+            stringBuilder.append(columnName(y));
         }
         stringBuilder.append("\n");
         for (int row = 0; row < rows; row++) {

@@ -61,7 +61,7 @@ public class GaussExampleXorList {
     }
 
     private static Inferences runStep(InferenceMatrix m, FileWriter writer) throws IOException {
-        Inferences step = engine.infer(m);
+        Inferences step = engine.inferAndUpdate(m);
         writer.write(step + "\n");
         return step;
     }

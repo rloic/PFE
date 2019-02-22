@@ -10,7 +10,7 @@ public class InferenceEngineImpl implements InferenceEngine {
     }
 
     @Override
-    public Inferences infer(InferenceMatrix matrix) {
+    public Inferences inferAndUpdate(InferenceMatrix matrix) {
         Inferences steps = new Inferences();
         Inferences newStep;
         do {
