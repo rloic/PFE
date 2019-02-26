@@ -2,6 +2,7 @@ package com.github.rloic.inference.impl;
 
 import com.github.rloic.inference.*;
 import it.unimi.dsi.fastutil.ints.IntList;
+import org.chocosolver.solver.exception.ContradictionException;
 
 public class InferenceEngineImpl implements InferenceEngine {
 
@@ -48,7 +49,7 @@ public class InferenceEngineImpl implements InferenceEngine {
                         }
                         // If there are no more unknowns (nb unknowns == 2)
                         if (col == lastUnknown) {
-                            // If there is no activate true in the row and we didn't know that
+                            // If there is no activate true in the getRow and we didn't know that
                             // the two variables where equivalent
                             if (nbTrues == 0 && !matrix.isEquivalent(firstUnknown, lastUnknown)) {
                                 newStep.add(new Equality(firstUnknown, lastUnknown));

@@ -29,10 +29,10 @@ public class GaussExample {
         Logger.level(TRACE);
 
         DenseMatrix m = new DenseMatrix(new int[][]{
-                new int[]{2, 5, 6},
-                new int[]{4, 3, 5},
-                new int[]{1, 4, 2},
-                new int[]{1, 3, 0},
+                new int[]{C, F, G},
+                new int[]{E, D, F},
+                new int[]{B, E, C},
+                new int[]{B, D, A},
         }, 7);
 
         DenseMatrix copy = new DenseMatrix(m);

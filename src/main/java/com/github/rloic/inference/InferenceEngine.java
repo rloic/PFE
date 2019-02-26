@@ -2,6 +2,7 @@ package com.github.rloic.inference;
 
 import com.github.rloic.inference.impl.Affectation;
 import com.github.rloic.inference.impl.Inferences;
+import org.chocosolver.solver.exception.ContradictionException;
 
 public interface InferenceEngine {
 

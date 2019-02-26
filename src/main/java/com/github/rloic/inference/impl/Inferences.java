@@ -2,6 +2,9 @@ package com.github.rloic.inference.impl;
 
 import com.github.rloic.inference.Inference;
 import com.github.rloic.inference.InferenceMatrix;
+import org.chocosolver.solver.ICause;
+import org.chocosolver.solver.exception.ContradictionException;
+import org.chocosolver.solver.variables.BoolVar;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,7 +37,7 @@ public class Inferences implements Inference {
     }
 
     @Override
-    public void apply(InferenceMatrix matrix) {
+    public void apply(InferenceMatrix matrix) throws IllegalStateException {
         for (Inference inference : inner) {
             inference.apply(matrix);
         }
@@ -44,6 +47,13 @@ public class Inferences implements Inference {
     public void unapply(InferenceMatrix matrix) {
         for (int i = inner.size() - 1; i >= 0; i--) {
             inner.get(i).unapply(matrix);
+        }
+    }
+
+    @Override
+    public void constraint(BoolVar[] vars, ICause cause) throws ContradictionException {
+        for(Inference inference : inner) {
+            inference.constraint(vars, cause);
         }
     }
 

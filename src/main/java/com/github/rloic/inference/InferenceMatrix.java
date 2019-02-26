@@ -1,6 +1,8 @@
 package com.github.rloic.inference;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import org.chocosolver.solver.exception.ContradictionException;
 
 public interface InferenceMatrix {
 
@@ -30,10 +32,10 @@ public interface InferenceMatrix {
     boolean isBase(int variable);
 
     /**
-     * Return the number of the row that is the base for the column
+     * Return the number of the getRow that is the base for the column
      * @param variable The column index (starting from 0)
      * @return -1 if the column doesn't belongs to the base, else return
-     * the index of the row that is the pivot of the column
+     * the index of the getRow that is the pivot of the column
      */
     int pivotOf(int variable);
 
@@ -46,8 +48,8 @@ public interface InferenceMatrix {
 
     /**
      * Replace the rowA as rowA <- rowA xor rowB
-     * @param rowA The index of the first row
-     * @param rowB The index of the second row
+     * @param rowA The index of the first getRow
+     * @param rowB The index of the second getRow
      */
     void xor(int rowA, int rowB);
 
@@ -56,7 +58,7 @@ public interface InferenceMatrix {
      * @param variable The index of the variable to set
      * @param value The fixed value of the variable
      */
-    void fix(int variable, boolean value);
+    void fix(int variable, boolean value) throws IllegalStateException;
 
     /**
      * Unset the variable
@@ -69,7 +71,7 @@ public interface InferenceMatrix {
      * @param variableA A variable
      * @param variableB A second variable
      */
-    void link(int variableA, int variableB);
+    void link(int variableA, int variableB) throws IllegalStateException;
 
     /**
      * Unlink a variable
@@ -95,25 +97,25 @@ public interface InferenceMatrix {
      * _ x _ 1 0
      * x _ _ 0 x
      * The positions [0, 1], [1, 0] and [1, 4] are unknown
-     * @param row The row index
+     * @param row The getRow index
      * @param col The column index
      * @return true is the variable is unknown else false
      */
     boolean isUnknown(int row, int col);
 
     /**
-     * Return if the element at [row, col] is fixed to true
-     * @param row The row
+     * Return if the element at [getRow, col] is fixed to true
+     * @param row The getRow
      * @param col The column
-     * @return true if the element at [row, col] is fixed to true
+     * @return true if the element at [getRow, col] is fixed to true
      */
     boolean isTrue(int row, int col);
 
     /**
-     * Return if the element at [row, col] is fixed to false
-     * @param row The row
+     * Return if the element at [getRow, col] is fixed to false
+     * @param row The getRow
      * @param col The column
-     * @return true if the element at [row, col] is fixed to false
+     * @return true if the element at [getRow, col] is fixed to false
      */
     boolean isFalse(int row, int col);
 
@@ -133,5 +135,17 @@ public interface InferenceMatrix {
     boolean isAllFixed();
 
     boolean isFixed(int variable);
+
+    String varsToString();
+
+    default void check(boolean proposition) throws IllegalStateException {
+        if (!proposition) throw new IllegalStateException();
+    }
+
+    default void check(boolean proposition, String message) throws IllegalStateException {
+        if (!proposition) throw new IllegalStateException(message);
+    }
+
+    IntList equivalents(int variable);
 
 }

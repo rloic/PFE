@@ -1,6 +1,7 @@
 package com.github.rloic;
 
-import com.github.rloic.inference.*;
+import com.github.rloic.inference.InferenceEngine;
+import com.github.rloic.inference.InferenceMatrix;
 import com.github.rloic.inference.impl.Affectation;
 import com.github.rloic.inference.impl.DenseMatrix;
 import com.github.rloic.inference.impl.InferenceEngineImpl;
