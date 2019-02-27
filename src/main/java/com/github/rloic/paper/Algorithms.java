@@ -7,57 +7,27 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
 public class Algorithms {
+    private static final int A = 0;
+    private static final int B = 1;
+    private static final int C = 2;
+    private static final int D = 3;
+    private static final int E = 4;
+    private static final int F = 5;
+    private static final int G = 6;
+    private static final int H = 7;
+    private static final int I = 8;
+    private static final int J = 9;
 
     public static void main(String[] args) {
 
-        XORMatrix matrix = new NaiveMatrixImpl(
-                new boolean[][]{
-                        new boolean[]{false, false, true, false, false, true, true},
-                        new boolean[]{false, false, false, true, true, true, false},
-                        new boolean[]{false, true, true, false, true, false, false},
-                        new boolean[]{true, true, false, true, false, false, false}
-                }, 4, 7
-        );
+        XORMatrix matrix = new NaiveMatrixImpl(new int[][]{
+                new int[]{C, F, G},
+                new int[]{E, D, F},
+                new int[]{B, E, C},
+                new int[]{B, D, A},
+        }, 7);
         InferenceEngine engine = new InferenceEngineImpl();
-        Algorithms.normalize(matrix);
-
         System.out.println(matrix);
-        engine.applyAndInfer(matrix, new Affectation(0, false));
-        System.out.println(matrix);
-        engine.applyAndInfer(matrix, new Affectation(6, false));
-        System.out.println(matrix);
-        matrix.rollback();
-        System.out.println(matrix);
-        matrix.rollback();
-        System.out.println(matrix);
-    }
-
-    private static void normalize(XORMatrix M) {
-        boolean[] isPivot = new boolean[M.rows()];
-        boolean[] hadAOne = new boolean[M.rows()];
-        IntList hasConflict = new IntArrayList();
-        for (int column = 0; column < M.cols(); column++) {
-            hasConflict.clear();
-            for (int row = 0; row < M.rows(); row++) {
-                if (M.isUnknown(row, column)) {
-                    if (!(isPivot[row] || hadAOne[row] || M.isBase(column))) {
-                        M.appendToBase(row, column);
-                        isPivot[row] = true;
-                    } else {
-                        hasConflict.add(row);
-                    }
-                    hadAOne[row] = true;
-                }
-            }
-
-            if (M.isBase(column)) {
-                int pivot = M.pivotOf(column);
-                for (int row : hasConflict) {
-                    M.xor(row, pivot);
-                    hadAOne[row] = false;
-                }
-            }
-        }
     }
 
 }

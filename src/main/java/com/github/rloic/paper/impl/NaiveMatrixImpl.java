@@ -3,10 +3,12 @@ package com.github.rloic.paper.impl;
 import com.github.rloic.paper.XORMatrix;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import org.chocosolver.util.ESat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class NaiveMatrixImpl implements XORMatrix {
 
@@ -24,17 +26,23 @@ public class NaiveMatrixImpl implements XORMatrix {
     private byte[] values;
     private List<FixAction> stack;
 
-    public NaiveMatrixImpl(boolean[][] data, int rows, int cols) {
-        this.data = data;
-        this.rows = rows;
+    public NaiveMatrixImpl(int[][] data, int cols) {
+        this.rows = data.length;
         this.cols = cols;
+        this.data = new boolean[rows][];
+        for (int i = 0; i < rows; i++) {
+            this.data[i] = new boolean[cols];
+            for (int j : data[i]) {
+                this.data[i][j] = true;
+            }
+        }
         nbUnknowns = new int[rows];
         isBase = new boolean[cols];
         pivotOf = new int[cols];
         Arrays.fill(pivotOf, -1);
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
-                if (data[i][j]) {
+                if (this.data[i][j]) {
                     nbUnknowns[i] += 1;
                 }
             }
@@ -42,6 +50,7 @@ public class NaiveMatrixImpl implements XORMatrix {
         nbTrues = new int[rows];
         values = new byte[cols];
         stack = new ArrayList<>();
+        XORMatrix.normalize(this);
     }
 
     @Override
@@ -62,6 +71,16 @@ public class NaiveMatrixImpl implements XORMatrix {
     @Override
     public boolean isUndefined(int variable) {
         return values[variable] == UNDEFINED;
+    }
+
+    @Override
+    public boolean isFixedToTrue(int variable) {
+        return values[variable] == TRUE;
+    }
+
+    @Override
+    public boolean isFixedToFalse(int variable) {
+        return values[variable] == FALSE;
     }
 
     @Override
@@ -99,17 +118,38 @@ public class NaiveMatrixImpl implements XORMatrix {
         isBase[variable] = true;
     }
 
+    private void checkAssignation(int variable, boolean value) {
+        if(values[variable] != UNDEFINED) {
+            if(values[variable] == TRUE != value) throw new IllegalStateException("Conflicting assignation");
+        }
+        int nTrue = value? 1 : 0;
+        for(int i = 0; i < rows; i++) {
+            if (isUnknown(i, variable) && nbUnknowns(i) == 1 && nbTrues(i) + nTrue == 1) {
+                throw new IllegalStateException("Conflict on line" + i);
+            }
+        }
+    }
+
     @Override
     public void fix(int variable, boolean value) {
+        checkAssignation(variable, value);
+        if(values[variable] != UNDEFINED) return;
         values[variable] = value ? TRUE : FALSE;
-        for (int i = 0; i < rows(); i++) {
-            if (isUnknown(i, variable)) {
-                nbUnknowns[i] -= 1;
-                if (value) {
+        if(value) {
+            for (int i = 0; i < rows(); i++) {
+                if (isUnknown(i, variable)) {
+                    nbUnknowns[i] -= 1;
                     nbTrues[i] += 1;
                 }
             }
+        } else {
+            for (int i = 0; i < rows(); i++) {
+                if (isUnknown(i, variable)) {
+                    nbUnknowns[i] -= 1;
+                }
+            }
         }
+
         if (isBase(variable)) {
             int newBaseVar = 0;
             while (newBaseVar < cols && (!isUnknown(pivotOf[variable], newBaseVar) || values[newBaseVar] != UNDEFINED || newBaseVar == variable)) {
@@ -169,6 +209,19 @@ public class NaiveMatrixImpl implements XORMatrix {
     }
 
     @Override
+    public boolean isFixed(int variable) {
+        return values[variable] != UNDEFINED;
+    }
+
+    @Override
+    public boolean isFull() {
+        for(int i = 0; i < rows(); i++) {
+            if(nbUnknowns[i] != 0) return false;
+        }
+        return true;
+    }
+
+    @Override
     public void removeFromBase(int variable) {
         isBase[variable] = false;
         pivotOf[variable] = -1;
@@ -179,9 +232,9 @@ public class NaiveMatrixImpl implements XORMatrix {
         StringBuilder str = new StringBuilder();
         for (int j = 0; j < cols; j++) {
             if (isBase(j)) {
-                str.append(" v");
+                str.append('v');
             } else {
-                str.append("  ");
+                str.append(' ');
             }
         }
         str.append("\n");
@@ -190,16 +243,16 @@ public class NaiveMatrixImpl implements XORMatrix {
                 if (isUnknown(i, j)) {
                     switch (values[j]) {
                         case UNDEFINED:
-                            str.append(" x");
+                            str.append('x');
                             break;
                         case TRUE:
-                            str.append(" 1");
+                            str.append('1');
                             break;
                         case FALSE:
-                            str.append(" 0");
+                            str.append('0');
                     }
                 } else {
-                    str.append(" _");
+                    str.append('_');
                 }
             }
             str.append(" | nbUnknowns: ")
@@ -209,5 +262,33 @@ public class NaiveMatrixImpl implements XORMatrix {
                     .append("\n");
         }
         return str.toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof NaiveMatrixImpl)) return false;
+        NaiveMatrixImpl that = (NaiveMatrixImpl) o;
+        return rows == that.rows &&
+                cols == that.cols &&
+                Arrays.deepEquals(data, that.data) &&
+                Arrays.equals(nbTrues, that.nbTrues) &&
+                Arrays.equals(nbUnknowns, that.nbUnknowns) &&
+                Arrays.equals(isBase, that.isBase) &&
+                Arrays.equals(pivotOf, that.pivotOf) &&
+                Arrays.equals(values, that.values) &&
+                Objects.equals(stack, that.stack);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(rows, cols, stack);
+        result = 31 * result + Arrays.hashCode(data);
+        result = 31 * result + Arrays.hashCode(nbTrues);
+        result = 31 * result + Arrays.hashCode(nbUnknowns);
+        result = 31 * result + Arrays.hashCode(isBase);
+        result = 31 * result + Arrays.hashCode(pivotOf);
+        result = 31 * result + Arrays.hashCode(values);
+        return result;
     }
 }

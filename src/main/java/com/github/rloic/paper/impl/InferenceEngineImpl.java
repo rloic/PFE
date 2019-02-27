@@ -5,12 +5,15 @@ import com.github.rloic.inference.impl.Inferences;
 import com.github.rloic.paper.InferenceEngine;
 import com.github.rloic.paper.XORMatrix;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class InferenceEngineImpl implements InferenceEngine {
 
     @Override
-    public Inferences applyAndInfer(XORMatrix matrix, Affectation affectation) {
+    public List<Affectation> applyAndInfer(XORMatrix matrix, Affectation affectation) {
         matrix.fix(affectation.variable, affectation.value);
-        Inferences inferences = new Inferences();
+        List<Affectation> inferences = new ArrayList<>();
         for (int i = 0; i < matrix.rows(); i++) {
             if (matrix.isUnknown(i, affectation.variable)) {
                 if (matrix.nbUnknowns(i) == 1 && matrix.nbTrues(i) <= 1) {

@@ -1,11 +1,13 @@
 package com.github.rloic.xorconstraint;
 
-import com.github.rloic.inference.InferenceEngine;
-import com.github.rloic.inference.InferenceMatrix;
+import com.github.rloic.inference.Inference;
 import com.github.rloic.inference.impl.Affectation;
-import com.github.rloic.inference.impl.DenseMatrix;
-import com.github.rloic.inference.impl.InferenceEngineImpl;
 import com.github.rloic.inference.impl.Inferences;
+import com.github.rloic.paper.Algorithms;
+import com.github.rloic.paper.InferenceEngine;
+import com.github.rloic.paper.XORMatrix;
+import com.github.rloic.paper.impl.InferenceEngineImpl;
+import com.github.rloic.paper.impl.NaiveMatrixImpl;
 import com.github.rloic.util.Logger;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
@@ -18,12 +20,12 @@ import java.util.*;
 
 public class GlobalXorPropagator extends Propagator<BoolVar> {
 
-    private final Map<BoolVar, Integer> indexOf = new HashMap<>();
-    private final InferenceMatrix matrix;
+    private final XORMatrix matrix;
     private final InferenceEngine engine = new InferenceEngineImpl();
 
     public GlobalXorPropagator(BoolVar[] variables, BoolVar[][] xors) {
-        super(variables, PropagatorPriority.UNARY, true);
+        super(variables, PropagatorPriority.CUBIC, true);
+        final Map<BoolVar, Integer> indexOf = new HashMap<>();
         int lastIndex = 0;
         for (BoolVar variable : variables) {
             indexOf.put(variable, lastIndex++);
@@ -36,61 +38,73 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
                 equations[i][j] = indexOf.get(xors[i][j]);
             }
         }
-        matrix = new DenseMatrix(equations, variables.length);
+        matrix = new NaiveMatrixImpl(equations, variables.length);
     }
 
     private static int nbCall = 0;
-    private List<Inferences> stack = new ArrayList<>();
-
-    @Override
-    public int getPropagationConditions(int vIdx) {
-        return IntEventType.combine(IntEventType.REMOVE);
-    }
 
     @Override
     public void propagate(int idxVarInProp, int mask) throws ContradictionException {
-        Logger.debug("\n\n\n***** Call " + nbCall++ + " *****");
-        while (matrix.isFixed(idxVarInProp)) {
-            rollback();
-        }
-        Logger.debug("BoolVars[]: \t" + Arrays.toString(vars));
-        Inferences inferences = new Inferences();
-        Inferences affectations = new Inferences();
         BoolVar var = vars[idxVarInProp];
-        for (int varIdx : matrix.equivalents(idxVarInProp)) {
-            Affectation affectation = engine.createAffectation(matrix, varIdx, var.getValue() == 1);
-            try {
-                affectation.apply(matrix);
-            } catch (IllegalStateException e) {
-                Logger.err(e);
-                throw new ContradictionException();
-            }
-            affectations.add(affectation);
+        Affectation chocoAffectation = new Affectation(idxVarInProp, var.getValue() == 1);
+        Logger.debug("\n\n\n***** Call " + nbCall++ + ": (" + var.getName() + "<-" + (var.getValue() == 1) + ") <=> " + chocoAffectation);
+        while (matrix.isFixed(idxVarInProp)) {
+            matrix.rollback();
         }
-        Logger.debug("Choco affectations: " + affectations);
-        inferences.addAll(affectations);
-        inferences.addAll(engine.inferAndUpdate(matrix));
-        Logger.debug("Infers => " + inferences);
-        stack.add(inferences);
-        inferences.constraint(vars, this);
-        Logger.debug("Matrix state: \t" + matrix.varsToString());
+        List<Affectation> affectations;
+        affectations = engine.applyAndInfer(matrix, chocoAffectation);
+
+        Logger.debug("ChocoVars: \t" + Arrays.toString(vars));
+        Logger.debug("Interval:  \t" + interalVarsState());
+        Logger.trace(matrix);
+
+        while (!affectations.isEmpty()) {
+            Affectation head = affectations.remove(0);
+            Logger.debug("Infers => (" + vars[head.variable].getName() + "<-" + head.value + ") <=> " + head);
+            List<Affectation> inferences;
+            inferences = engine.applyAndInfer(matrix, head);
+            affectations.addAll(inferences);
+            head.constraint(vars, this);
+        }
     }
 
     @Override
     public void propagate(int evtmask) {
+        Logger.trace("Init");
     }
 
-    void rollback() {
-        stack.remove(stack.size() - 1).unapply(matrix);
+    private String interalVarsState() {
+        StringBuilder stringBuilder = new StringBuilder("[");
+        for (int i = 0; i < matrix.cols(); i++) {
+            stringBuilder.append(vars[i].getName())
+                    .append(" = ");
+            if (matrix.isFixed(i)) {
+                if (matrix.isFixedToTrue(i)) {
+                    stringBuilder.append("1");
+                } else {
+                    stringBuilder.append("0");
+                }
+            } else {
+                stringBuilder.append("[0,1]");
+            }
+            stringBuilder.append(", ");
+        }
+        if (matrix.cols() != 0) {
+            stringBuilder.setLength(stringBuilder.length() - 2);
+        }
+        stringBuilder.append("]");
+        return stringBuilder.toString();
     }
 
     @Override
     public ESat isEntailed() {
-        Logger.debug("call entailed");
-        if (matrix.isAllFixed()) {
-            return ESat.TRUE;
-        } else {
-            return ESat.UNDEFINED;
+        for (int i = 0; i < matrix.rows(); i++) {
+            if (matrix.nbUnknowns(i) != 0) {
+                return ESat.UNDEFINED;
+            } else if (matrix.nbTrues(i) == 1) {
+                return ESat.FALSE;
+            }
         }
+        return ESat.TRUE;
     }
 }

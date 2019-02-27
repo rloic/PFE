@@ -25,9 +25,7 @@ public class EnumFilter implements IMonitorSolution {
                 negations[cpt++] = sBox;
             }
         }
-        //m.addClauses(new BoolVar[]{}, negations);
         m.sum(negations, "<", objStep1).post();
-
     }
 
 }
