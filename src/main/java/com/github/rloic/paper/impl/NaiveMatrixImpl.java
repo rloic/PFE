@@ -3,7 +3,7 @@ package com.github.rloic.paper.impl;
 import com.github.rloic.paper.XORMatrix;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import org.chocosolver.util.ESat;
+import org.chocosolver.solver.exception.ContradictionException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -94,13 +94,13 @@ public class NaiveMatrixImpl implements XORMatrix {
     }
 
     @Override
-    public void xor(int rowA, int rowB) {
+    public boolean xor(int rowA, int rowB) {
         int unknownsOnLine = 0;
         int truesOnLine = 0;
         for (int j = 0; j < cols; j++) {
             boolean xor = data[rowA][j] != data[rowB][j];
             if (xor) {
-                if(values[j] == TRUE) {
+                if (values[j] == TRUE) {
                     truesOnLine += 1;
                 } else if (values[j] == UNDEFINED) {
                     unknownsOnLine += 1;
@@ -110,6 +110,7 @@ public class NaiveMatrixImpl implements XORMatrix {
         }
         nbUnknowns[rowA] = unknownsOnLine;
         nbTrues[rowA] = truesOnLine;
+        return truesOnLine == 1 && unknownsOnLine == 0;
     }
 
     @Override
@@ -118,24 +119,24 @@ public class NaiveMatrixImpl implements XORMatrix {
         isBase[variable] = true;
     }
 
-    private void checkAssignation(int variable, boolean value) {
-        if(values[variable] != UNDEFINED) {
-            if(values[variable] == TRUE != value) throw new IllegalStateException("Conflicting assignation");
+    private void checkAssignation(int variable, boolean value) throws ContradictionException {
+        if (values[variable] != UNDEFINED) {
+            if (values[variable] == TRUE != value) throw new ContradictionException();
         }
-        int nTrue = value? 1 : 0;
-        for(int i = 0; i < rows; i++) {
+        int nTrue = value ? 1 : 0;
+        for (int i = 0; i < rows; i++) {
             if (isUnknown(i, variable) && nbUnknowns(i) == 1 && nbTrues(i) + nTrue == 1) {
-                throw new IllegalStateException("Conflict on line" + i);
+                throw new ContradictionException();
             }
         }
     }
 
     @Override
-    public void fix(int variable, boolean value) {
+    public void fix(int variable, boolean value) throws ContradictionException {
         checkAssignation(variable, value);
-        if(values[variable] != UNDEFINED) return;
+        if (values[variable] != UNDEFINED) return;
         values[variable] = value ? TRUE : FALSE;
-        if(value) {
+        if (value) {
             for (int i = 0; i < rows(); i++) {
                 if (isUnknown(i, variable)) {
                     nbUnknowns[i] -= 1;
@@ -150,21 +151,26 @@ public class NaiveMatrixImpl implements XORMatrix {
             }
         }
 
-        if (isBase(variable)) {
+        if (isBase(variable) && !value) {
             int newBaseVar = 0;
-            while (newBaseVar < cols && (!isUnknown(pivotOf[variable], newBaseVar) || values[newBaseVar] != UNDEFINED || newBaseVar == variable)) {
+            while (newBaseVar < cols && (!isUnknown(pivotOf[variable], newBaseVar) || values[newBaseVar] == FALSE || newBaseVar == variable)) {
                 newBaseVar++;
             }
             if (newBaseVar < cols) {
                 swapBase(variable, newBaseVar);
                 IntList memXors = new IntArrayList();
+                boolean hasConflict = false;
                 for (int i = 0; i < rows(); i++) {
                     if (i != pivotOf[newBaseVar] && isUnknown(i, newBaseVar)) {
-                        xor(i, pivotOf[newBaseVar]);
                         memXors.add(i);
+                        hasConflict |= xor(i, pivotOf[newBaseVar]);
                     }
                 }
                 stack.add(new FixActionWithBaseSwap(variable, value, newBaseVar, memXors));
+                if(hasConflict) {
+                    rollback();
+                    throw new ContradictionException();
+                }
             } else {
                 stack.add(new FixActionWithBaseRemoval(variable, value, pivotOf[variable]));
                 removeFromBase(variable);
@@ -178,14 +184,14 @@ public class NaiveMatrixImpl implements XORMatrix {
     public void rollback() {
         FixAction action = stack.remove(stack.size() - 1);
         if (action instanceof FixActionWithBaseSwap) {
-                FixActionWithBaseSwap a = (FixActionWithBaseSwap) action;
-                for(int i : a.xors) {
-                    xor(i, pivotOf[a.newBaseVar]);
-                }
-                swapBase(a.newBaseVar, action.variable);
+            FixActionWithBaseSwap a = (FixActionWithBaseSwap) action;
+            for (int i : a.xors) {
+                xor(i, pivotOf[a.newBaseVar]);
+            }
+            swapBase(a.newBaseVar, action.variable);
         } else if (action instanceof FixActionWithBaseRemoval) {
-                FixActionWithBaseRemoval a = (FixActionWithBaseRemoval) action;
-                appendToBase(a.pivot, a.variable);
+            FixActionWithBaseRemoval a = (FixActionWithBaseRemoval) action;
+            appendToBase(a.pivot, a.variable);
         }
         for (int i = 0; i < rows(); i++) {
             if (isUnknown(i, action.variable)) {
@@ -215,8 +221,8 @@ public class NaiveMatrixImpl implements XORMatrix {
 
     @Override
     public boolean isFull() {
-        for(int i = 0; i < rows(); i++) {
-            if(nbUnknowns[i] != 0) return false;
+        for (int i = 0; i < rows(); i++) {
+            if (nbUnknowns[i] != 0) return false;
         }
         return true;
     }

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static com.github.rloic.collections.ArrayExtensions.intArrayOf;
+import static org.junit.jupiter.api.Assertions.*;
 
 class DenseMatrixTest {
 
@@ -46,13 +47,13 @@ class DenseMatrixTest {
     @Test
     void empty_matrix_should_be_fixed() {
         final InferenceMatrix matrix = emptyMatrix();
-        Assertions.assertTrue(matrix.isAllFixed());
+        assertTrue(matrix.isAllFixed());
     }
 
     @Test
     void matrix_with_unknowns_should_not_be_fixed() {
         final InferenceMatrix matrix = toyMatrix();
-        Assertions.assertFalse(matrix.isAllFixed());
+        assertFalse(matrix.isAllFixed());
     }
 
     @Test
@@ -60,12 +61,12 @@ class DenseMatrixTest {
         final InferenceMatrix matrix = toyMatrix();
 
         final int variable = 0;
-        Assertions.assertTrue(matrix.isBase(variable));
-        Assertions.assertNotEquals(-1, matrix.pivotOf(variable));
+        assertTrue(matrix.isBase(variable));
+        assertNotEquals(-1, matrix.pivotOf(variable));
 
         matrix.removeFromBase(variable);
-        Assertions.assertFalse(matrix.isBase(variable));
-        Assertions.assertEquals(-1, matrix.pivotOf(variable));
+        assertFalse(matrix.isBase(variable));
+        assertEquals(-1, matrix.pivotOf(variable));
     }
 
     @Test
@@ -73,20 +74,20 @@ class DenseMatrixTest {
         final InferenceMatrix matrix = toyMatrix();
 
         final int baseVariable = 0;
-        Assertions.assertTrue(matrix.isBase(baseVariable));
-        Assertions.assertNotEquals(-1, matrix.pivotOf(baseVariable));
+        assertTrue(matrix.isBase(baseVariable));
+        assertNotEquals(-1, matrix.pivotOf(baseVariable));
         final int pivot = matrix.pivotOf(baseVariable);
 
         final int nonBaseVariable = 4;
-        Assertions.assertFalse(matrix.isBase(nonBaseVariable));
-        Assertions.assertEquals(-1, matrix.pivotOf(nonBaseVariable));
+        assertFalse(matrix.isBase(nonBaseVariable));
+        assertEquals(-1, matrix.pivotOf(nonBaseVariable));
 
         matrix.swapBase(baseVariable, nonBaseVariable);
-        Assertions.assertTrue(matrix.isBase(nonBaseVariable));
-        Assertions.assertEquals(pivot, matrix.pivotOf(nonBaseVariable));
+        assertTrue(matrix.isBase(nonBaseVariable));
+        assertEquals(pivot, matrix.pivotOf(nonBaseVariable));
 
-        Assertions.assertFalse(matrix.isBase(baseVariable));
-        Assertions.assertEquals(-1, matrix.pivotOf(baseVariable));
+        assertFalse(matrix.isBase(baseVariable));
+        assertEquals(-1, matrix.pivotOf(baseVariable));
     }
 
     @Test
@@ -96,7 +97,7 @@ class DenseMatrixTest {
 
         matrix.xor(0, 1);
         matrix.xor(0, 1);
-        Assertions.assertEquals(copy, matrix);
+        assertEquals(copy, matrix);
     }
 
     @Test
@@ -106,7 +107,7 @@ class DenseMatrixTest {
 
         matrix.link(0, 2);
         matrix.unlink(0);
-        Assertions.assertEquals(copy, matrix);
+        assertEquals(copy, matrix);
     }
 
     @Test
@@ -116,7 +117,7 @@ class DenseMatrixTest {
 
         matrix.fix(0, false);
         matrix.unfix(0);
-        Assertions.assertEquals(copy, matrix);
+        assertEquals(copy, matrix);
     }
 
     @Test
@@ -126,7 +127,7 @@ class DenseMatrixTest {
 
         matrix.swapBase(0, 6);
         matrix.swapBase(6, 0);
-        Assertions.assertEquals(copy, matrix);
+        assertEquals(copy, matrix);
     }
 
     @Test
@@ -134,18 +135,18 @@ class DenseMatrixTest {
         final InferenceMatrix matrix = toyMatrix();
 
         for(int variable = 0; variable < matrix.cols(); variable++) {
-            Assertions.assertEquals(-1 == matrix.pivotOf(variable), !matrix.isBase(variable));
+            assertEquals(-1 == matrix.pivotOf(variable), !matrix.isBase(variable));
         }
         matrix.removeFromBase(0);
         matrix.removeFromBase(1);
         for(int variable = 0; variable < matrix.cols(); variable++) {
-            Assertions.assertEquals(-1 == matrix.pivotOf(variable), !matrix.isBase(variable));
+            assertEquals(-1 == matrix.pivotOf(variable), !matrix.isBase(variable));
         }
 
         matrix.appendToBase(0, 4);
         matrix.appendToBase(1, 3);
         for(int variable = 0; variable < matrix.cols(); variable++) {
-            Assertions.assertEquals(-1 == matrix.pivotOf(variable), !matrix.isBase(variable));
+            assertEquals(-1 == matrix.pivotOf(variable), !matrix.isBase(variable));
         }
     }
 
@@ -154,11 +155,11 @@ class DenseMatrixTest {
         final InferenceMatrix matrix = toyMatrix();
         IntList rowsWhereVar5IsUnkown = matrix.rowsWhereUnknown(5);
         IntList expectedRowsWhereVar5IsActivated = new IntArrayList(intArrayOf(0, 1, 2));
-        Assertions.assertEquals(expectedRowsWhereVar5IsActivated, rowsWhereVar5IsUnkown);
+        assertEquals(expectedRowsWhereVar5IsActivated, rowsWhereVar5IsUnkown);
 
         IntList rowsWhereVar6IsUnknown = matrix.rowsWhereUnknown(6);
         IntList expectedRowsWhereVar6IsUnknown = new IntArrayList(intArrayOf(0, 2, 3));
-        Assertions.assertEquals(expectedRowsWhereVar6IsUnknown, rowsWhereVar6IsUnknown);
+        assertEquals(expectedRowsWhereVar6IsUnknown, rowsWhereVar6IsUnknown);
     }
 
     @Test()
@@ -180,7 +181,7 @@ class DenseMatrixTest {
         */
         A1.apply(matrix);
         final InferenceMatrix lambdaArg = matrix;
-        Assertions.assertThrows(AssertionError.class, () -> G0.apply(lambdaArg));
+        assertThrows(AssertionError.class, () -> G0.apply(lambdaArg));
 
         matrix = toyMatrix();
         Affectation A0 =
@@ -201,7 +202,7 @@ class DenseMatrixTest {
         F0.apply(matrix);
         engine.inferAndUpdate(matrix);
         final InferenceMatrix lambda2Arg = matrix;
-        Assertions.assertThrows(AssertionError.class, () -> C1.apply(lambda2Arg));
+        assertThrows(AssertionError.class, () -> C1.apply(lambda2Arg));
     }
 
 }

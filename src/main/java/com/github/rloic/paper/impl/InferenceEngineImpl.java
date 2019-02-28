@@ -1,9 +1,9 @@
 package com.github.rloic.paper.impl;
 
 import com.github.rloic.inference.impl.Affectation;
-import com.github.rloic.inference.impl.Inferences;
 import com.github.rloic.paper.InferenceEngine;
 import com.github.rloic.paper.XORMatrix;
+import org.chocosolver.solver.exception.ContradictionException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +11,7 @@ import java.util.List;
 public class InferenceEngineImpl implements InferenceEngine {
 
     @Override
-    public List<Affectation> applyAndInfer(XORMatrix matrix, Affectation affectation) {
+    public List<Affectation> applyAndInfer(XORMatrix matrix, Affectation affectation) throws ContradictionException {
         matrix.fix(affectation.variable, affectation.value);
         List<Affectation> inferences = new ArrayList<>();
         for (int i = 0; i < matrix.rows(); i++) {

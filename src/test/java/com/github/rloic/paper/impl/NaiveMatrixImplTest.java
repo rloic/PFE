@@ -1,10 +1,9 @@
 package com.github.rloic.paper.impl;
 
 import com.github.rloic.inference.impl.Affectation;
-import com.github.rloic.paper.Algorithms;
 import com.github.rloic.paper.InferenceEngine;
 import com.github.rloic.paper.XORMatrix;
-import org.junit.jupiter.api.Assertions;
+import org.chocosolver.solver.exception.ContradictionException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -47,13 +46,13 @@ class NaiveMatrixImplTest {
     @Test
     void empty_matrix_should_be_full() {
         final XORMatrix matrix = emptyMatrix();
-        Assertions.assertTrue(matrix.isFull());
+        assertTrue(matrix.isFull());
     }
 
     @Test
     void matrix_with_unknowns_should_not_be_full() {
         final XORMatrix matrix = toyMatrix();
-        Assertions.assertFalse(matrix.isFull());
+        assertFalse(matrix.isFull());
     }
 
     @Test
@@ -61,12 +60,12 @@ class NaiveMatrixImplTest {
         final XORMatrix matrix = toyMatrix();
 
         final int variable = 0;
-        Assertions.assertTrue(matrix.isBase(variable));
-        Assertions.assertNotEquals(-1, matrix.pivotOf(variable));
+        assertTrue(matrix.isBase(variable));
+        assertNotEquals(-1, matrix.pivotOf(variable));
 
         matrix.removeFromBase(variable);
-        Assertions.assertFalse(matrix.isBase(variable));
-        Assertions.assertEquals(-1, matrix.pivotOf(variable));
+        assertFalse(matrix.isBase(variable));
+        assertEquals(-1, matrix.pivotOf(variable));
     }
 
     @Test
@@ -74,20 +73,20 @@ class NaiveMatrixImplTest {
         final XORMatrix matrix = toyMatrix();
 
         final int baseVariable = 0;
-        Assertions.assertTrue(matrix.isBase(baseVariable));
-        Assertions.assertNotEquals(-1, matrix.pivotOf(baseVariable));
+        assertTrue(matrix.isBase(baseVariable));
+        assertNotEquals(-1, matrix.pivotOf(baseVariable));
         final int pivot = matrix.pivotOf(baseVariable);
 
         final int nonBaseVariable = 4;
-        Assertions.assertFalse(matrix.isBase(nonBaseVariable));
-        Assertions.assertEquals(-1, matrix.pivotOf(nonBaseVariable));
+        assertFalse(matrix.isBase(nonBaseVariable));
+        assertEquals(-1, matrix.pivotOf(nonBaseVariable));
 
         matrix.swapBase(baseVariable, nonBaseVariable);
-        Assertions.assertTrue(matrix.isBase(nonBaseVariable));
-        Assertions.assertEquals(pivot, matrix.pivotOf(nonBaseVariable));
+        assertTrue(matrix.isBase(nonBaseVariable));
+        assertEquals(pivot, matrix.pivotOf(nonBaseVariable));
 
-        Assertions.assertFalse(matrix.isBase(baseVariable));
-        Assertions.assertEquals(-1, matrix.pivotOf(baseVariable));
+        assertFalse(matrix.isBase(baseVariable));
+        assertEquals(-1, matrix.pivotOf(baseVariable));
     }
 
     @Test
@@ -97,17 +96,17 @@ class NaiveMatrixImplTest {
 
         matrix.xor(0, 1);
         matrix.xor(0, 1);
-        Assertions.assertEquals(copy, matrix);
+        assertEquals(copy, matrix);
     }
 
     @Test
-    void rollback_after_fix_must_restore_previous_state() {
+    void rollback_after_fix_must_restore_previous_state() throws ContradictionException {
         final XORMatrix matrix = toyMatrix();
         final XORMatrix copy = toyMatrix();
 
         matrix.fix(0, false);
         matrix.rollback();
-        Assertions.assertEquals(copy, matrix);
+        assertEquals(copy, matrix);
     }
 
     @Test
@@ -117,7 +116,7 @@ class NaiveMatrixImplTest {
 
         matrix.swapBase(0, 6);
         matrix.swapBase(6, 0);
-        Assertions.assertEquals(copy, matrix);
+        assertEquals(copy, matrix);
     }
 
     @Test
@@ -125,23 +124,23 @@ class NaiveMatrixImplTest {
         final XORMatrix matrix = toyMatrix();
 
         for (int variable = 0; variable < matrix.cols(); variable++) {
-            Assertions.assertEquals(-1 == matrix.pivotOf(variable), !matrix.isBase(variable));
+            assertEquals(-1 == matrix.pivotOf(variable), !matrix.isBase(variable));
         }
         matrix.removeFromBase(0);
         matrix.removeFromBase(1);
         for (int variable = 0; variable < matrix.cols(); variable++) {
-            Assertions.assertEquals(-1 == matrix.pivotOf(variable), !matrix.isBase(variable));
+            assertEquals(-1 == matrix.pivotOf(variable), !matrix.isBase(variable));
         }
 
         matrix.appendToBase(0, 4);
         matrix.appendToBase(1, 3);
         for (int variable = 0; variable < matrix.cols(); variable++) {
-            Assertions.assertEquals(-1 == matrix.pivotOf(variable), !matrix.isBase(variable));
+            assertEquals(-1 == matrix.pivotOf(variable), !matrix.isBase(variable));
         }
     }
 
     @Test()
-    void fix_unvalid_values_must_failed() {
+    void fix_unvalid_values_must_failed() throws ContradictionException {
         XORMatrix matrix = toyMatrix();
         final InferenceEngine engine = new InferenceEngineImpl();
         Affectation A1 =
@@ -159,7 +158,7 @@ class NaiveMatrixImplTest {
 
         engine.applyAndInfer(matrix, A1);
         final XORMatrix lambdaArg = matrix;
-        Assertions.assertThrows(IllegalStateException.class, () ->
+        assertThrows(ContradictionException.class, () ->
                 engine.applyAndInfer(lambdaArg, G0)
         );
 
@@ -182,7 +181,7 @@ class NaiveMatrixImplTest {
         engine.applyAndInfer(matrix, G0);
         engine.applyAndInfer(matrix, F0);
         final XORMatrix lambda2Arg = matrix;
-        Assertions.assertThrows(IllegalStateException.class, () ->
+        assertThrows(ContradictionException.class, () ->
                 engine.applyAndInfer(lambda2Arg, C1)
         );
     }

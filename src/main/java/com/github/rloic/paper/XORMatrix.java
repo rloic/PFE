@@ -2,6 +2,7 @@ package com.github.rloic.paper;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.util.ESat;
 
 public interface XORMatrix {
@@ -17,8 +18,8 @@ public interface XORMatrix {
     int pivotOf(int variable);
     boolean isBase(int variable);
 
-    void xor(int rowA, int rowB);
-    void fix(int variable, boolean value);
+    boolean xor(int rowA, int rowB);
+    void fix(int variable, boolean value) throws ContradictionException;
     void rollback();
     void appendToBase(int pivot, int variable);
     void removeFromBase(int variable);
