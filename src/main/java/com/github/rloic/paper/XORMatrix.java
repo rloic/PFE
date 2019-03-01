@@ -52,6 +52,8 @@ public interface XORMatrix {
      */
     boolean isNone(int row, int col);
 
+    boolean isFixed(int variable);
+
     /**
      * Return if the variable belongs to the base
      * @param variable The index of the variable
@@ -103,7 +105,7 @@ public interface XORMatrix {
 
     void setBase(int pivot, int variable);
 
-    void removeBase(int variable);
+    void removeFromBase(int variable);
 
     void swap(int rowA, int rowB);
 
@@ -111,5 +113,12 @@ public interface XORMatrix {
 
     int firstUndefined(int row);
 
+    int firstUndefined(int row, int except);
+
     void incrementUnknowns(int pivot);
+
+    boolean stableState();
+
+    void reset();
+
 }

@@ -1,5 +1,6 @@
 package com.github.rloic.paper;
 
+import com.github.rloic.util.Logger;
 import com.github.rloic.util.Pair;
 import com.github.rloic.xorconstraint.GlobalXorPropagator;
 import org.chocosolver.solver.Model;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.github.rloic.util.Logger.TraceLogger.TRACE;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AlgorithmsTest {
@@ -94,6 +96,7 @@ class AlgorithmsTest {
 
    @Test
    void should_pass_test6() {
+      Logger.level(TRACE);
       Pair<Set<String>, Set<String>> results = solveSystem(F + 1, new int[][]{
             new int[]{A, C, E, F},
             new int[]{B, C, E, F},

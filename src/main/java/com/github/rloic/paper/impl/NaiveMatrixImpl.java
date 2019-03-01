@@ -15,8 +15,6 @@ public class NaiveMatrixImpl implements XORMatrix {
 
     private static final int NO_PIVOT = -1;
 
-    private final int nbRows;
-    private final int nbColumns;
     private final int[] nbUnknowns;
     private final int[] nbTrues;
     private final boolean[][] data;
@@ -36,8 +34,7 @@ public class NaiveMatrixImpl implements XORMatrix {
         for(int j = 0; j < nbVariables; j++) {
             columns.add(j);
         }
-        nbRows = equations.length;
-        nbColumns = nbVariables;
+        int nbRows = equations.length;
         nbUnknowns = new int[nbRows];
         nbTrues = new int[nbRows];
         data = new boolean[nbRows][];
@@ -95,25 +92,37 @@ public class NaiveMatrixImpl implements XORMatrix {
     }
 
     @Override
+    public boolean isFixed(int variable) {
+        return valueOf[variable] != UNDEFINED;
+    }
+
+    @Override
     public boolean isBase(int variable) {
         return isBase[variable];
     }
 
     @Override
     public int pivotOf(int variable) {
+        assert isBase(variable);
         return pivotOf[variable];
     }
 
     @Override
     public void removeVar(int col) {
+        for(int row : rows()) {
+            assert isNone(row, col) || isFalse(row, col);
+        }
         assert !isBase[col];
         assert pivotOf[col] == NO_PIVOT;
-        columns.removeIf((IntPredicate) i -> i == col);
+        columns.rem(col);
     }
 
     @Override
     public void removeRow(int row) {
-        rows.removeIf((IntPredicate) i -> i == row);
+        for(int col : columns()) {
+            assert isNone(row, col) || isFalse(row, col);
+        }
+        rows.rem(row);
     }
 
     @Override
@@ -135,7 +144,7 @@ public class NaiveMatrixImpl implements XORMatrix {
     public boolean xor(int target, int pivot) {
         int nbUnknownsOfTarget = 0;
         int nbTruesOfTarget = 0;
-        for (int j = 0; j < nbColumns(); j++) {
+        for (int j : columns()) {
             data[target][j] = data[target][j] != data[pivot][j];
             if (isUndefined(target, j)) {
                 nbUnknownsOfTarget += 1;
@@ -157,7 +166,7 @@ public class NaiveMatrixImpl implements XORMatrix {
     }
 
     @Override
-    public void removeBase(int variable) {
+    public void removeFromBase(int variable) {
         pivotOf[variable] = NO_PIVOT;
         isBase[variable] = false;
     }
@@ -198,15 +207,47 @@ public class NaiveMatrixImpl implements XORMatrix {
     }
 
     @Override
+    public int firstUndefined(int row, int except) {
+        assert nbUnknowns[row] > 0;
+        for (int j : columns()) {
+            if (isUndefined(row, j) && j != except) return j;
+        }
+        return -1;
+    }
+
+    @Override
     public void incrementUnknowns(int pivot) {
         nbUnknowns[pivot] += 1;
     }
 
     @Override
+    public boolean stableState() {
+        for(int row : rows()) {
+            if (nbUnknowns(row) == 0 && nbTrues(row) == 1) return false;
+        }
+        return true;
+    }
+
+    @Override
+    public void reset() {
+
+    }
+
+    @Override
     public String toString() {
         StringBuilder str =new StringBuilder();
-        for(int i = 0; i < nbRows; i++) {
-            for(int j = 0; j < nbColumns; j++) {
+        str.append('\t');
+        for(int col : columns()) {
+            if (col < 10) {
+                str.append(' ');
+            }
+            str.append(col).append(' ');
+        }
+        str.append('\n');
+        for(int i : rows()) {
+            str.append(i)
+                  .append('\t');
+            for(int j : columns()) {
                 boolean isPivot = isBase[j] && pivotOf[j] == i;
                 str.append(isPivot? '(' : ' ');
                 if (isNone(i, j)) {
@@ -224,7 +265,7 @@ public class NaiveMatrixImpl implements XORMatrix {
                   .append(nbUnknowns[i])
                   .append(" | nbTrues: ")
                   .append(nbTrues[i]);
-            str.append("\n");
+            str.append('\n');
         }
         return str.toString();
     }

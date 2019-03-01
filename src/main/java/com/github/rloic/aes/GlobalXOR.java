@@ -79,8 +79,10 @@ public class GlobalXOR {
                     ΔK[elements.get(2).i][elements.get(2).j][elements.get(2).k]
             );
         }
+        /*
         BoolVar[][][][][] DY2 = new BoolVar[4][r - 1][4][r - 1][4];
         BoolVar[][][][][] DZ2 = new BoolVar[4][r - 1][4][r - 1][4];
+
         // MDS constraint
         for (int i1 = 0; i1 < r - 1; i1++) {
             for (int k1 = 0; k1 < 4; k1++) {
@@ -102,7 +104,7 @@ public class GlobalXOR {
                 }
             }
         }
-
+        */
         BoolVar[] vars = new BoolVar[variables.size()];
         variables.toArray(vars);
         BoolVar[][] eqs = new BoolVar[equations.size()][];

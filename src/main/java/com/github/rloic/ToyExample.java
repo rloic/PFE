@@ -1,9 +1,13 @@
 package com.github.rloic;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.github.rloic.paper.Algorithms;
+import com.github.rloic.paper.XORMatrix;
+import com.github.rloic.paper.impl.NaiveMatrixImpl;
 import com.github.rloic.util.Logger;
 import com.github.rloic.xorconstraint.GlobalXorPropagator;
 import org.chocosolver.memory.IStateBitSet;
@@ -21,34 +25,23 @@ import org.chocosolver.util.ESat;
 
 public class ToyExample {
 
+    public static void main(String[] args) {
+        XORMatrix matrix =new NaiveMatrixImpl(new int[][]{
+              new int[]{0, 1}
+        }, 3);
+
+        matrix.fix(0, false);
+        Algorithms.normalize(matrix, new ArrayList<>());
+        Algorithms.propagateVarAssignedToTrue(matrix, 0, new ArrayList<>());
+        System.out.println(matrix);
+    }
+
     static void solve(Model model, BoolVar[] variables) {
         Solver solver = model.getSolver();
         while (solver.solve()) {
             printSBoxes(variables);
         }
         solver.printShortStatistics();
-    }
-
-
-
-    public static void main(String[] args) {
-        Model modelGlobalXor = new Model();
-        BoolVar[] varsGlobalXor = modelGlobalXor.boolVarArray(7);
-        modelGlobalXor.post(new Constraint("MyConstraint", new GlobalXorPropagator(varsGlobalXor, new BoolVar[][] {
-                new BoolVar[] {varsGlobalXor[0], varsGlobalXor[1], varsGlobalXor[2]},
-                new BoolVar[] {varsGlobalXor[2], varsGlobalXor[3], varsGlobalXor[4]},
-                new BoolVar[] {varsGlobalXor[4], varsGlobalXor[5], varsGlobalXor[6]}
-        })));
-
-        solve(modelGlobalXor, varsGlobalXor);
-
-        Model modelMultiXor = new Model();
-        BoolVar[] varsMultiXor = modelMultiXor.boolVarArray(7);
-        modelMultiXor.sum(new IntVar[]{varsMultiXor[0], varsMultiXor[1], varsMultiXor[2]}, "!=", 1).post();
-        modelMultiXor.sum(new IntVar[]{varsMultiXor[2], varsMultiXor[3], varsMultiXor[4]}, "!=", 1).post();
-        modelMultiXor.sum(new IntVar[]{varsMultiXor[4], varsMultiXor[5], varsMultiXor[6]}, "!=", 1).post();
-
-        solve(modelMultiXor, varsMultiXor);
     }
 
     private static void printSBoxes(BoolVar[] sBoxes) {

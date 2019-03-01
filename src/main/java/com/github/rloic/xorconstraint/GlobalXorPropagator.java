@@ -22,29 +22,30 @@ import java.util.Map;
 
 public class GlobalXorPropagator extends Propagator<BoolVar> {
 
-    private final int[][] equations;
+   private final int[][] equations;
+   private XORMatrix matrix;
 
-    public GlobalXorPropagator(BoolVar[] variables, BoolVar[][] xors) {
-        super(variables, PropagatorPriority.CUBIC, true);
-        final Map<BoolVar, Integer> indexOf = new HashMap<>();
-        int lastIndex = 0;
-        for (BoolVar variable : variables) {
-            indexOf.put(variable, lastIndex++);
-        }
-        equations = new int[xors.length][];
-        for (int i = 0; i < xors.length; i++) {
-            final int length = xors[i].length;
-            equations[i] = new int[length];
-            for (int j = 0; j < length; j++) {
-                equations[i][j] = indexOf.get(xors[i][j]);
-            }
-        }
-    }
+   public GlobalXorPropagator(BoolVar[] variables, BoolVar[][] xors) {
+      super(variables, PropagatorPriority.CUBIC, true);
+      final Map<BoolVar, Integer> indexOf = new HashMap<>();
+      int lastIndex = 0;
+      for (BoolVar variable : variables) {
+         indexOf.put(variable, lastIndex++);
+      }
+      equations = new int[xors.length][];
+      for (int i = 0; i < xors.length; i++) {
+         final int length = xors[i].length;
+         equations[i] = new int[length];
+         for (int j = 0; j < length; j++) {
+            equations[i][j] = indexOf.get(xors[i][j]);
+         }
+      }
+   }
 
-    @Override
-    public int getPropagationConditions(int vIdx) {
-        return IntEventType.all();
-    }
+   @Override
+   public int getPropagationConditions(int vIdx) {
+      return IntEventType.all();
+   }
 
     @Override
     public void propagate(int idxVarInProp, int mask) throws ContradictionException {
@@ -68,28 +69,33 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
         }
     }
 
-    @Override
-    public void propagate(int evtmask) {
-    }
+   @Override
+   public void propagate(int evtmask) {
+      matrix = new NaiveMatrixImpl(equations, vars.length);
+   }
 
 
-    @Override
-    public ESat isEntailed() {
-        XORMatrix matrix = new NaiveMatrixImpl(equations, vars.length);
-        for(int j = 0; j < vars.length; j++) {
-            if (vars[j].isInstantiated()) {
-                matrix.fix(j, vars[j].getValue() == 1);
-            }
-        }
-        List<Affectation> affectations = new ArrayList<>();
-        boolean validState = Algorithms.normalize(matrix, affectations);
-        if (!validState) return ESat.FALSE;
+   @Override
+   public ESat isEntailed() {
+      XORMatrix matrix = new NaiveMatrixImpl(equations, vars.length);
+      List<Affectation> affectations = new ArrayList<>();
+      if (!hardReset(matrix, affectations)) return ESat.FALSE;
 
-        for(int k : matrix.rows()) {
-            if (matrix.nbUnknowns(k) != 0) {
-                return ESat.UNDEFINED;
-            }
-        }
-        return ESat.TRUE;
-    }
+      for (int k : matrix.rows()) {
+         if (matrix.nbUnknowns(k) != 0) {
+            return ESat.UNDEFINED;
+         }
+      }
+      return ESat.TRUE;
+   }
+
+   private boolean hardReset(XORMatrix matrix, List<Affectation> affectations) {
+      for (int j = 0; j < vars.length; j++) {
+         if (vars[j].isInstantiated()) {
+            matrix.fix(j, vars[j].getValue() == 1);
+         }
+      }
+      return Algorithms.normalize(matrix, affectations);
+   }
+
 }
