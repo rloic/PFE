@@ -1,6 +1,6 @@
 package com.github.rloic.paper;
 
-import com.github.rloic.NaiveSolution;
+import com.github.rloic.util.Pair;
 import com.github.rloic.xorconstraint.GlobalXorPropagator;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
@@ -28,114 +28,82 @@ class AlgorithmsTest {
 
    @Test
    void should_infer_a_equals_b() {
-      int len = D + 1;
-      Model m = new Model();
-      BoolVar[] vars = m.boolVarArray(len);
-      m.post(new Constraint("GlobalC", new GlobalXorPropagator(vars, new BoolVar[][]{
-            new BoolVar[]{vars[A], vars[C], vars[D]},
-            new BoolVar[]{vars[B], vars[C], vars[D]}
-      })));
-
-      Set<String> solutions = collectSolutions(m, vars);
-      Set<String> expected = NaiveSolution.solve(new int[len], new int[][]{
+      Pair<Set<String>, Set<String>> results = solveSystem(D + 1, new int[][]{
             new int[]{A, C, D},
             new int[]{B, C, D}
       });
-      assertTrue(expected.containsAll(solutions));
+
+      Set<String> naive = results._0;
+      Set<String> gXor = results._1;
+
+      assertTrue(naive.containsAll(gXor));
    }
 
    @Test
    void should_pass_3_elements_xor() {
-      int len = C + 1;
-      Model m = new Model();
-      BoolVar[] vars = m.boolVarArray(len);
-      m.post(new Constraint("GlobalC", new GlobalXorPropagator(vars, new BoolVar[][]{
-            new BoolVar[]{vars[A], vars[B], vars[C]}
-      })));
-
-      Set<String> solutions = collectSolutions(m, vars);
-      Set<String> expected = NaiveSolution.solve(new int[len], new int[][]{
+      Pair<Set<String>, Set<String>> results = solveSystem(C + 1, new int[][]{
             new int[]{A, B, C}
       });
-      assertTrue(expected.containsAll(solutions));
+
+      Set<String> naive = results._0;
+      Set<String> gXor = results._1;
+
+      assertTrue(naive.containsAll(gXor));
    }
 
    @Test
    void should_pass_5_elements_xor() {
-      int len = F + 1;
-      Model m = new Model();
-      BoolVar[] vars = m.boolVarArray(len);
-      m.post(new Constraint("GlobalC", new GlobalXorPropagator(vars, new BoolVar[][]{
-            new BoolVar[]{vars[A], vars[B], vars[C]},
-            new BoolVar[]{vars[D]},
-            new BoolVar[]{vars[E], vars[F]},
-      })));
-
-      Set<String> solutions = collectSolutions(m, vars);
-      Set<String> expected = NaiveSolution.solve(new int[len], new int[][]{
+      Pair<Set<String>, Set<String>> results = solveSystem(F + 1, new int[][]{
             new int[]{A, B, C},
             new int[]{D},
             new int[]{E, F}
       });
-      assertTrue(expected.containsAll(solutions));
+
+      Set<String> naive = results._0;
+      Set<String> gXor = results._1;
+
+      assertTrue(naive.containsAll(gXor));
    }
 
    @Test
    void should_pass_test4() {
-      int len = E + 1;
-      Model m = new Model();
-      BoolVar[] vars = m.boolVarArray(len);
-      m.post(new Constraint("GlobalC", new GlobalXorPropagator(vars, new BoolVar[][]{
-            new BoolVar[]{vars[A], vars[D], vars[C]},
-            new BoolVar[]{vars[B], vars[C], vars[E]},
-      })));
-
-      Set<String> solutions = collectSolutions(m, vars);
-      Set<String> expected = NaiveSolution.solve(new int[len], new int[][]{
+      Pair<Set<String>, Set<String>> results = solveSystem(E + 1, new int[][]{
             new int[]{A, C, D},
             new int[]{B, C, E}
       });
-      assertTrue(expected.containsAll(solutions));
+
+      Set<String> naive = results._0;
+      Set<String> gXor = results._1;
+
+      assertTrue(naive.containsAll(gXor));
    }
 
    @Test
    void should_pass_test5() {
-      int len = G + 1;
-      Model m = new Model();
-      BoolVar[] vars = m.boolVarArray(len);
-      m.post(new Constraint("GlobalC", new GlobalXorPropagator(vars, new BoolVar[][]{
-            new BoolVar[]{vars[A], vars[B], vars[C]},
-            new BoolVar[]{vars[C], vars[D], vars[E]},
-            new BoolVar[]{vars[E], vars[F], vars[G]}
-      })));
-
-      Set<String> solutions = collectSolutions(m, vars);
-      Set<String> expected = NaiveSolution.solve(new int[len], new int[][]{
+      Pair<Set<String>, Set<String>> results = solveSystem(G + 1, new int[][]{
             new int[]{A, B, C},
             new int[]{C, D, E},
             new int[]{E, F, G}
       });
-      assertTrue(expected.containsAll(solutions));
+
+      Set<String> naive = results._0;
+      Set<String> gXor = results._1;
+
+      assertTrue(naive.containsAll(gXor));
    }
 
    @Test
    void should_pass_test6() {
-      int len = F + 1;
-      Model m = new Model();
-      BoolVar[] vars = m.boolVarArray(len);
-      m.post(new Constraint("GlobalC", new GlobalXorPropagator(vars, new BoolVar[][]{
-            new BoolVar[]{vars[A], vars[C], vars[E], vars[F]},
-            new BoolVar[]{vars[B], vars[C], vars[E], vars[F]},
-            new BoolVar[]{vars[D], vars[E], vars[F]}
-      })));
-
-      Set<String> solutions = collectSolutions(m, vars);
-      Set<String> expected = NaiveSolution.solve(new int[len], new int[][]{
+      Pair<Set<String>, Set<String>> results = solveSystem(F + 1, new int[][]{
             new int[]{A, C, E, F},
             new int[]{B, C, E, F},
             new int[]{D, E, F}
       });
-      assertTrue(expected.containsAll(solutions));
+
+      Set<String> naive = results._0;
+      Set<String> gXor = results._1;
+
+      assertTrue(naive.containsAll(gXor));
    }
 
    private Set<String> collectSolutions(Model m, BoolVar[] vars) {
@@ -145,6 +113,31 @@ class AlgorithmsTest {
          solutions.add(Arrays.stream(vars).map(IntVar::getValue).collect(Collectors.toList()).toString());
       }
       return solutions;
+   }
+
+   private Pair<Set<String>, Set<String>> solveSystem(int nbVars, int[][] equations) {
+      Model naive = new Model();
+      BoolVar[] naiveVars = naive.boolVarArray(nbVars);
+      for (int[] equation : equations) {
+         IntVar[] elements = new IntVar[equation.length];
+         for (int i = 0; i < equation.length; i++) {
+            elements[i] = naiveVars[equation[i]];
+         }
+         naive.sum(elements, "!=", 1).post();
+      }
+
+      Model gXor = new Model();
+      BoolVar[] gXorVars = gXor.boolVarArray(nbVars);
+      BoolVar[][] gXorEquations = new BoolVar[equations.length][];
+      for (int i = 0; i < equations.length; i++) {
+         gXorEquations[i] = new BoolVar[equations[i].length];
+         for (int j = 0; j < equations[i].length; j++) {
+            gXorEquations[i][j] = gXorVars[equations[i][j]];
+         }
+      }
+      gXor.post(new Constraint("GlobalXor", new GlobalXorPropagator(gXorVars, gXorEquations)));
+
+      return new Pair<>(collectSolutions(naive, naiveVars), collectSolutions(gXor, gXorVars));
    }
 
 }
