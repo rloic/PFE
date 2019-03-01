@@ -7,8 +7,8 @@ import org.chocosolver.solver.exception.ContradictionException;
 public interface InferenceMatrix {
 
     /**
-     * Return the number of rows in the inference matrix
-     * @return The number of rows in the inference matrix
+     * Return the number of nbRows in the inference matrix
+     * @return The number of nbRows in the inference matrix
      */
     int rows();
 
@@ -120,9 +120,9 @@ public interface InferenceMatrix {
     boolean isFalse(int row, int col);
 
     /**
-     * Return the list of rows where the variable 'variable' is unknown
+     * Return the list of nbRows where the variable 'variable' is unknown
      * @param variable The variable
-     * @return The list of rows where the variable 'variable' is unknown
+     * @return The list of nbRows where the variable 'variable' is unknown
      */
     IntList rowsWhereUnknown(int variable);
 

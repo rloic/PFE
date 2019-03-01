@@ -1,63 +1,115 @@
 package com.github.rloic.paper;
 
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import org.chocosolver.solver.exception.ContradictionException;
-import org.chocosolver.util.ESat;
 
 public interface XORMatrix {
 
-    int cols();
-    int rows();
-    boolean isUnknown(int row, int variable);
-    boolean isUndefined(int variable);
-    boolean isFixedToTrue(int variable);
-    boolean isFixedToFalse(int variable);
-    int nbUnknowns(int row);
-    int nbTrues(int row);
-    int pivotOf(int variable);
+    /**
+     * Return the number of nbRows of the matrix
+     * @return The number of nbRows of the matrix
+     */
+    int nbRows();
+
+    /**
+     * Return the number of columns of the matrix
+     * @return The number of columns of the matrix
+     */
+    int nbColumns();
+
+    IntList rows();
+
+    IntList columns();
+
+    /**
+     * Return if M[row][col] == 'x'
+     * @param row The row of the element
+     * @param col The column of the element
+     * @return True if M[row][col] = 'x' else false
+     */
+    boolean isUndefined(int row, int col);
+
+    /**
+     * Return if M[row][col] == 0
+     * @param row The row of the element
+     * @param col The column of the element
+     * @return True if M[row][col] = 0 else false
+     */
+    boolean isFalse(int row, int col);
+
+    /**
+     * Return if M[row][col] == 1
+     * @param row The row of the element
+     * @param col The column of the element
+     * @return True if M[row][col] = 1 else false
+     */
+    boolean isTrue(int row, int col);
+
+    /**
+     * Return if M[row][col] == _
+     * @param row The row of the element
+     * @param col The column of the element
+     * @return True if M[row][col] = _ else false
+     */
+    boolean isNone(int row, int col);
+
+    /**
+     * Return if the variable belongs to the base
+     * @param variable The index of the variable
+     * @return True if the variable belongs to the base else false
+     */
     boolean isBase(int variable);
 
-    boolean xor(int rowA, int rowB);
-    void fix(int variable, boolean value) throws ContradictionException;
-    void rollback();
-    void appendToBase(int pivot, int variable);
-    void removeFromBase(int variable);
+    /**
+     * Return the pivot line of a base variable
+     * @param variable The index of the base variable
+     * @return The pivot of the variable is isBase(variable) else -1
+     */
+    int pivotOf(int variable);
 
-    default void swapBase(int oldBaseVariable, int newBaseVariable) {
-        appendToBase(pivotOf(oldBaseVariable), newBaseVariable);
-        removeFromBase(oldBaseVariable);
-    }
+    /**
+     * Remove a column from the matrix
+     * @param col The number of the column to delete
+     */
+    void removeVar(int col);
 
-    boolean isFixed(int variable);
-    boolean isFull();
+    /**
+     * Remove a row from the matrix
+     * @param row The number of the row to delete
+     */
+    void removeRow(int row);
 
-    static void normalize(XORMatrix M) {
-        boolean[] isPivot = new boolean[M.rows()];
-        boolean[] hadAOne = new boolean[M.rows()];
-        IntList hasConflict = new IntArrayList();
-        for (int column = 0; column < M.cols(); column++) {
-            hasConflict.clear();
-            for (int row = 0; row < M.rows(); row++) {
-                if (M.isUnknown(row, column)) {
-                    if (!(isPivot[row] || hadAOne[row] || M.isBase(column))) {
-                        M.appendToBase(row, column);
-                        isPivot[row] = true;
-                    } else {
-                        hasConflict.add(row);
-                    }
-                    hadAOne[row] = true;
-                }
-            }
+    /**
+     * Return the number of 'x' on the row
+     * @param row The row
+     * @return The number of 'x' on the row
+     */
+    int nbUnknowns(int row);
 
-            if (M.isBase(column)) {
-                int pivot = M.pivotOf(column);
-                for (int row : hasConflict) {
-                    M.xor(row, pivot);
-                    hadAOne[row] = false;
-                }
-            }
-        }
-    }
+    /**
+     * Decrement the number of 'x' on the row and return the value
+     * @param row The row
+     * @return The new number of 'x' on the row
+     */
+    int decrementUnknowns(int row);
 
+    /**
+     * Return the number of 1 on the row
+     * @param row The row
+     * @return The number of 1 on the row
+     */
+    int nbTrues(int row);
+
+    boolean xor(int target, int pivot);
+
+    void setBase(int pivot, int variable);
+
+    void removeBase(int variable);
+
+    void swap(int rowA, int rowB);
+
+    void fix(int variable, boolean value);
+
+    int firstUndefined(int row);
+
+    void incrementUnknowns(int pivot);
 }
