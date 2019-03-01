@@ -140,7 +140,7 @@ public class NaiveMatrixImpl implements XORMatrix {
             if (xor) {
                 if (valueOf[j] == TRUE) {
                     nbTruesOfTarget += 1;
-                } else {
+                } else if (valueOf[j] == UNDEFINED) {
                     nbUnknownsOfTarget += 1;
                 }
             }
@@ -222,6 +222,10 @@ public class NaiveMatrixImpl implements XORMatrix {
 
                 str.append(isPivot? ')': ' ');
             }
+            str.append(" | nbUnknowns: ")
+                  .append(nbUnknowns[i])
+                  .append(" | nbTrues: ")
+                  .append(nbTrues[i]);
             str.append("\n");
         }
         return str.toString();

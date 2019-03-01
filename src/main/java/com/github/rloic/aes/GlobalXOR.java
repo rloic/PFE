@@ -201,7 +201,6 @@ public class GlobalXOR {
 
     private void appendToGlobalXor(BoolVar A, BoolVar B, BoolVar C) {
         // m.sum(arrayOf(A, B, C), "!=", 1).post();
-
         variables.add(A);
         variables.add(B);
         variables.add(C);

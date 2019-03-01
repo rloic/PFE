@@ -7,6 +7,8 @@ import com.github.rloic.paper.XORMatrix;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class NaiveMatrixImplTest {
@@ -46,7 +48,7 @@ class NaiveMatrixImplTest {
     @Test
     void should_do_something() {
         XORMatrix matrix = toyMatrix();
-        Algorithms.normalize(matrix);
+        Algorithms.normalize(matrix, new ArrayList<>());
         matrix.fix(C, true);
         System.out.println("");
     }

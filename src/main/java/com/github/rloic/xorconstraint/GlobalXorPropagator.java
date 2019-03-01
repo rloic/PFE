@@ -58,6 +58,7 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
         if (!Algorithms.normalize(matrix, affectations)) {
             throw new ContradictionException();
         }
+        Logger.trace(matrix + "\n\n");
         for(Affectation affectation : affectations) {
             if(affectation.value) {
                 vars[affectation.variable].setToTrue(this);
@@ -81,12 +82,13 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
             }
         }
         List<Affectation> affectations = new ArrayList<>();
-        if (!Algorithms.normalize(matrix, affectations)) {
-            return ESat.FALSE;
-        }
+        boolean validState = Algorithms.normalize(matrix, affectations);
+        if (!validState) return ESat.FALSE;
 
-        if (!affectations.isEmpty()) {
-            return ESat.UNDEFINED;
+        for(int k : matrix.rows()) {
+            if (matrix.nbUnknowns(k) != 0) {
+                return ESat.UNDEFINED;
+            }
         }
         return ESat.TRUE;
     }
