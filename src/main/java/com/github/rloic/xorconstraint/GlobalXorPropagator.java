@@ -1,6 +1,7 @@
 package com.github.rloic.xorconstraint;
 
 import com.github.rloic.inference.impl.Affectation;
+import com.github.rloic.paper.Algorithms;
 import com.github.rloic.paper.InferenceEngine;
 import com.github.rloic.paper.XORMatrix;
 import com.github.rloic.paper.impl.InferenceEngineImpl;
@@ -14,15 +15,14 @@ import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.events.IntEventType;
 import org.chocosolver.util.ESat;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class GlobalXorPropagator extends Propagator<IntVar> {
+public class GlobalXorPropagator extends Propagator<BoolVar> {
 
-    private final XORMatrix matrix;
-    private final InferenceEngine engine = new InferenceEngineImpl();
+    private final int[][] equations;
 
     public GlobalXorPropagator(BoolVar[] variables, BoolVar[][] xors) {
         super(variables, PropagatorPriority.CUBIC, true);
@@ -31,7 +31,7 @@ public class GlobalXorPropagator extends Propagator<IntVar> {
         for (BoolVar variable : variables) {
             indexOf.put(variable, lastIndex++);
         }
-        int[][] equations = new int[xors.length][];
+        equations = new int[xors.length][];
         for (int i = 0; i < xors.length; i++) {
             final int length = xors[i].length;
             equations[i] = new int[length];
@@ -39,10 +39,7 @@ public class GlobalXorPropagator extends Propagator<IntVar> {
                 equations[i][j] = indexOf.get(xors[i][j]);
             }
         }
-        matrix = new NaiveMatrixImpl(equations, variables.length);
     }
-
-    private static int nbCall = 0;
 
     @Override
     public int getPropagationConditions(int vIdx) {
@@ -51,70 +48,46 @@ public class GlobalXorPropagator extends Propagator<IntVar> {
 
     @Override
     public void propagate(int idxVarInProp, int mask) throws ContradictionException {
-        BoolVar var = (BoolVar) vars[idxVarInProp];
-        Affectation chocoAffectation = new Affectation(idxVarInProp, var.getValue() == 1);
-        Logger.debug("\n\n\n***** Call " + nbCall++ + ": (" + var.getName() + "<-" + (var.getValue() == 1) + ")");
-        while (matrix.isFixed(idxVarInProp)) {
-            matrix.rollback();
+        XORMatrix matrix = new NaiveMatrixImpl(equations, vars.length);
+        for(int j = 0; j < vars.length; j++) {
+            if (vars[j].isInstantiated()) {
+                matrix.fix(j, vars[j].getValue() == 1);
+            }
         }
-        List<Affectation> affectations;
-        affectations = engine.applyAndInfer(matrix, chocoAffectation);
-
-        Logger.debug("ChocoVars: \t" + Arrays.toString(vars));
-        Logger.debug("Interval:  \t" + interalVarsState());
-        Logger.trace(matrix);
-
-        while (!affectations.isEmpty()) {
-            Affectation head = affectations.remove(0);
-            Logger.debug("Infers => (" + vars[head.variable].getName() + "<-" + head.value + ")");
-            List<Affectation> inferences;
-            inferences = engine.applyAndInfer(matrix, head);
-            affectations.addAll(inferences);
-            head.constraint((BoolVar[]) vars, this);
+        List<Affectation> affectations = new ArrayList<>();
+        if (!Algorithms.normalize(matrix, affectations)) {
+            throw new ContradictionException();
+        }
+        for(Affectation affectation : affectations) {
+            if(affectation.value) {
+                vars[affectation.variable].setToTrue(this);
+            } else {
+                vars[affectation.variable].setToFalse(this);
+            }
         }
     }
 
     @Override
     public void propagate(int evtmask) {
-        Logger.debug("Event type: " + evtmask);
-        Logger.debug("ChocoVars: \t" + Arrays.toString(vars));
-        Logger.debug("Interval:  \t" + interalVarsState());
     }
 
-    private String interalVarsState() {
-        StringBuilder stringBuilder = new StringBuilder("[");
-        for (int i = 0; i < matrix.cols(); i++) {
-            stringBuilder.append(vars[i].getName())
-                    .append(" = ");
-            if (matrix.isFixed(i)) {
-                if (matrix.isFixedToTrue(i)) {
-                    stringBuilder.append("1");
-                } else {
-                    stringBuilder.append("0");
-                }
-            } else {
-                stringBuilder.append("[0,1]");
-            }
-            stringBuilder.append(", ");
-        }
-        if (matrix.cols() != 0) {
-            stringBuilder.setLength(stringBuilder.length() - 2);
-        }
-        stringBuilder.append("]");
-        return stringBuilder.toString();
-    }
 
     @Override
     public ESat isEntailed() {
-        Logger.trace("");
-        boolean undefined = false;
-        for(int i = 0; i < matrix.rows(); i++ ) {
-            if(matrix.nbUnknowns(i) == 0 && matrix.nbTrues(i) == 1) return ESat.FALSE;
-            if(matrix.nbUnknowns(i) != 0) {
-                undefined = true;
+        XORMatrix matrix = new NaiveMatrixImpl(equations, vars.length);
+        for(int j = 0; j < vars.length; j++) {
+            if (vars[j].isInstantiated()) {
+                matrix.fix(j, vars[j].getValue() == 1);
             }
         }
-        if(undefined) return ESat.UNDEFINED;
+        List<Affectation> affectations = new ArrayList<>();
+        if (!Algorithms.normalize(matrix, affectations)) {
+            return ESat.FALSE;
+        }
+
+        if (!affectations.isEmpty()) {
+            return ESat.UNDEFINED;
+        }
         return ESat.TRUE;
     }
 }

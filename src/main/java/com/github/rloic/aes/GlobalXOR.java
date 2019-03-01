@@ -5,7 +5,6 @@ import com.github.rloic.abstraction.XOREquation;
 import com.github.rloic.collections.BytePosition;
 import com.github.rloic.util.Pair;
 import com.github.rloic.xorconstraint.GlobalXorPropagator;
-import com.github.rloic.xorconstraint.GlobalXorPropagatorChoco;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;

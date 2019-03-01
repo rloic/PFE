@@ -3,12 +3,9 @@ package com.github.rloic.paper.impl;
 import com.github.rloic.paper.XORMatrix;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import org.chocosolver.solver.exception.ContradictionException;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.function.IntPredicate;
 
 public class NaiveMatrixImpl implements XORMatrix {
 
@@ -16,197 +13,85 @@ public class NaiveMatrixImpl implements XORMatrix {
     private static final byte TRUE = 1;
     private static final byte FALSE = -1;
 
-    private boolean[][] data;
-    private int rows;
-    private int cols;
-    private int[] nbTrues;
-    private int[] nbUnknowns;
-    private boolean[] isBase;
-    private int[] pivotOf;
-    private byte[] values;
-    private List<FixAction> stack;
+    private static final int NO_PIVOT = -1;
 
-    public NaiveMatrixImpl(int[][] data, int cols) {
-        this.rows = data.length;
-        this.cols = cols;
-        this.data = new boolean[rows][];
-        for (int i = 0; i < rows; i++) {
-            this.data[i] = new boolean[cols];
-            for (int j : data[i]) {
-                this.data[i][j] = true;
+    private final int nbRows;
+    private final int nbColumns;
+    private final int[] nbUnknowns;
+    private final int[] nbTrues;
+    private final boolean[][] data;
+    private final byte[] valueOf;
+    private final boolean[] isBase;
+    private final int[] pivotOf;
+
+    private final IntList rows;
+    private final IntList columns;
+
+    public NaiveMatrixImpl(int[][] equations, int nbVariables) {
+        rows = new IntArrayList(equations.length);
+        for(int i = 0; i < equations.length; i++) {
+            rows.add(i);
+        }
+        columns = new IntArrayList(nbVariables);
+        for(int j = 0; j < nbVariables; j++) {
+            columns.add(j);
+        }
+        nbRows = equations.length;
+        nbColumns = nbVariables;
+        nbUnknowns = new int[nbRows];
+        nbTrues = new int[nbRows];
+        data = new boolean[nbRows][];
+        for (int i = 0; i < nbRows; i++) {
+            data[i] = new boolean[nbVariables];
+            for (int j : equations[i]) {
+                data[i][j] = true;
+                nbUnknowns[i] += 1;
             }
         }
-        nbUnknowns = new int[rows];
-        isBase = new boolean[cols];
-        pivotOf = new int[cols];
-        Arrays.fill(pivotOf, -1);
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                if (this.data[i][j]) {
-                    nbUnknowns[i] += 1;
-                }
-            }
-        }
-        nbTrues = new int[rows];
-        values = new byte[cols];
-        stack = new ArrayList<>();
-        XORMatrix.normalize(this);
+        valueOf = new byte[nbVariables];
+        isBase = new boolean[nbVariables];
+        pivotOf = new int[nbVariables];
+        Arrays.fill(pivotOf, NO_PIVOT);
     }
 
     @Override
-    public int cols() {
-        return cols;
+    public int nbRows() {
+        return rows.size();
     }
 
     @Override
-    public int rows() {
+    public int nbColumns() {
+        return columns.size();
+    }
+
+    @Override
+    public IntList rows() {
         return rows;
     }
 
     @Override
-    public boolean isUnknown(int row, int variable) {
-        return data[row][variable];
+    public IntList columns() {
+        return columns;
     }
 
     @Override
-    public boolean isUndefined(int variable) {
-        return values[variable] == UNDEFINED;
+    public boolean isUndefined(int row, int col) {
+        return data[row][col] && valueOf[col] == UNDEFINED;
     }
 
     @Override
-    public boolean isFixedToTrue(int variable) {
-        return values[variable] == TRUE;
+    public boolean isFalse(int row, int col) {
+        return data[row][col] && valueOf[col] == FALSE;
     }
 
     @Override
-    public boolean isFixedToFalse(int variable) {
-        return values[variable] == FALSE;
+    public boolean isTrue(int row, int col) {
+        return data[row][col] && valueOf[col] == TRUE;
     }
 
     @Override
-    public int nbUnknowns(int row) {
-        return nbUnknowns[row];
-    }
-
-    @Override
-    public int nbTrues(int row) {
-        return nbTrues[row];
-    }
-
-    @Override
-    public boolean xor(int rowA, int rowB) {
-        int unknownsOnLine = 0;
-        int truesOnLine = 0;
-        for (int j = 0; j < cols; j++) {
-            boolean xor = data[rowA][j] != data[rowB][j];
-            if (xor) {
-                if (values[j] == TRUE) {
-                    truesOnLine += 1;
-                } else if (values[j] == UNDEFINED) {
-                    unknownsOnLine += 1;
-                }
-            }
-            data[rowA][j] = xor;
-        }
-        nbUnknowns[rowA] = unknownsOnLine;
-        nbTrues[rowA] = truesOnLine;
-        return truesOnLine == 1 && unknownsOnLine == 0;
-    }
-
-    @Override
-    public void appendToBase(int pivot, int variable) {
-        pivotOf[variable] = pivot;
-        isBase[variable] = true;
-    }
-
-    private void checkAssignation(int variable, boolean value) throws ContradictionException {
-        if (values[variable] != UNDEFINED) {
-            if (values[variable] == TRUE != value) throw new ContradictionException();
-        }
-        int nTrue = value ? 1 : 0;
-        for (int i = 0; i < rows; i++) {
-            if (isUnknown(i, variable) && nbUnknowns(i) == 1 && nbTrues(i) + nTrue == 1) {
-                throw new ContradictionException();
-            }
-        }
-    }
-
-    @Override
-    public void fix(int variable, boolean value) throws ContradictionException {
-        checkAssignation(variable, value);
-        if (values[variable] != UNDEFINED) return;
-        values[variable] = value ? TRUE : FALSE;
-        if (value) {
-            for (int i = 0; i < rows(); i++) {
-                if (isUnknown(i, variable)) {
-                    nbUnknowns[i] -= 1;
-                    nbTrues[i] += 1;
-                }
-            }
-        } else {
-            for (int i = 0; i < rows(); i++) {
-                if (isUnknown(i, variable)) {
-                    nbUnknowns[i] -= 1;
-                }
-            }
-        }
-
-        if (isBase(variable) && !value) {
-            int newBaseVar = 0;
-            while (newBaseVar < cols && (!isUnknown(pivotOf[variable], newBaseVar) || values[newBaseVar] == FALSE || newBaseVar == variable)) {
-                newBaseVar++;
-            }
-            if (newBaseVar < cols) {
-                swapBase(variable, newBaseVar);
-                IntList memXors = new IntArrayList();
-                boolean hasConflict = false;
-                for (int i = 0; i < rows(); i++) {
-                    if (i != pivotOf[newBaseVar] && isUnknown(i, newBaseVar)) {
-                        memXors.add(i);
-                        hasConflict |= xor(i, pivotOf[newBaseVar]);
-                    }
-                }
-                stack.add(new FixActionWithBaseSwap(variable, value, newBaseVar, memXors));
-                if(hasConflict) {
-                    rollback();
-                    throw new ContradictionException();
-                }
-            } else {
-                stack.add(new FixActionWithBaseRemoval(variable, value, pivotOf[variable]));
-                removeFromBase(variable);
-            }
-        } else {
-            stack.add(new FixAction(variable, value));
-        }
-    }
-
-    @Override
-    public void rollback() {
-        FixAction action = stack.remove(stack.size() - 1);
-        if (action instanceof FixActionWithBaseSwap) {
-            FixActionWithBaseSwap a = (FixActionWithBaseSwap) action;
-            for (int i : a.xors) {
-                xor(i, pivotOf[a.newBaseVar]);
-            }
-            swapBase(a.newBaseVar, action.variable);
-        } else if (action instanceof FixActionWithBaseRemoval) {
-            FixActionWithBaseRemoval a = (FixActionWithBaseRemoval) action;
-            appendToBase(a.pivot, a.variable);
-        }
-        for (int i = 0; i < rows(); i++) {
-            if (isUnknown(i, action.variable)) {
-                nbUnknowns[i] += 1;
-                if (action.value) {
-                    nbTrues[i] -= 1;
-                }
-            }
-        }
-        values[action.variable] = UNDEFINED;
-    }
-
-    @Override
-    public int pivotOf(int variable) {
-        return pivotOf[variable];
+    public boolean isNone(int row, int col) {
+        return !data[row][col];
     }
 
     @Override
@@ -215,86 +100,130 @@ public class NaiveMatrixImpl implements XORMatrix {
     }
 
     @Override
-    public boolean isFixed(int variable) {
-        return values[variable] != UNDEFINED;
+    public int pivotOf(int variable) {
+        return pivotOf[variable];
     }
 
     @Override
-    public boolean isFull() {
-        for (int i = 0; i < rows(); i++) {
-            if (nbUnknowns[i] != 0) return false;
+    public void removeVar(int col) {
+        assert !isBase[col];
+        assert pivotOf[col] == NO_PIVOT;
+        columns.removeIf((IntPredicate) i -> i == col);
+    }
+
+    @Override
+    public void removeRow(int row) {
+        rows.removeIf((IntPredicate) i -> i == row);
+    }
+
+    @Override
+    public int nbUnknowns(int row) {
+        return nbUnknowns[row];
+    }
+
+    @Override
+    public int decrementUnknowns(int row) {
+        return --nbUnknowns[row];
+    }
+
+    @Override
+    public int nbTrues(int row) {
+        return nbTrues[row];
+    }
+
+    @Override
+    public boolean xor(int target, int pivot) {
+        int nbUnknownsOfTarget = 0;
+        int nbTruesOfTarget = 0;
+        for (int j = 0; j < nbColumns(); j++) {
+            boolean xor = data[target][j] != data[pivot][j];
+            if (xor) {
+                if (valueOf[j] == TRUE) {
+                    nbTruesOfTarget += 1;
+                } else {
+                    nbUnknownsOfTarget += 1;
+                }
+            }
+            data[target][j] = xor;
         }
-        return true;
+        nbUnknowns[target] = nbUnknownsOfTarget;
+        nbTrues[target] = nbTruesOfTarget;
+        return nbTruesOfTarget != 1 || nbUnknownsOfTarget != 0;
     }
 
     @Override
-    public void removeFromBase(int variable) {
+    public void setBase(int pivot, int variable) {
+        pivotOf[variable] = pivot;
+        isBase[variable] = true;
+    }
+
+    @Override
+    public void removeBase(int variable) {
+        pivotOf[variable] = NO_PIVOT;
         isBase[variable] = false;
-        pivotOf[variable] = -1;
+    }
+
+    @Override
+    public void swap(int rowA, int rowB) {
+        int nbTruesOfA = nbTrues[rowA];
+        int nbUnknownsOfA = nbUnknowns[rowA];
+        boolean[] dataOfRowA = data[rowA];
+        nbTrues[rowA] = nbTrues[rowB];
+        nbUnknowns[rowA] = nbUnknowns[rowB];
+        data[rowA] = data[rowB];
+        nbTrues[rowB] = nbTruesOfA;
+        nbUnknowns[rowB] = nbUnknownsOfA;
+        data[rowB] = dataOfRowA;
+    }
+
+    @Override
+    public void fix(int variable, boolean value) {
+        for(int row : rows()) {
+            if (isUndefined(row, variable)) {
+                nbUnknowns[row] -= 1;
+                if (value) {
+                    nbTrues[row] += 1;
+                }
+            }
+        }
+        valueOf[variable] = value? TRUE : FALSE;
+    }
+
+    @Override
+    public int firstUndefined(int row) {
+        for (int j : columns()) {
+            if (isUndefined(row, j)) return j;
+        }
+        return -1;
+    }
+
+    @Override
+    public void incrementUnknowns(int pivot) {
+        nbUnknowns[pivot] += 1;
     }
 
     @Override
     public String toString() {
-        StringBuilder str = new StringBuilder();
-        for (int j = 0; j < cols; j++) {
-            if (isBase(j)) {
-                str.append('v');
-            } else {
-                str.append(' ');
-            }
-        }
-        str.append("\n");
-        for (int i = 0; i < rows(); i++) {
-            for (int j = 0; j < cols(); j++) {
-                if (isUnknown(i, j)) {
-                    switch (values[j]) {
-                        case UNDEFINED:
-                            str.append('x');
-                            break;
-                        case TRUE:
-                            str.append('1');
-                            break;
-                        case FALSE:
-                            str.append('0');
-                    }
-                } else {
+        StringBuilder str =new StringBuilder();
+        for(int i = 0; i < nbRows; i++) {
+            for(int j = 0; j < nbColumns; j++) {
+                boolean isPivot = isBase[j] && pivotOf[j] == i;
+                str.append(isPivot? '(' : ' ');
+
+                if (isNone(i, j)) {
                     str.append('_');
+                } else if (isTrue(i, j)) {
+                    str.append('1');
+                } else if (isFalse(i, j)) {
+                    str.append('0');
+                } else if (isUndefined(i, j)) {
+                    str.append('x');
                 }
+
+                str.append(isPivot? ')': ' ');
             }
-            str.append(" | nbUnknowns: ")
-                    .append(nbUnknowns[i])
-                    .append(" | nbTrues: ")
-                    .append(nbTrues[i])
-                    .append("\n");
+            str.append("\n");
         }
         return str.toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof NaiveMatrixImpl)) return false;
-        NaiveMatrixImpl that = (NaiveMatrixImpl) o;
-        return rows == that.rows &&
-                cols == that.cols &&
-                Arrays.deepEquals(data, that.data) &&
-                Arrays.equals(nbTrues, that.nbTrues) &&
-                Arrays.equals(nbUnknowns, that.nbUnknowns) &&
-                Arrays.equals(isBase, that.isBase) &&
-                Arrays.equals(pivotOf, that.pivotOf) &&
-                Arrays.equals(values, that.values) &&
-                Objects.equals(stack, that.stack);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = Objects.hash(rows, cols, stack);
-        result = 31 * result + Arrays.hashCode(data);
-        result = 31 * result + Arrays.hashCode(nbTrues);
-        result = 31 * result + Arrays.hashCode(nbUnknowns);
-        result = 31 * result + Arrays.hashCode(isBase);
-        result = 31 * result + Arrays.hashCode(pivotOf);
-        result = 31 * result + Arrays.hashCode(values);
-        return result;
     }
 }

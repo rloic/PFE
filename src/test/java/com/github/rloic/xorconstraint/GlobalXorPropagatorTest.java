@@ -25,31 +25,7 @@ class GlobalXorPropagatorTest {
 
     @Test
     void should_return_truth_table_of_custom_xor() {
-        Model m = new Model();
-        BoolVar[] variables = m.boolVarArray(3);
 
-        BoolVar[][] equations = new BoolVar[][]{
-                new BoolVar[]{variables[0], variables[1], variables[2]}
-        };
-
-        m.post(new Constraint("GlobalXor", new GlobalXorPropagatorChoco(variables, equations)));
-        Solver solver = m.getSolver();
-
-        List<String> result = new ArrayList<>();
-        while (solver.solve()) {
-            result.add(toString(variables));
-        }
-
-        List<String> expected = new ArrayList<>();
-        expected.add("[0, 0, 0]");
-        expected.add("[0, 1, 1]");
-        expected.add("[1, 0, 1]");
-        expected.add("[1, 1, 0]");
-        expected.add("[1, 1, 1]");
-
-        expected.sort(String::compareTo);
-        result.sort(String::compareTo);
-        assertEquals(expected, result);
     }
 
     private String toString(BoolVar[] variables) {

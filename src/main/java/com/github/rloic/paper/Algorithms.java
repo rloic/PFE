@@ -1,33 +1,74 @@
 package com.github.rloic.paper;
 
 import com.github.rloic.inference.impl.Affectation;
-import com.github.rloic.paper.impl.InferenceEngineImpl;
 import com.github.rloic.paper.impl.NaiveMatrixImpl;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Algorithms {
-    private static final int A = 0;
-    private static final int B = 1;
-    private static final int C = 2;
-    private static final int D = 3;
-    private static final int E = 4;
-    private static final int F = 5;
-    private static final int G = 6;
-    private static final int H = 7;
-    private static final int I = 8;
-    private static final int J = 9;
 
     public static void main(String[] args) {
 
-        XORMatrix matrix = new NaiveMatrixImpl(new int[][]{
-                new int[]{C, F, G},
-                new int[]{E, D, F},
-                new int[]{B, E, C},
-                new int[]{B, D, A},
+        XORMatrix m = new NaiveMatrixImpl(new int[][]{
+                new int[]{0, 3},
+                new int[]{1, 3, 6},
+                new int[]{2, 3, 5},
+                new int[]{4, 5, 6}
         }, 7);
-        InferenceEngine engine = new InferenceEngineImpl();
-        System.out.println(matrix);
+
+        List<Affectation> affectations = new ArrayList<>();
+        m.fix(0, true);
+        m.fix(3, false);
+        System.out.println("valid state? " + normalize(m, affectations));
+        System.out.println(m);
+        System.out.println("Infers => " + affectations);
+
+    }
+
+    static boolean makePivot(XORMatrix m, int pivot, int variable, List<Affectation> F) {
+        for (int k : m.rows()) {
+            if (k != pivot && (m.isUndefined(k, variable) || m.isTrue(k, variable))) {
+                assert m.xor(k, pivot);
+                assert m.nbTrues(k) + m.nbUnknowns(k) >= 1;
+                if (m.nbTrues(k) == 1 && m.nbUnknowns(k) == 0) {
+                    return false;
+                }
+                if (m.nbTrues(k) == 0 && m.nbUnknowns(k) == 1) {
+                    F.add(new Affectation(m.firstUndefined(k), false));
+                }
+                if (m.nbTrues(k) == 1 && m.nbUnknowns(k) == 1) {
+                    F.add(new Affectation(m.firstUndefined(k), true));
+                }
+            }
+        }
+        m.setBase(pivot, variable);
+        return true;
+    }
+
+    public static boolean normalize(XORMatrix m, List<Affectation> F) {
+        int base = 0;
+        int i = base, j = base;
+        while (base < m.nbRows() && j < m.nbColumns()) {
+            if (m.isUndefined(i, j) || m.isTrue(i, j)) {
+                if(i != base) m.swap(i, base);
+                if(!makePivot(m, base, j, F)) return false;
+                base += 1;
+                i = base;
+                j = base;
+            } else {
+                if (i == m.nbRows() - 1) {
+                    i = base;
+                    j += 1;
+                } else {
+                    i += 1;
+                }
+            }
+        }
+        for(int row : m.rows()) {
+            if (m.nbTrues(row) == 1 && m.nbUnknowns(row) == 0) return false;
+        }
+        return true;
     }
 
 }
