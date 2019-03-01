@@ -136,15 +136,12 @@ public class NaiveMatrixImpl implements XORMatrix {
         int nbUnknownsOfTarget = 0;
         int nbTruesOfTarget = 0;
         for (int j = 0; j < nbColumns(); j++) {
-            boolean xor = data[target][j] != data[pivot][j];
-            if (xor) {
-                if (valueOf[j] == TRUE) {
-                    nbTruesOfTarget += 1;
-                } else if (valueOf[j] == UNDEFINED) {
-                    nbUnknownsOfTarget += 1;
-                }
+            data[target][j] = data[target][j] != data[pivot][j];
+            if (isUndefined(target, j)) {
+                nbUnknownsOfTarget += 1;
+            } else if (isTrue(target, j)) {
+                nbTruesOfTarget += 1;
             }
-            data[target][j] = xor;
         }
         nbUnknowns[target] = nbUnknownsOfTarget;
         nbTrues[target] = nbTruesOfTarget;
@@ -153,6 +150,8 @@ public class NaiveMatrixImpl implements XORMatrix {
 
     @Override
     public void setBase(int pivot, int variable) {
+        assert !isBase[variable];
+        assert pivotOf[variable] == -1;
         pivotOf[variable] = pivot;
         isBase[variable] = true;
     }
@@ -191,6 +190,7 @@ public class NaiveMatrixImpl implements XORMatrix {
 
     @Override
     public int firstUndefined(int row) {
+        assert nbUnknowns[row] > 0;
         for (int j : columns()) {
             if (isUndefined(row, j)) return j;
         }
@@ -209,7 +209,6 @@ public class NaiveMatrixImpl implements XORMatrix {
             for(int j = 0; j < nbColumns; j++) {
                 boolean isPivot = isBase[j] && pivotOf[j] == i;
                 str.append(isPivot? '(' : ' ');
-
                 if (isNone(i, j)) {
                     str.append('_');
                 } else if (isTrue(i, j)) {
@@ -219,7 +218,6 @@ public class NaiveMatrixImpl implements XORMatrix {
                 } else if (isUndefined(i, j)) {
                     str.append('x');
                 }
-
                 str.append(isPivot? ')': ' ');
             }
             str.append(" | nbUnknowns: ")
