@@ -101,6 +101,10 @@ public interface XORMatrix {
      */
     int nbTrues(int row);
 
+    boolean isTrue(int variable);
+
+    boolean isFalse(int variable);
+
     boolean xor(int target, int pivot);
 
     void setBase(int pivot, int variable);
@@ -115,10 +119,20 @@ public interface XORMatrix {
 
     int firstUndefined(int row, int except);
 
+    int firstEligiblePivot(int row);
+
     void incrementUnknowns(int pivot);
 
     boolean stableState();
 
     void clear();
+
+    default boolean emptyRow(int row) {
+        return nbUnknowns(row) == 0 && nbTrues(row) == 0;
+    }
+
+    default boolean isInvalid(int row) {
+        return nbUnknowns(row) == 0 && nbTrues(row) == 1;
+    }
 
 }

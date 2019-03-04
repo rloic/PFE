@@ -16,6 +16,7 @@ import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
+import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.Variable;
@@ -26,29 +27,36 @@ import org.chocosolver.util.ESat;
 public class ToyExample {
 
     public static void main(String[] args) {
-        XORMatrix matrix =new NaiveMatrixImpl(new int[][]{
-              new int[]{0, 1}
-        }, 3);
-
-        matrix.fix(0, false);
-        Algorithms.normalize(matrix, new ArrayList<>());
-        Algorithms.propagateVarAssignedToTrue(matrix, 0, new ArrayList<>());
-        System.out.println(matrix);
+        Model m = new Model();
+        BoolVar[] vars = m.boolVarArray(2);
+        m.post(new Constraint("My Constraint", new MyPropagator(vars)));
+        Solver s = m.getSolver();
+        while (s.solve()) {}
+        s.printShortStatistics();
     }
 
-    static void solve(Model model, BoolVar[] variables) {
-        Solver solver = model.getSolver();
-        while (solver.solve()) {
-            printSBoxes(variables);
+    static class MyPropagator extends Propagator<BoolVar> {
+
+        public MyPropagator(BoolVar[] vars) {
+            super(vars, PropagatorPriority.LINEAR, true);
         }
-        solver.printShortStatistics();
-    }
 
-    private static void printSBoxes(BoolVar[] sBoxes) {
-        List<Integer> values = Arrays.stream(sBoxes)
-                .map(IntVar::getValue)
-                .collect(Collectors.toList());
-        System.out.println("Solution: " + values);
+        @Override
+        public void propagate(int evtmask) throws ContradictionException {
+
+        }
+
+        @Override
+        public void propagate(int idxVarInProp, int mask) throws ContradictionException {
+            if(idxVarInProp != 0) {
+                vars[0].setToTrue(this);
+            }
+        }
+
+        @Override
+        public ESat isEntailed() {
+            return ESat.UNDEFINED;
+        }
     }
 
 }

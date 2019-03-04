@@ -22,14 +22,12 @@ public class Affectation implements Inference {
     public void apply(InferenceMatrix matrix) throws IllegalStateException {
         Logger.trace("Fix var_" + variable + " to " + value);
         matrix.fix(variable, value);
-        Logger.trace("\n" + matrix);
     }
 
     @Override
     public void unapply(InferenceMatrix matrix) {
         Logger.trace("Unfix var_" + variable);
         matrix.unfix(variable);
-        Logger.trace("\n" + matrix);
     }
 
     @Override

@@ -2,15 +2,16 @@ package com.github.rloic.paper;
 
 import com.github.rloic.inference.impl.Affectation;
 import com.github.rloic.util.Logger;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.ints.IntList;
 
 import java.util.List;
+import java.util.function.IntPredicate;
 
 public class Algorithms {
 
    private static boolean makePivot(XORMatrix m, int pivot, int variable, List<Affectation> F) {
-      Logger.trace("Make pivot: pivot=" + pivot + ", base_var=" + variable);
-      Logger.trace("\n" + m);
       if (m.nbTrues(pivot) == 0 && m.nbUnknowns(pivot) == 1) {
          assert m.firstUndefined(pivot) != -1;
          F.add(new Affectation(m.firstUndefined(pivot), false));
@@ -23,24 +24,14 @@ public class Algorithms {
          if (k != pivot && (m.isUndefined(k, variable) || m.isTrue(k, variable))) {
             boolean isValid = m.xor(k, pivot);
             if (!isValid) return false;
-            if (!m.stableState()) {
-               System.err.println(m);
-            }
-            /*
-            if (m.nbTrues(k) + m.nbUnknowns(k) < 1) {
-               Logger.warn("After xor line: m.nbTrues(k) + m.nbUnknowns(k) = " + (m.nbTrues(k) + m.nbUnknowns(k)));
-            }
-            */
-            if (m.nbTrues(k) == 1 && m.nbUnknowns(k) == 0) {
-               return false;
-            }
-            if (m.nbTrues(k) == 0 && m.nbUnknowns(k) == 1) {
-               assert m.firstUndefined(k) != -1;
-               F.add(new Affectation(m.firstUndefined(k), false));
-            }
-            if (m.nbTrues(k) == 1 && m.nbUnknowns(k) == 1) {
-               assert m.firstUndefined(k) != -1;
-               F.add(new Affectation(m.firstUndefined(k), true));
+            assert !m.isInvalid(k);
+            if (m.nbUnknowns(k) == 1) {
+               if (m.nbTrues(k) == 1) {
+                  assert m.firstUndefined(k) != -1;
+                  F.add(new Affectation(m.firstUndefined(k), true));
+               } else if (m.nbTrues(k) == 0) {
+                  F.add(new Affectation(m.firstUndefined(k), false));
+               }
             }
          }
       }
@@ -51,7 +42,6 @@ public class Algorithms {
 
    public static boolean normalize(XORMatrix m, List<Affectation> F) {
       if (!m.stableState()) return false;
-      Logger.debug("Call normalize with: \n" + m);
       removeEmptyColumns(m);
       removeEmptyLines(m);
       if (m.nbColumns() == 0) return true;
@@ -59,7 +49,6 @@ public class Algorithms {
       IntIterator validRows = m.rows().iterator();
       int base = validRows.nextInt();
       int nbBases = 0;
-      Logger.debug("After removing empty values: \n" + m);
       for (int col : m.columns()) {
          if (nbBases == m.nbRows()) break;
          for (int row : m.rows()) {
@@ -75,7 +64,6 @@ public class Algorithms {
             }
          }
       }
-      Logger.debug("After normalization: \n" + m);
       assert m.stableState();
       return true;
    }
@@ -111,51 +99,83 @@ public class Algorithms {
       }
    }
 
-   public static boolean propagateVarAssignedToFalse(XORMatrix m, int variable, List<Affectation> F) {
-      assert m.stableState();
-      assert !m.isFixed(variable);
+   public static boolean assignToFalse(XORMatrix m, int variable, List<Affectation> queue) {
+      if (!m.stableState()) {
+         Logger.err("Unstable state\n" + m);
+         assert false;
+      }
+      if (m.isFixed(variable) && !m.isFalse(variable)) {
+         return false;
+      }
       m.fix(variable, false);
+      IntList rows;
       if (m.isBase(variable)) {
-         int ivar = m.pivotOf(variable);
-         if (m.nbTrues(ivar) == 0 && m.nbUnknowns(ivar) == 0) {
-            m.removeRow(ivar);
-            assert m.stableState();
-         } else if (m.nbTrues(ivar) == 0 && m.nbUnknowns(ivar) == 1) {
-            F.add(new Affectation(m.firstUndefined(ivar), false));
-         } else {
-            m.removeFromBase(variable);
-            m.removeVar(variable);
-            if (!makePivot(m, ivar, m.firstUndefined(ivar), F)) return false;
-         }
+         throw new RuntimeException();
       } else {
-         for (int i : m.rows()) {
-            if (m.isFalse(i, variable)) {
-               if (m.nbTrues(i) != 1 || m.nbUnknowns(i) != 0) return false;
-               if (m.nbTrues(i) == 0 && m.nbUnknowns(i) == 1) {
-                  F.add(new Affectation(m.firstUndefined(i, variable), false));
-               }
-               if (m.nbTrues(i) == 1 && m.nbUnknowns(i) == 1) {
-                  F.add(new Affectation(m.firstUndefined(i, variable), true));
-               }
+         rows = where(m.rows(), row -> m.isFalse(row, variable));
+      }
+      for (int row : rows) {
+         if (m.isInvalid(row)) {
+            return false;
+         }
+         if (m.nbUnknowns(row) == 1) {
+            if (m.nbTrues(row) == 1) {
+               queue.add(new Affectation(m.firstUndefined(row), true));
+            } else if(m.nbTrues(row) == 0) {
+               queue.add(new Affectation(m.firstUndefined(row), false));
             }
          }
-         m.removeVar(variable);
+      }
+      m.removeVar(variable);
+      assert m.stableState();
+      return true;
+   }
+
+   private static IntList where(IntList elements, IntPredicate predicate) {
+      IntList result = new IntArrayList();
+      for(int element: elements) {
+         if(predicate.test(element)) result.add(element);
+      }
+      return result;
+   }
+
+   public static boolean assignToTrue(XORMatrix m, int variable, List<Affectation> queue) {
+      if (!m.stableState()) {
+         Logger.err("Unstable state\n" + m);
+         assert false;
+      }
+      if (m.isFixed(variable) && !m.isTrue(variable)) {
+         return false;
+      }
+      m.fix(variable, true);
+      IntList rows;
+      if (m.isBase(variable)) {
+         rows = new IntArrayList(new int[]{m.pivotOf(variable)});
+      } else {
+         rows = where(m.rows(), row -> m.isTrue(row, variable));
+      }
+      for (int row : rows) {
+         if (m.isInvalid(row)) {
+            return false;
+         }
+         if (m.nbUnknowns(row) == 1 && m.nbTrues(row) == 1) {
+            queue.add(new Affectation(m.firstUndefined(row), true));
+         }
       }
       assert m.stableState();
       return true;
    }
 
-   public static boolean propagateVarAssignedToTrue(XORMatrix m, int variable, List<Affectation> F) {
-      assert m.stableState();
-      assert !m.isFixed(variable);
-      m.fix(variable, true);
-      for(int i : m.rows()) {
-         assert (m.nbUnknowns(i) != 0 || m.nbTrues(i) != 1);
-         if(m.nbUnknowns(i) == 1 && m.nbTrues(i) == 1) {
-            F.add(new Affectation(m.firstUndefined(i), true));
-         }
+   private static boolean assign(XORMatrix m, Affectation a, List<Affectation> queue) {
+      //return a.value ? assignToTrue(m, a.variable, queue) : assignToFalse(m, a.variable, queue);
+      throw new RuntimeException();
+   }
+
+   public static boolean applyAndInfer(XORMatrix m, Affectation chocoAffectation, List<Affectation> inferences) {
+      if (m.isFixed(chocoAffectation.variable)) {
+         if (m.isTrue(chocoAffectation.variable) && !chocoAffectation.value) return false;
+         if (m.isFalse(chocoAffectation.variable) && chocoAffectation.value) return false;
       }
-      assert m.stableState();
       return true;
    }
 

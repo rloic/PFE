@@ -36,7 +36,7 @@ public class TestGConstraint {
         System.out.println("Solve");
         while (solver.solve()) {
             printSBoxes(gXor.sBoxes);
-            //System.out.println(count++);
+            System.out.println(count++);
         }
         solver.printShortStatistics();
     }

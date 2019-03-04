@@ -22,6 +22,10 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
    private final int[][] equations;
    private XORMatrix matrix;
 
+   private long currentDepth = 0L;
+   private int nbCall = 0;
+   private boolean contradiction = false;
+
    public GlobalXorPropagator(BoolVar[] variables, BoolVar[][] xors) {
       super(variables, PropagatorPriority.CUBIC, true);
       final Map<BoolVar, Integer> indexOf = new HashMap<>();
@@ -45,37 +49,44 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
       return IntEventType.all();
    }
 
-    @Override
-    public void propagate(int idxVarInProp, int mask) throws ContradictionException {
-        matrix.clear();
-        for(int j = 0; j < vars.length; j++) {
-            if (vars[j].isInstantiated()) {
-                matrix.fix(j, vars[j].getValue() == 1);
-            }
-        }
-        List<Affectation> affectations = new ArrayList<>();
-        if (!Algorithms.normalize(matrix, affectations)) {
+   private boolean isTrue(int idxVarInProp) {
+      return vars[idxVarInProp].getValue() == 1;
+   }
+
+   @Override
+   public void propagate(int idxVarInProp, int mask) throws ContradictionException {
+      Logger.trace("Nb call " + (nbCall++));
+      List<Affectation> affectations = new ArrayList<>();
+      if (matrix.isFixed(idxVarInProp) || contradiction || isTrue(idxVarInProp) || matrix.isBase(idxVarInProp)) {
+         if (!hardReset(matrix, affectations)) {
+            contradiction = true;
             throw new ContradictionException();
+         }
+      } else {
+        if(!Algorithms.assignToFalse(matrix, idxVarInProp, affectations)) {
+           contradiction = true;
+           throw new ContradictionException();
         }
-        Logger.trace(matrix + "\n\n");
-        for(Affectation affectation : affectations) {
-            if(affectation.value) {
-                vars[affectation.variable].setToTrue(this);
-            } else {
-                vars[affectation.variable].setToFalse(this);
-            }
-        }
-    }
+      }
+
+      for (Affectation affectation : affectations) {
+         if (affectation.value) {
+            vars[affectation.variable].setToTrue(this);
+         } else {
+            vars[affectation.variable].setToFalse(this);
+         }
+      }
+      contradiction = false;
+   }
 
    @Override
    public void propagate(int evtmask) {
-      matrix.clear();
+      hardReset(matrix, new ArrayList<>());
    }
 
 
    @Override
    public ESat isEntailed() {
-      matrix.clear();
       List<Affectation> affectations = new ArrayList<>();
       if (!hardReset(matrix, affectations)) return ESat.FALSE;
 
@@ -84,10 +95,13 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
             return ESat.UNDEFINED;
          }
       }
+
+      assert matrix.stableState();
       return ESat.TRUE;
    }
 
    private boolean hardReset(XORMatrix matrix, List<Affectation> affectations) {
+      matrix.clear();
       for (int j = 0; j < vars.length; j++) {
          if (vars[j].isInstantiated()) {
             matrix.fix(j, vars[j].getValue() == 1);
