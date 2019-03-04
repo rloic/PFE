@@ -119,6 +119,6 @@ public interface XORMatrix {
 
     boolean stableState();
 
-    void reset();
+    void clear();
 
 }

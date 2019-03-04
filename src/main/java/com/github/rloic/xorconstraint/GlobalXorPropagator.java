@@ -2,16 +2,13 @@ package com.github.rloic.xorconstraint;
 
 import com.github.rloic.inference.impl.Affectation;
 import com.github.rloic.paper.Algorithms;
-import com.github.rloic.paper.InferenceEngine;
 import com.github.rloic.paper.XORMatrix;
-import com.github.rloic.paper.impl.InferenceEngineImpl;
 import com.github.rloic.paper.impl.NaiveMatrixImpl;
 import com.github.rloic.util.Logger;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.BoolVar;
-import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.events.IntEventType;
 import org.chocosolver.util.ESat;
 
@@ -40,6 +37,7 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
             equations[i][j] = indexOf.get(xors[i][j]);
          }
       }
+      matrix = new NaiveMatrixImpl(equations, vars.length);
    }
 
    @Override
@@ -49,7 +47,7 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
 
     @Override
     public void propagate(int idxVarInProp, int mask) throws ContradictionException {
-        XORMatrix matrix = new NaiveMatrixImpl(equations, vars.length);
+        matrix.clear();
         for(int j = 0; j < vars.length; j++) {
             if (vars[j].isInstantiated()) {
                 matrix.fix(j, vars[j].getValue() == 1);
@@ -71,13 +69,13 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
 
    @Override
    public void propagate(int evtmask) {
-      matrix = new NaiveMatrixImpl(equations, vars.length);
+      matrix.clear();
    }
 
 
    @Override
    public ESat isEntailed() {
-      XORMatrix matrix = new NaiveMatrixImpl(equations, vars.length);
+      matrix.clear();
       List<Affectation> affectations = new ArrayList<>();
       if (!hardReset(matrix, affectations)) return ESat.FALSE;
 

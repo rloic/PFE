@@ -25,7 +25,12 @@ public class NaiveMatrixImpl implements XORMatrix {
     private final IntList rows;
     private final IntList columns;
 
+    private final int[][] equations;
+    private int nbVariables;
+
     public NaiveMatrixImpl(int[][] equations, int nbVariables) {
+        this.equations = equations;
+        this.nbVariables = nbVariables;
         rows = new IntArrayList(equations.length);
         for(int i = 0; i < equations.length; i++) {
             rows.add(i);
@@ -229,8 +234,28 @@ public class NaiveMatrixImpl implements XORMatrix {
     }
 
     @Override
-    public void reset() {
-
+    public void clear() {
+        rows.clear();
+        for(int i = 0; i < equations.length; i++) {
+            rows.add(i);
+        }
+        columns.clear();
+        for(int j = 0; j < nbVariables; j++) {
+            columns.add(j);
+        }
+        int nbRows = equations.length;
+        Arrays.fill(nbUnknowns, 0);
+        Arrays.fill(nbTrues, 0);
+        for (int i = 0; i < nbRows; i++) {
+            Arrays.fill(data[i], false);
+            for (int j : equations[i]) {
+                data[i][j] = true;
+                nbUnknowns[i] += 1;
+            }
+        }
+        Arrays.fill(valueOf, UNDEFINED);
+        Arrays.fill(isBase, false);
+        Arrays.fill(pivotOf, NO_PIVOT);
     }
 
     @Override
