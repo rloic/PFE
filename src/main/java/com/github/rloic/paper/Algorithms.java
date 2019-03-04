@@ -12,13 +12,14 @@ import java.util.function.IntPredicate;
 public class Algorithms {
 
    private static boolean makePivot(XORMatrix m, int pivot, int variable, List<Affectation> F) {
-      if (m.nbTrues(pivot) == 0 && m.nbUnknowns(pivot) == 1) {
+      assert !m.isInvalid(pivot);
+      if (m.nbUnknowns(pivot) == 1) {
          assert m.firstUndefined(pivot) != -1;
-         F.add(new Affectation(m.firstUndefined(pivot), false));
-      }
-      if (m.nbTrues(pivot) == 1 && m.nbUnknowns(pivot) == 1) {
-         assert m.firstUndefined(pivot) != -1;
-         F.add(new Affectation(m.firstUndefined(pivot), true));
+         if(m.nbTrues(pivot) == 0) {
+            F.add(new Affectation(m.firstUndefined(pivot), false));
+         } else if (m.nbTrues(pivot) == 1) {
+            F.add(new Affectation(m.firstUndefined(pivot), true));
+         }
       }
       for (int k : m.rows()) {
          if (k != pivot && (m.isUndefined(k, variable) || m.isTrue(k, variable))) {

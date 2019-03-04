@@ -23,7 +23,7 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
    private final int[][] equations;
    private XORMatrix matrix;
 
-   private long currentDepth = 0L;
+   private long lastBackTrack = 0L;
    private int nbCall = 0;
    private boolean contradiction = false;
    private final Solver solver;
@@ -60,7 +60,7 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
    public void propagate(int idxVarInProp, int mask) throws ContradictionException {
       Logger.trace("Nb call " + (nbCall++));
       List<Affectation> affectations = new ArrayList<>();
-      if (currentDepth >= solver.getCurrentDepth() || contradiction) {
+      if (lastBackTrack < solver.getBackTrackCount() || matrix.isFixed(idxVarInProp) || contradiction) {
          if (!hardReset(matrix, affectations)) {
             contradiction = true;
             throw new ContradictionException();
@@ -70,8 +70,13 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
             contradiction = true;
             throw new ContradictionException();
          }
-      } else if (!isTrue(idxVarInProp)) {
+      } else if (!isTrue(idxVarInProp) ) {
          if(!Algorithms.assignToFalse(matrix, idxVarInProp, affectations)) {
+            contradiction = true;
+            throw new ContradictionException();
+         }
+      } else {
+         if (!hardReset(matrix, affectations)) {
             contradiction = true;
             throw new ContradictionException();
          }
@@ -85,7 +90,7 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
          }
       }
       contradiction = false;
-      currentDepth = solver.getCurrentDepth();
+      lastBackTrack = solver.getBackTrackCount();
    }
 
    @Override

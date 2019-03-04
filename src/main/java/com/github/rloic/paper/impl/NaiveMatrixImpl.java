@@ -175,6 +175,9 @@ public class NaiveMatrixImpl implements XORMatrix {
       assert pivotOf[variable] == -1;
       pivotOf[variable] = pivot;
       isBase[variable] = true;
+      for(int i: rows()) {
+         assert isNone(i, variable) || i == pivotOf[variable];
+      }
    }
 
    @Override
