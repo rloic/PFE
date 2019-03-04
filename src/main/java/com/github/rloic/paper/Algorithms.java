@@ -104,25 +104,35 @@ public class Algorithms {
          Logger.err("Unstable state\n" + m);
          assert false;
       }
-      if (m.isFixed(variable) && !m.isFalse(variable)) {
-         return false;
+      if (m.isFixed(variable)) {
+         return m.isFalse(variable);
       }
       m.fix(variable, false);
-      IntList rows;
       if (m.isBase(variable)) {
-         throw new RuntimeException();
-      } else {
-         rows = where(m.rows(), row -> m.isFalse(row, variable));
-      }
-      for (int row : rows) {
-         if (m.isInvalid(row)) {
+         int ivar = m.pivotOf(variable);
+         if (m.isInvalid(ivar)) {
             return false;
          }
-         if (m.nbUnknowns(row) == 1) {
-            if (m.nbTrues(row) == 1) {
-               queue.add(new Affectation(m.firstUndefined(row), true));
-            } else if(m.nbTrues(row) == 0) {
-               queue.add(new Affectation(m.firstUndefined(row), false));
+         m.removeFromBase(variable);
+         if (m.emptyRow(ivar)) {
+            m.removeRow(ivar);
+         } else {
+            if(!makePivot(m, ivar, m.firstEligiblePivot(ivar), queue)) {
+               return false;
+            }
+         }
+      } else {
+         IntList rows = where(m.rows(), row -> m.isFalse(row, variable));
+         for (int row : rows) {
+            if (m.isInvalid(row)) {
+               return false;
+            }
+            if (m.nbUnknowns(row) == 1) {
+               if (m.nbTrues(row) == 1) {
+                  queue.add(new Affectation(m.firstUndefined(row), true));
+               } else if (m.nbTrues(row) == 0) {
+                  queue.add(new Affectation(m.firstUndefined(row), false));
+               }
             }
          }
       }
@@ -133,8 +143,8 @@ public class Algorithms {
 
    private static IntList where(IntList elements, IntPredicate predicate) {
       IntList result = new IntArrayList();
-      for(int element: elements) {
-         if(predicate.test(element)) result.add(element);
+      for (int element : elements) {
+         if (predicate.test(element)) result.add(element);
       }
       return result;
    }
@@ -144,8 +154,8 @@ public class Algorithms {
          Logger.err("Unstable state\n" + m);
          assert false;
       }
-      if (m.isFixed(variable) && !m.isTrue(variable)) {
-         return false;
+      if(m.isFixed(variable)) {
+         return m.isTrue(variable);
       }
       m.fix(variable, true);
       IntList rows;
@@ -163,19 +173,6 @@ public class Algorithms {
          }
       }
       assert m.stableState();
-      return true;
-   }
-
-   private static boolean assign(XORMatrix m, Affectation a, List<Affectation> queue) {
-      //return a.value ? assignToTrue(m, a.variable, queue) : assignToFalse(m, a.variable, queue);
-      throw new RuntimeException();
-   }
-
-   public static boolean applyAndInfer(XORMatrix m, Affectation chocoAffectation, List<Affectation> inferences) {
-      if (m.isFixed(chocoAffectation.variable)) {
-         if (m.isTrue(chocoAffectation.variable) && !chocoAffectation.value) return false;
-         if (m.isFalse(chocoAffectation.variable) && chocoAffectation.value) return false;
-      }
       return true;
    }
 

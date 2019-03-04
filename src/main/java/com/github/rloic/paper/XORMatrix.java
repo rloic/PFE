@@ -88,13 +88,6 @@ public interface XORMatrix {
     int nbUnknowns(int row);
 
     /**
-     * Decrement the number of 'x' on the row and return the value
-     * @param row The row
-     * @return The new number of 'x' on the row
-     */
-    int decrementUnknowns(int row);
-
-    /**
      * Return the number of 1 on the row
      * @param row The row
      * @return The number of 1 on the row
@@ -117,11 +110,7 @@ public interface XORMatrix {
 
     int firstUndefined(int row);
 
-    int firstUndefined(int row, int except);
-
     int firstEligiblePivot(int row);
-
-    void incrementUnknowns(int pivot);
 
     boolean stableState();
 

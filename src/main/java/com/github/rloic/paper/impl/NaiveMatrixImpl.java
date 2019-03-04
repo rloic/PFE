@@ -1,6 +1,7 @@
 package com.github.rloic.paper.impl;
 
 import com.github.rloic.paper.XORMatrix;
+import com.github.rloic.util.Logger;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
@@ -77,6 +78,8 @@ public class NaiveMatrixImpl implements XORMatrix {
 
    @Override
    public boolean isUndefined(int row, int col) {
+      assert row >= 0 && row < equations.length;
+      assert col >= 0 && col < nbVariables;
       return data[row][col] && valueOf[col] == UNDEFINED;
    }
 
@@ -132,11 +135,6 @@ public class NaiveMatrixImpl implements XORMatrix {
    @Override
    public int nbUnknowns(int row) {
       return nbUnknowns[row];
-   }
-
-   @Override
-   public int decrementUnknowns(int row) {
-      return --nbUnknowns[row];
    }
 
    @Override
@@ -221,15 +219,6 @@ public class NaiveMatrixImpl implements XORMatrix {
    }
 
    @Override
-   public int firstUndefined(int row, int except) {
-      assert nbUnknowns[row] > 0;
-      for (int j : columns()) {
-         if (isUndefined(row, j) && j != except) return j;
-      }
-      return -1;
-   }
-
-   @Override
    public int firstEligiblePivot(int row) {
       for (int j : columns()) {
          if (isUndefined(row, j) || isTrue(row, j) && !isBase(j)) {
@@ -238,11 +227,6 @@ public class NaiveMatrixImpl implements XORMatrix {
       }
       assert false : "Non eligible pivot on this row";
       return -1;
-   }
-
-   @Override
-   public void incrementUnknowns(int pivot) {
-      nbUnknowns[pivot] += 1;
    }
 
    @Override

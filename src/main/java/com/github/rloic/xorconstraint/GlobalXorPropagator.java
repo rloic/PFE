@@ -5,6 +5,7 @@ import com.github.rloic.paper.Algorithms;
 import com.github.rloic.paper.XORMatrix;
 import com.github.rloic.paper.impl.NaiveMatrixImpl;
 import com.github.rloic.util.Logger;
+import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -25,8 +26,9 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
    private long currentDepth = 0L;
    private int nbCall = 0;
    private boolean contradiction = false;
+   private final Solver solver;
 
-   public GlobalXorPropagator(BoolVar[] variables, BoolVar[][] xors) {
+   public GlobalXorPropagator(BoolVar[] variables, BoolVar[][] xors, Solver solver) {
       super(variables, PropagatorPriority.CUBIC, true);
       final Map<BoolVar, Integer> indexOf = new HashMap<>();
       int lastIndex = 0;
@@ -42,6 +44,7 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
          }
       }
       matrix = new NaiveMatrixImpl(equations, vars.length);
+      this.solver = solver;
    }
 
    @Override
@@ -57,16 +60,21 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
    public void propagate(int idxVarInProp, int mask) throws ContradictionException {
       Logger.trace("Nb call " + (nbCall++));
       List<Affectation> affectations = new ArrayList<>();
-      if (matrix.isFixed(idxVarInProp) || contradiction || isTrue(idxVarInProp) || matrix.isBase(idxVarInProp)) {
+      if (currentDepth >= solver.getCurrentDepth() || contradiction) {
          if (!hardReset(matrix, affectations)) {
             contradiction = true;
             throw new ContradictionException();
          }
-      } else {
-        if(!Algorithms.assignToFalse(matrix, idxVarInProp, affectations)) {
-           contradiction = true;
-           throw new ContradictionException();
-        }
+      } else if(isTrue(idxVarInProp)) {
+         if(!Algorithms.assignToTrue(matrix, idxVarInProp, affectations)) {
+            contradiction = true;
+            throw new ContradictionException();
+         }
+      } else if (!isTrue(idxVarInProp)) {
+         if(!Algorithms.assignToFalse(matrix, idxVarInProp, affectations)) {
+            contradiction = true;
+            throw new ContradictionException();
+         }
       }
 
       for (Affectation affectation : affectations) {
@@ -77,6 +85,7 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
          }
       }
       contradiction = false;
+      currentDepth = solver.getCurrentDepth();
    }
 
    @Override

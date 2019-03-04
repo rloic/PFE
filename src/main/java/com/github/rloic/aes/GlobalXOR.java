@@ -110,7 +110,7 @@ public class GlobalXOR {
         BoolVar[][] eqs = new BoolVar[equations.size()][];
         equations.toArray(eqs);
 
-        m.post(new Constraint("GlobalXor", new GlobalXorPropagator(vars, eqs)));
+        m.post(new Constraint("GlobalXor", new GlobalXorPropagator(vars, eqs, m.getSolver())));
     }
 
     private BoolVar[][][] buildΔX(int r, int rows, int columns) {
