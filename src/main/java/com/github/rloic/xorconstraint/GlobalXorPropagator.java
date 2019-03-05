@@ -25,7 +25,6 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
 
    private long lastBackTrack = 0L;
    private int nbCall = 0;
-   private boolean contradiction = false;
    private final Solver solver;
 
    public GlobalXorPropagator(BoolVar[] variables, BoolVar[][] xors, Solver solver) {
@@ -56,28 +55,34 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
       return vars[idxVarInProp].getValue() == 1;
    }
 
+   private boolean isFalse(int idxVarInProp) {
+      return vars[idxVarInProp].getValue() == 0;
+   }
+
+   private boolean chocoHasBacktrack() {
+      boolean hasBackTrack = lastBackTrack < solver.getBackTrackCount();
+      lastBackTrack = solver.getBackTrackCount();
+      return hasBackTrack;
+   }
+
+   private boolean chocoMakeReassignment(int idxVarInProp) {
+      return (matrix.isFixed(idxVarInProp) && isTrue(idxVarInProp) != matrix.isTrue(idxVarInProp));
+   }
+
    @Override
    public void propagate(int idxVarInProp, int mask) throws ContradictionException {
       Logger.trace("Nb call " + (nbCall++));
       List<Affectation> affectations = new ArrayList<>();
-      if (lastBackTrack < solver.getBackTrackCount() || matrix.isFixed(idxVarInProp) || contradiction) {
+      if (chocoHasBacktrack() || chocoMakeReassignment(idxVarInProp)) {
          if (!hardReset(matrix, affectations)) {
-            contradiction = true;
             throw new ContradictionException();
          }
       } else if(isTrue(idxVarInProp)) {
          if(!Algorithms.assignToTrue(matrix, idxVarInProp, affectations)) {
-            contradiction = true;
             throw new ContradictionException();
          }
-      } else if (!isTrue(idxVarInProp) ) {
+      } else if (isFalse(idxVarInProp) ) {
          if(!Algorithms.assignToFalse(matrix, idxVarInProp, affectations)) {
-            contradiction = true;
-            throw new ContradictionException();
-         }
-      } else {
-         if (!hardReset(matrix, affectations)) {
-            contradiction = true;
             throw new ContradictionException();
          }
       }
@@ -89,8 +94,6 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
             vars[affectation.variable].setToFalse(this);
          }
       }
-      contradiction = false;
-      lastBackTrack = solver.getBackTrackCount();
    }
 
    @Override
