@@ -5,20 +5,28 @@ import it.unimi.dsi.fastutil.ints.IntList;
 public interface XORMatrix {
 
     /**
-     * Return the number of nbRows of the matrix
-     * @return The number of nbRows of the matrix
+     * Return the number of nbEquations of the matrix
+     * @return The number of nbEquations of the matrix
      */
-    int nbRows();
+    int nbEquations();
 
     /**
-     * Return the number of columns of the matrix
-     * @return The number of columns of the matrix
+     * Return the number of variables of the matrix
+     * @return The number of variables of the matrix
      */
-    int nbColumns();
+    int nbVariables();
 
-    IntList rows();
+    /**
+     * Return a list of equation (int)
+     * @return The equations of the matrix
+     */
+    IntList equations();
 
-    IntList columns();
+    /**
+     * Return a list of variables (int)
+     * @return The variables of the matrix
+     */
+    IntList variables();
 
     /**
      * Return if M[row][col] == 'x'
@@ -52,6 +60,11 @@ public interface XORMatrix {
      */
     boolean isNone(int row, int col);
 
+    /**
+     * Return if the variable is fixed to true or false (!= undefined)
+     * @param variable The variable
+     * @return True if the variable is assigned to a value else false
+     */
     boolean isFixed(int variable);
 
     /**
@@ -94,34 +107,113 @@ public interface XORMatrix {
      */
     int nbTrues(int row);
 
+    /**
+     * Return if the variable is fixed to true
+     * @param variable The variable
+     * @return True if the variable is assigned to true
+     */
     boolean isTrue(int variable);
 
+    /**
+     * Return if the variable is fixed to false
+     * @param variable The variable
+     * @return False is the variable is  to false
+     */
     boolean isFalse(int variable);
 
+    /**
+     * Perform the assignment target <- target xor pivot
+     * @param target The target equation
+     * @param pivot The pivot equation
+     * @return Perform a xor between target and pivot then assign target to this result
+     */
     boolean xor(int target, int pivot);
 
+    /**
+     * Mark the variable as a Base variable with the pivot
+     * @param pivot The line pivot
+     * @param variable The variable
+     */
     void setBase(int pivot, int variable);
 
+    /**
+     * Remove the variable from the base
+     * @param variable The variable
+     */
     void removeFromBase(int variable);
 
-    void swap(int rowA, int rowB);
+    /**
+     * Perform a swap between the equationA and the equationB
+     * @param equationA The equationA
+     * @param equationB The equationB
+     */
+    void swap(int equationA, int equationB);
 
+    /**
+     * Assign variable to value
+     * @param variable The variable
+     * @param value The value
+     */
     void fix(int variable, boolean value);
 
-    int firstUndefined(int row);
+    /**
+     * Return the first unknown variable of the equation
+     * @param equation The equation
+     * @return The first variable of the equation (-1 if no unknown is present in the equation)
+     */
+    int firstUnknown(int equation);
 
-    int firstEligiblePivot(int row);
+    /**
+     * Return the first variable that is eligible as a pivot on the given equation
+     * @param equation The equation
+     * @return The variable of the equation that is eligible as a pivot (-1 if none was found)
+     */
+    int firstEligiblePivot(int equation);
 
+    /**
+     * Return true if the matrix is stable (none constraints are broken)
+     * @return True if the matrix is stable else false
+     */
     boolean stableState();
 
+    /**
+     * Reset the matrix to its initial state
+     */
     void clear();
 
-    default boolean emptyRow(int row) {
-        return nbUnknowns(row) == 0 && nbTrues(row) == 0;
+    /**
+     * Return if the current equation is empty
+     * @param equation The equation
+     * @return True if the equation does not contains 'x' or '1'
+     */
+    default boolean isEmptyEquation(int equation) {
+        return nbUnknowns(equation) == 0 && nbTrues(equation) == 0;
     }
 
-    default boolean isInvalid(int row) {
-        return nbUnknowns(row) == 0 && nbTrues(row) == 1;
+    /**
+     * Return if the equation is unsatisfied
+     * @param equation The equation
+     * @return True if the equation cannot be satisfied else false
+     */
+    default boolean isInvalid(int equation) {
+        return nbUnknowns(equation) == 0 && nbTrues(equation) == 1;
     }
+
+    /**
+     * Remove all the empty equations from the matrix
+     */
+    void removeEmptyEquations();
+
+    /**
+     * Remove all the unused variables from the matrix
+     */
+    void removeUnusedVariables();
+
+    /**
+     * Return the list of equations where the variable is present
+     * @param variable The variable
+     * @return The list of equations of the variable
+     */
+    IntList equationsOf(int variable);
 
 }

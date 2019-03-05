@@ -39,7 +39,7 @@ public class AdvancedModelPaper {
         this.KEY_BITS = keyBits;
 
         BoolVar[][][] ΔX = buildΔX(r, 4, 4);
-        BoolVar[][][] ΔY = c4(ΔX); // C'4 shift nbRows
+        BoolVar[][][] ΔY = c4(ΔX); // C'4 shift nbEquations
         BoolVar[][][] ΔZ = c6(ΔY);
         BoolVar[][][] ΔK = buildΔK(r, 4, 5);
         sBoxes = c1(ΔX, ΔK, objStep1);

@@ -28,6 +28,8 @@ public class Test {
 
       List<Affectation> affectations = new ArrayList<>();
       Algorithms.normalize(m, affectations);
+      Algorithms.assignToFalse(m, C, affectations);
+      System.out.println(m);
    }
 
 }

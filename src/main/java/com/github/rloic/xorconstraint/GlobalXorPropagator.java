@@ -3,6 +3,7 @@ package com.github.rloic.xorconstraint;
 import com.github.rloic.inference.impl.Affectation;
 import com.github.rloic.paper.Algorithms;
 import com.github.rloic.paper.XORMatrix;
+import com.github.rloic.paper.impl.AdjacencyMatrixImpl;
 import com.github.rloic.paper.impl.NaiveMatrixImpl;
 import com.github.rloic.util.Logger;
 import org.chocosolver.solver.Solver;
@@ -42,7 +43,7 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
             equations[i][j] = indexOf.get(xors[i][j]);
          }
       }
-      matrix = new NaiveMatrixImpl(equations, vars.length);
+      matrix = new AdjacencyMatrixImpl(equations, vars.length);
       this.solver = solver;
    }
 
@@ -73,9 +74,13 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
       for(int i = 0; i < affectations.size(); i++) {
          Affectation affectation = affectations.get(i);
          if (affectation.value) {
-            assert Algorithms.assignToTrue(matrix, affectation.variable, affectations);
+            if(!Algorithms.assignToTrue(matrix, affectation.variable, affectations)) {
+               throw new RuntimeException();
+            }
          } else {
-            assert Algorithms.assignToFalse(matrix, affectation.variable, affectations);
+            if (!Algorithms.assignToFalse(matrix, affectation.variable, affectations)) {
+               throw new RuntimeException();
+            }
          }
       }
    }
@@ -117,13 +122,11 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
    @Override
    public ESat isEntailed() {
       if (!hardReset(matrix, new ArrayList<>())) return ESat.FALSE;
-
-      for (int k : matrix.rows()) {
-         if (matrix.nbUnknowns(k) != 0) {
+      for (int equation : matrix.equations()) {
+         if (matrix.nbUnknowns(equation) != 0) {
             return ESat.UNDEFINED;
          }
       }
-
       assert matrix.stableState();
       return ESat.TRUE;
    }
