@@ -11,14 +11,14 @@ import java.util.function.IntPredicate;
 
 public class Algorithms {
 
-   private static boolean makePivot(XORMatrix m, int pivot, int variable, List<Affectation> F) {
+   private static boolean makePivot(XORMatrix m, int pivot, int variable, List<Affectation> queue) {
       assert !m.isInvalid(pivot);
       if (m.nbUnknowns(pivot) == 1) {
          assert m.firstUndefined(pivot) != -1;
-         if(m.nbTrues(pivot) == 0) {
-            F.add(new Affectation(m.firstUndefined(pivot), false));
+         if (m.nbTrues(pivot) == 0) {
+            queue.add(new Affectation(m.firstUndefined(pivot), false));
          } else if (m.nbTrues(pivot) == 1) {
-            F.add(new Affectation(m.firstUndefined(pivot), true));
+            queue.add(new Affectation(m.firstUndefined(pivot), true));
          }
       }
       for (int k : m.rows()) {
@@ -29,9 +29,9 @@ public class Algorithms {
             if (m.nbUnknowns(k) == 1) {
                if (m.nbTrues(k) == 1) {
                   assert m.firstUndefined(k) != -1;
-                  F.add(new Affectation(m.firstUndefined(k), true));
+                  queue.add(new Affectation(m.firstUndefined(k), true));
                } else if (m.nbTrues(k) == 0) {
-                  F.add(new Affectation(m.firstUndefined(k), false));
+                  queue.add(new Affectation(m.firstUndefined(k), false));
                }
             }
          }
@@ -69,6 +69,75 @@ public class Algorithms {
       return true;
    }
 
+   public static boolean assignToTrue(XORMatrix m, int variable, List<Affectation> queue) {
+      if (!m.stableState()) {
+         Logger.err("Unstable state\n" + m);
+         assert false;
+      }
+      if (m.isFixed(variable)) {
+         return m.isTrue(variable);
+      }
+      m.fix(variable, true);
+      IntList rows;
+      if (m.isBase(variable)) {
+         rows = new IntArrayList(new int[]{m.pivotOf(variable)});
+      } else {
+         rows = where(m.rows(), row -> m.isTrue(row, variable));
+      }
+      for (int row : rows) {
+         if (m.isInvalid(row)) {
+            return false;
+         }
+         if (m.nbUnknowns(row) == 1 && m.nbTrues(row) == 1) {
+            queue.add(new Affectation(m.firstUndefined(row), true));
+         }
+      }
+      assert m.stableState();
+      return true;
+   }
+
+   public static boolean assignToFalse(XORMatrix m, int variable, List<Affectation> queue) {
+      if (!m.stableState()) {
+         Logger.err("Unstable state\n" + m);
+         assert false;
+      }
+      if (m.isFixed(variable)) {
+         return m.isFalse(variable);
+      }
+      m.fix(variable, false);
+      if (m.isBase(variable)) {
+         int ivar = m.pivotOf(variable);
+         if (m.isInvalid(ivar)) {
+            return false;
+         }
+         m.removeFromBase(variable);
+         if (m.emptyRow(ivar)) {
+            m.removeRow(ivar);
+         } else {
+            if (!makePivot(m, ivar, m.firstEligiblePivot(ivar), queue)) {
+               return false;
+            }
+         }
+      } else {
+         IntList rows = where(m.rows(), row -> m.isFalse(row, variable));
+         for (int row : rows) {
+            if (m.isInvalid(row)) {
+               return false;
+            }
+            if (m.nbUnknowns(row) == 1) {
+               if (m.nbTrues(row) == 1) {
+                  queue.add(new Affectation(m.firstUndefined(row), true));
+               } else if (m.nbTrues(row) == 0) {
+                  queue.add(new Affectation(m.firstUndefined(row), false));
+               }
+            }
+         }
+      }
+      m.removeVar(variable);
+      assert m.stableState();
+      return true;
+   }
+
    private static void removeEmptyColumns(XORMatrix m) {
       int initialColumns = m.nbColumns();
       for (int col = 0; col < initialColumns; col++) {
@@ -100,81 +169,12 @@ public class Algorithms {
       }
    }
 
-   public static boolean assignToFalse(XORMatrix m, int variable, List<Affectation> queue) {
-      if (!m.stableState()) {
-         Logger.err("Unstable state\n" + m);
-         assert false;
-      }
-      if (m.isFixed(variable)) {
-         return m.isFalse(variable);
-      }
-      m.fix(variable, false);
-      if (m.isBase(variable)) {
-         int ivar = m.pivotOf(variable);
-         if (m.isInvalid(ivar)) {
-            return false;
-         }
-         m.removeFromBase(variable);
-         if (m.emptyRow(ivar)) {
-            m.removeRow(ivar);
-         } else {
-            if(!makePivot(m, ivar, m.firstEligiblePivot(ivar), queue)) {
-               return false;
-            }
-         }
-      } else {
-         IntList rows = where(m.rows(), row -> m.isFalse(row, variable));
-         for (int row : rows) {
-            if (m.isInvalid(row)) {
-               return false;
-            }
-            if (m.nbUnknowns(row) == 1) {
-               if (m.nbTrues(row) == 1) {
-                  queue.add(new Affectation(m.firstUndefined(row), true));
-               } else if (m.nbTrues(row) == 0) {
-                  queue.add(new Affectation(m.firstUndefined(row), false));
-               }
-            }
-         }
-      }
-      m.removeVar(variable);
-      assert m.stableState();
-      return true;
-   }
-
    private static IntList where(IntList elements, IntPredicate predicate) {
       IntList result = new IntArrayList();
       for (int element : elements) {
          if (predicate.test(element)) result.add(element);
       }
       return result;
-   }
-
-   public static boolean assignToTrue(XORMatrix m, int variable, List<Affectation> queue) {
-      if (!m.stableState()) {
-         Logger.err("Unstable state\n" + m);
-         assert false;
-      }
-      if(m.isFixed(variable)) {
-         return m.isTrue(variable);
-      }
-      m.fix(variable, true);
-      IntList rows;
-      if (m.isBase(variable)) {
-         rows = new IntArrayList(new int[]{m.pivotOf(variable)});
-      } else {
-         rows = where(m.rows(), row -> m.isTrue(row, variable));
-      }
-      for (int row : rows) {
-         if (m.isInvalid(row)) {
-            return false;
-         }
-         if (m.nbUnknowns(row) == 1 && m.nbTrues(row) == 1) {
-            queue.add(new Affectation(m.firstUndefined(row), true));
-         }
-      }
-      assert m.stableState();
-      return true;
    }
 
 }
