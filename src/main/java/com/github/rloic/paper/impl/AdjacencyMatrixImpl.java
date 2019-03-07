@@ -77,7 +77,7 @@ public class AdjacencyMatrixImpl implements XORMatrix {
    }
 
    @Override
-   public boolean isUndefined(int equation, int variable) {
+   public boolean isUnknown(int equation, int variable) {
       return variablesOf[equation].contains(variable);
    }
 
@@ -214,7 +214,11 @@ public class AdjacencyMatrixImpl implements XORMatrix {
             nbTrues[target] += 1;
          }
       }
-      return !isInvalid(target);
+      if(isInvalid(target)) {
+         xor(target, pivot);
+         return false;
+      }
+      return true;
    }
 
    @Override
@@ -265,6 +269,7 @@ public class AdjacencyMatrixImpl implements XORMatrix {
 
    @Override
    public void fix(int variable, boolean value) {
+      assert valueOf[variable] == UNDEFINED;
       for(int equation : equationsOf[variable]) {
          nbUnknowns[equation] -= 1;
          if(value) {
@@ -290,7 +295,31 @@ public class AdjacencyMatrixImpl implements XORMatrix {
    }
 
    @Override
-   public int firstEligiblePivot(int equation) {
+   public IntList variablesOf(int equation) {
+      return variablesOf[equation];
+   }
+
+   @Override
+   public void unfix(int variable) {
+      assert valueOf[variable] != UNDEFINED;
+      for(int equation : equationsOf[variable]) {
+         nbUnknowns[equation] += 1;
+         if(valueOf[variable] == TRUE) {
+            nbTrues[equation] -= 1;
+         }
+      }
+      valueOf[variable] = UNDEFINED;
+   }
+
+   @Override
+   public void swapBase(int oldBaseVar, int newBaseVar) {
+      int pivot = pivotOf[oldBaseVar];
+      removeFromBase(oldBaseVar);
+      setBase(pivot, newBaseVar);
+   }
+
+   @Override
+   public int firstEligibleBase(int equation) {
       for(int variable : variablesOf[equation]) {
          if (valueOf[variable] == UNDEFINED || valueOf[variable] == TRUE && !isBase[variable]) {
             return variable;
@@ -382,7 +411,7 @@ public class AdjacencyMatrixImpl implements XORMatrix {
                str.append('1');
             } else if (isFalse(i, j)) {
                str.append('0');
-            } else if (isUndefined(i, j)) {
+            } else if (isUnknown(i, j)) {
                str.append('x');
             }
             str.append(isPivot ? ')' : ' ');

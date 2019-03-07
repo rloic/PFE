@@ -1,6 +1,8 @@
 package com.github.rloic.paper;
 
-import com.github.rloic.inference.impl.Affectation;
+import com.github.rloic.inference.IAffectation;
+import com.github.rloic.inference.impl.FalseAffectation;
+import com.github.rloic.inference.impl.TrueAffectation;
 import com.github.rloic.util.Logger;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
@@ -10,14 +12,14 @@ import java.util.List;
 
 public class Algorithms {
 
-   private static boolean makePivot(XORMatrix m, int pivot, int variable, List<Affectation> queue) {
+   public static boolean makePivot(XORMatrix m, int pivot, int variable, List<IAffectation> queue) {
       assert !m.isInvalid(pivot);
       if (m.nbUnknowns(pivot) == 1) {
          assert m.firstUnknown(pivot) != -1;
          if (m.nbTrues(pivot) == 0) {
-            queue.add(new Affectation(m.firstUnknown(pivot), false));
+            queue.add(new FalseAffectation(m.firstUnknown(pivot)));
          } else if (m.nbTrues(pivot) == 1) {
-            queue.add(new Affectation(m.firstUnknown(pivot), true));
+            queue.add(new TrueAffectation(m.firstUnknown(pivot)));
          }
       }
 
@@ -30,9 +32,9 @@ public class Algorithms {
             if (m.nbUnknowns(k) == 1) {
                assert m.firstUnknown(k) != -1;
                if (m.nbTrues(k) == 1) {
-                  queue.add(new Affectation(m.firstUnknown(k), true));
+                  queue.add(new TrueAffectation(m.firstUnknown(k)));
                } else if (m.nbTrues(k) == 0) {
-                  queue.add(new Affectation(m.firstUnknown(k), false));
+                  queue.add(new FalseAffectation(m.firstUnknown(k)));
                }
             }
          }
@@ -42,7 +44,7 @@ public class Algorithms {
       return true;
    }
 
-   public static boolean normalize(XORMatrix m, List<Affectation> queue) {
+   public static boolean normalize(XORMatrix m, List<IAffectation> queue) {
       if (!m.stableState()) return false;
       m.removeUnusedVariables();
       m.removeEmptyEquations();
@@ -54,7 +56,7 @@ public class Algorithms {
       for (int col : m.variables()) {
          if (nbBases == m.nbEquations()) break;
          for (int row : m.equations()) {
-            if (row >= base && (m.isUndefined(row, col) || m.isTrue(row, col))) {
+            if (row >= base && (m.isUnknown(row, col) || m.isTrue(row, col))) {
                if (row != base) m.swap(row, base);
                if (!makePivot(m, base, col, queue)) return false;
                nbBases += 1;
@@ -70,7 +72,7 @@ public class Algorithms {
       return true;
    }
 
-   public static boolean assignToTrue(XORMatrix m, int variable, List<Affectation> queue) {
+   public static boolean assignToTrue(XORMatrix m, int variable, List<IAffectation> queue) {
       if (!m.stableState()) {
          Logger.err("Unstable state\n" + m);
          assert false;
@@ -90,14 +92,14 @@ public class Algorithms {
             return false;
          }
          if (m.nbUnknowns(equation) == 1 && m.nbTrues(equation) == 1) {
-            queue.add(new Affectation(m.firstUnknown(equation), true));
+            queue.add(new TrueAffectation(m.firstUnknown(equation)));
          }
       }
       assert m.stableState();
       return true;
    }
 
-   public static boolean assignToFalse(XORMatrix m, int variable, List<Affectation> queue) {
+   public static boolean assignToFalse(XORMatrix m, int variable, List<IAffectation> queue) {
       if (!m.stableState()) {
          Logger.err("Unstable state\n" + m);
          assert false;
@@ -115,7 +117,7 @@ public class Algorithms {
          if (m.isEmptyEquation(ivar)) {
             m.removeRow(ivar);
          } else {
-            if (!makePivot(m, ivar, m.firstEligiblePivot(ivar), queue)) {
+            if (!makePivot(m, ivar, m.firstEligibleBase(ivar), queue)) {
                return false;
             }
          }
@@ -126,9 +128,9 @@ public class Algorithms {
             }
             if (m.nbUnknowns(equation) == 1) {
                if (m.nbTrues(equation) == 1) {
-                  queue.add(new Affectation(m.firstUnknown(equation), true));
+                  queue.add(new TrueAffectation(m.firstUnknown(equation)));
                } else if (m.nbTrues(equation) == 0) {
-                  queue.add(new Affectation(m.firstUnknown(equation), false));
+                  queue.add(new FalseAffectation(m.firstUnknown(equation)));
                }
             }
          }

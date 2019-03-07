@@ -34,7 +34,7 @@ public interface XORMatrix {
      * @param col The column of the element
      * @return True if M[row][col] = 'x' else false
      */
-    boolean isUndefined(int row, int col);
+    boolean isUnknown(int row, int col);
 
     /**
      * Return if M[row][col] == 0
@@ -168,7 +168,7 @@ public interface XORMatrix {
      * @param equation The equation
      * @return The variable of the equation that is eligible as a pivot (-1 if none was found)
      */
-    int firstEligiblePivot(int equation);
+    int firstEligibleBase(int equation);
 
     /**
      * Return true if the matrix is stable (none constraints are broken)
@@ -216,4 +216,14 @@ public interface XORMatrix {
      */
     IntList equationsOf(int variable);
 
+    /**
+     * Return the list of variables that belong to the equation
+     * @param equation The equation
+     * @return The list of variables that belong to the equation
+     */
+    IntList variablesOf(int equation);
+
+    void unfix(int variable);
+
+    void swapBase(int oldBaseVar, int newBaseVar);
 }

@@ -1,14 +1,13 @@
 package com.github.rloic.inference.impl;
 
-import com.github.rloic.inference.Inference;
-import com.github.rloic.inference.InferenceMatrix;
-import com.github.rloic.util.Logger;
+import com.github.rloic.inference.IAffectation;
 import org.chocosolver.solver.ICause;
-import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.BoolVar;
 
-public class Affectation implements Inference {
+import java.util.Objects;
+
+public abstract class Affectation implements IAffectation {
 
     public final int variable;
     public final boolean value;
@@ -18,20 +17,22 @@ public class Affectation implements Inference {
         this.value = value;
     }
 
-    @Override
-    public void apply(InferenceMatrix matrix) throws IllegalStateException {
-        Logger.trace("Fix var_" + variable + " to " + value);
-        matrix.fix(variable, value);
+    final void raiseConstradiction() throws ContradictionException {
+        throw new ContradictionException();
     }
 
     @Override
-    public void unapply(InferenceMatrix matrix) {
-        Logger.trace("Unfix var_" + variable);
-        matrix.unfix(variable);
+    final public int variable() {
+        return variable;
     }
 
     @Override
-    public void constraint(BoolVar[] vars, ICause cause) throws ContradictionException {
+    final public boolean value() {
+        return value;
+    }
+
+    @Override
+    public void propagate(BoolVar[] vars, ICause cause) throws ContradictionException {
         if (value) {
             vars[variable].setToTrue(cause);
         } else {
@@ -42,5 +43,19 @@ public class Affectation implements Inference {
     @Override
     final public String toString() {
         return "(var_" + variable + "<-" + value + ")";
+    }
+
+    @Override
+    final public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Affectation)) return false;
+        Affectation that = (Affectation) o;
+        return variable == that.variable &&
+              value == that.value;
+    }
+
+    @Override
+    final public int hashCode() {
+        return Objects.hash(variable, value);
     }
 }

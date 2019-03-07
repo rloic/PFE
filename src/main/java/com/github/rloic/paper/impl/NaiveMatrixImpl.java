@@ -76,7 +76,7 @@ public class NaiveMatrixImpl implements XORMatrix {
    }
 
    @Override
-   public boolean isUndefined(int row, int col) {
+   public boolean isUnknown(int row, int col) {
       assert row >= 0 && row < equations.length;
       assert col >= 0 && col < nbVariables;
       return data[row][col] && valueOf[col] == UNDEFINED;
@@ -159,7 +159,7 @@ public class NaiveMatrixImpl implements XORMatrix {
       int nbTruesOfTarget = 0;
       for (int j : columns) {
          data[target][j] = data[target][j] != data[pivot][j];
-         if (isUndefined(target, j)) {
+         if (isUnknown(target, j)) {
             nbUnknownsOfTarget += 1;
          } else if (isTrue(target, j)) {
             nbTruesOfTarget += 1;
@@ -167,7 +167,10 @@ public class NaiveMatrixImpl implements XORMatrix {
       }
       nbUnknowns[target] = nbUnknownsOfTarget;
       nbTrues[target] = nbTruesOfTarget;
-      return nbTruesOfTarget != 1 || nbUnknownsOfTarget != 0;
+      if(isInvalid(target)) {
+         xor(target, pivot);
+      }
+      return true;
    }
 
    @Override
@@ -202,8 +205,9 @@ public class NaiveMatrixImpl implements XORMatrix {
 
    @Override
    public void fix(int variable, boolean value) {
+      assert valueOf[variable] == UNDEFINED;
       for (int row : rows) {
-         if (isUndefined(row, variable)) {
+         if (isUnknown(row, variable)) {
             nbUnknowns[row] -= 1;
             if (value) {
                nbTrues[row] += 1;
@@ -217,15 +221,15 @@ public class NaiveMatrixImpl implements XORMatrix {
    public int firstUnknown(int equation) {
       assert nbUnknowns[equation] > 0;
       for (int j : columns) {
-         if (isUndefined(equation, j)) return j;
+         if (isUnknown(equation, j)) return j;
       }
       return -1;
    }
 
    @Override
-   public int firstEligiblePivot(int equation) {
+   public int firstEligibleBase(int equation) {
       for (int j : columns) {
-         if (isUndefined(equation, j) || isTrue(equation, j) && !isBase(j)) {
+         if (isUnknown(equation, j) || isTrue(equation, j) && !isBase(j)) {
             return j;
          }
       }
@@ -272,7 +276,7 @@ public class NaiveMatrixImpl implements XORMatrix {
       for (int col = 0; col < initialColumns; col++) {
          boolean removable = true;
          for (int row : rows) {
-            if (isUndefined(row, col) || isTrue(row, col)) {
+            if (isUnknown(row, col) || isTrue(row, col)) {
                removable = false;
                break;
             }
@@ -289,7 +293,7 @@ public class NaiveMatrixImpl implements XORMatrix {
       for (int row = 0; row < initialRows; row++) {
          boolean removable = true;
          for (int col : columns) {
-            if (isUndefined(row, col) || isTrue(row, col)) {
+            if (isUnknown(row, col) || isTrue(row, col)) {
                removable = false;
             }
          }
@@ -308,6 +312,38 @@ public class NaiveMatrixImpl implements XORMatrix {
          }
       }
       return equations;
+   }
+
+   @Override
+   public IntList variablesOf(int equation) {
+      IntList variables = new IntArrayList();
+      for (int variable : columns) {
+         if (data[equation][variable]) {
+            variables.add(variable);
+         }
+      }
+      return variables;
+   }
+
+   @Override
+   public void unfix(int variable) {
+      assert valueOf[variable] != UNDEFINED;
+      for (int row : rows) {
+         if (isUnknown(row, variable)) {
+            nbUnknowns[row] += 1;
+            if (valueOf[variable] == TRUE) {
+               nbTrues[row] -= 1;
+            }
+         }
+      }
+      valueOf[variable] = UNDEFINED;
+   }
+
+   @Override
+   public void swapBase(int oldBaseVar, int newBaseVar) {
+      int pivot = pivotOf[oldBaseVar];
+      removeFromBase(oldBaseVar);
+      setBase(pivot, newBaseVar);
    }
 
    @Override
@@ -333,7 +369,7 @@ public class NaiveMatrixImpl implements XORMatrix {
                str.append('1');
             } else if (isFalse(i, j)) {
                str.append('0');
-            } else if (isUndefined(i, j)) {
+            } else if (isUnknown(i, j)) {
                str.append('x');
             }
             str.append(isPivot ? ')' : ' ');

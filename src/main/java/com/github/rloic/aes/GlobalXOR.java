@@ -83,7 +83,7 @@ public class GlobalXOR {
         BoolVar[][][][][] DY2 = new BoolVar[4][r - 1][4][r - 1][4];
         BoolVar[][][][][] DZ2 = new BoolVar[4][r - 1][4][r - 1][4];
 
-        // MDS constraint
+        // MDS propagate
         for (int i1 = 0; i1 < r - 1; i1++) {
             for (int k1 = 0; k1 < 4; k1++) {
                 for (int i2 = i1; i2 < r - 1; i2++) {
@@ -93,8 +93,10 @@ public class GlobalXOR {
                         for (int j = 0; j < 4; j++) {
                             DY2[j][i1][k1][i2][k2] = m.boolVar();
                             appendToGlobalXor(DY2[j][i1][k1][i2][k2], ΔY[i1][j][k1], ΔY[i2][j][k2]);
+                            m.arithm(ΔY[i1][j][k1],"!=",ΔY[i2][j][k2]).reifyWith(DY2[j][i1][k1][i2][k2]);
                             DZ2[j][i1][k1][i2][k2] = m.boolVar();
                             appendToGlobalXor(DZ2[j][i1][k1][i2][k2], ΔZ[i1][j][k1], ΔZ[i2][j][k2]);
+                            m.arithm(ΔZ[i1][j][k1],"!=",ΔZ[i2][j][k2]).reifyWith(DZ2[j][i1][k1][i2][k2]);
                         }
                         m.sum(arrayOf(
                                 DY2[0][i1][k1][i2][k2], DY2[1][i1][k1][i2][k2], DY2[2][i1][k1][i2][k2], DY2[3][i1][k1][i2][k2],

@@ -5,7 +5,6 @@ import com.github.rloic.paper.InferenceEngine;
 import com.github.rloic.paper.XORMatrix;
 import org.chocosolver.solver.exception.ContradictionException;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class InferenceEngineImpl implements InferenceEngine {

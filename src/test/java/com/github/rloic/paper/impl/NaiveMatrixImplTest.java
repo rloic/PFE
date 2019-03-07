@@ -1,15 +1,10 @@
 package com.github.rloic.paper.impl;
 
-import com.github.rloic.inference.impl.Affectation;
 import com.github.rloic.paper.Algorithms;
-import com.github.rloic.paper.InferenceEngine;
 import com.github.rloic.paper.XORMatrix;
-import org.chocosolver.solver.exception.ContradictionException;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class NaiveMatrixImplTest {
 
