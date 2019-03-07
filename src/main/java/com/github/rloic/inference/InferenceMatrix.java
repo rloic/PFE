@@ -7,19 +7,19 @@ import org.chocosolver.solver.exception.ContradictionException;
 public interface InferenceMatrix {
 
     /**
-     * Return the number of nbRows in the inference matrix
-     * @return The number of nbRows in the inference matrix
+     * Return the number of nbEquations in the inference matrix
+     * @return The number of nbEquations in the inference matrix
      */
     int rows();
 
     /**
-     * Return the number of columns in the inference matrix
-     * @return Return the number of columns in the inference matrix
+     * Return the number of variables in the inference matrix
+     * @return Return the number of variables in the inference matrix
      */
     int cols();
 
     /**
-     * Indicate if the columns belongs to the base part of the matrix
+     * Indicate if the variables belongs to the base part of the matrix
      *    v v v v
      *    _ _ _ x x x
      *    x _ _ _ x x
@@ -40,7 +40,7 @@ public interface InferenceMatrix {
     int pivotOf(int variable);
 
     /**
-     * Get the old base columns out of the base and add the new base column to the base
+     * Get the old base variables out of the base and add the new base column to the base
      * @param oldBaseVariable The index of the old variable
      * @param newBaseVariable The index of the new variable
      */
@@ -120,9 +120,9 @@ public interface InferenceMatrix {
     boolean isFalse(int row, int col);
 
     /**
-     * Return the list of nbRows where the variable 'variable' is unknown
+     * Return the list of nbEquations where the variable 'variable' is unknown
      * @param variable The variable
-     * @return The list of nbRows where the variable 'variable' is unknown
+     * @return The list of nbEquations where the variable 'variable' is unknown
      */
     IntList rowsWhereUnknown(int variable);
 
