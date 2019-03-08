@@ -311,6 +311,17 @@ public class NaiveMatrixImpl implements XORMatrix {
    }
 
    @Override
+   public IntList unknownsOf(int equation) {
+      IntList unknowns = new IntArrayList();
+      for (int variable: columns) {
+         if (data[equation][variable] && valueOf[variable] == UNDEFINED) {
+            unknowns.add(variable);
+         }
+      }
+      return unknowns;
+   }
+
+   @Override
    public String toString() {
       StringBuilder str = new StringBuilder();
       str.append('\t');

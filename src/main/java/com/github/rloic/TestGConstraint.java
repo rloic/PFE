@@ -140,6 +140,7 @@ public class TestGConstraint {
          EnumFilter enumFilter = new EnumFilter(gXor.m, gXor.sBoxes, exp.objStep1);
          solver.plugMonitor(enumFilter);
          solver.setSearch(
+               Search.intVarSearch(gXor.sBoxes),
                Search.intVarSearch(gXor.assignedVar)
          );
          while (solver.solve()) {
@@ -147,7 +148,8 @@ public class TestGConstraint {
             logWriter.append(solver.ref().getMeasures().toOneLineString())
                   .append("\n");
          }
-         logWriter.append("Ending properly");
+         logWriter.append("Ending properly\n");
+         logWriter.append(solver.ref().getMeasures().toOneLineString()).append('\n');
 
          Logger.info("exp: " + exp + " ended");
          return null;
@@ -158,6 +160,7 @@ public class TestGConstraint {
                .map(IntVar::getValue)
                .collect(Collectors.toList());
          resultWriter.write(values + "\n");
+         resultWriter.flush();
       }
 
    }

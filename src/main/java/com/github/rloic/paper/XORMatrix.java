@@ -216,4 +216,6 @@ public interface XORMatrix {
      */
     IntList equationsOf(int variable);
 
+    IntList unknownsOf(int equation);
+
 }

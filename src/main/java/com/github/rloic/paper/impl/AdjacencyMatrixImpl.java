@@ -290,6 +290,17 @@ public class AdjacencyMatrixImpl implements XORMatrix {
    }
 
    @Override
+   public IntList unknownsOf(int equation) {
+      IntList unknowns = new IntArrayList();
+      for(int variable : variablesOf[equation]) {
+         if (!isFixed(variable)) {
+            unknowns.add(variable);
+         }
+      }
+      return unknowns;
+   }
+
+   @Override
    public int firstEligiblePivot(int equation) {
       for(int variable : variablesOf[equation]) {
          if (valueOf[variable] == UNDEFINED || valueOf[variable] == TRUE && !isBase[variable]) {
