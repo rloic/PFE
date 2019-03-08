@@ -4,6 +4,7 @@
 gradle
 out
 build
+results
 
 # Compiled class file
 *.class
