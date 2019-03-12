@@ -29,10 +29,10 @@ public interface XORMatrix {
     IntList variables();
 
     /**
-     * Return if M[row][col] == 'x'
+     * Return if M[row][col] == 'equation'
      * @param row The row of the element
      * @param col The column of the element
-     * @return True if M[row][col] = 'x' else false
+     * @return True if M[row][col] = 'equation' else false
      */
     boolean isUnknown(int row, int col);
 
@@ -94,9 +94,9 @@ public interface XORMatrix {
     void removeRow(int row);
 
     /**
-     * Return the number of 'x' on the row
+     * Return the number of 'equation' on the row
      * @param row The row
-     * @return The number of 'x' on the row
+     * @return The number of 'equation' on the row
      */
     int nbUnknowns(int row);
 
@@ -150,7 +150,7 @@ public interface XORMatrix {
     void swap(int equationA, int equationB);
 
     /**
-     * Assign variable to value
+     * Fix variable to value
      * @param variable The variable
      * @param value The value
      */
@@ -184,7 +184,7 @@ public interface XORMatrix {
     /**
      * Return if the current equation is empty
      * @param equation The equation
-     * @return True if the equation does not contains 'x' or '1'
+     * @return True if the equation does not contains 'equation' or '1'
      */
     default boolean isEmptyEquation(int equation) {
         return nbUnknowns(equation) == 0 && nbTrues(equation) == 0;
@@ -216,14 +216,6 @@ public interface XORMatrix {
      */
     IntList equationsOf(int variable);
 
-    /**
-     * Return the list of variables that belong to the equation
-     * @param equation The equation
-     * @return The list of variables that belong to the equation
-     */
-    IntList variablesOf(int equation);
+    IntList unknownsOf(int equation);
 
-    void unfix(int variable);
-
-    void swapBase(int oldBaseVar, int newBaseVar);
 }

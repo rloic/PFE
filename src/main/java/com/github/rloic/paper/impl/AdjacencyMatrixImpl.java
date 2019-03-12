@@ -295,27 +295,14 @@ public class AdjacencyMatrixImpl implements XORMatrix {
    }
 
    @Override
-   public IntList variablesOf(int equation) {
-      return variablesOf[equation];
-   }
-
-   @Override
-   public void unfix(int variable) {
-      assert valueOf[variable] != UNDEFINED;
-      for(int equation : equationsOf[variable]) {
-         nbUnknowns[equation] += 1;
-         if(valueOf[variable] == TRUE) {
-            nbTrues[equation] -= 1;
+   public IntList unknownsOf(int equation) {
+      IntList unknowns = new IntArrayList();
+      for(int variable : variablesOf[equation]) {
+         if (!isFixed(variable)) {
+            unknowns.add(variable);
          }
       }
-      valueOf[variable] = UNDEFINED;
-   }
-
-   @Override
-   public void swapBase(int oldBaseVar, int newBaseVar) {
-      int pivot = pivotOf[oldBaseVar];
-      removeFromBase(oldBaseVar);
-      setBase(pivot, newBaseVar);
+      return unknowns;
    }
 
    @Override

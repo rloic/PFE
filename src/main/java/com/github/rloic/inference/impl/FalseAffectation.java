@@ -9,8 +9,11 @@ import java.util.List;
 
 public class FalseAffectation extends Affectation {
 
-   public FalseAffectation(int variable) {
+   private int[][] reify;
+
+   public FalseAffectation(int variable, int[][] reify) {
       super(variable, false);
+      this.reify = reify;
    }
 
    @Override
@@ -24,7 +27,7 @@ public class FalseAffectation extends Affectation {
          if (matrix.isEmptyEquation(pivot)) {
             matrix.removeRow(pivot);
          } else {
-            assert Algorithms.makePivot(matrix, pivot, matrix.firstEligibleBase(pivot), queue);
+            assert Algorithms.makePivot(matrix, reify, pivot, matrix.firstEligibleBase(pivot), queue);
          }
       } else {
          for(int equation : matrix.equationsOf(variable)) {
@@ -33,7 +36,7 @@ public class FalseAffectation extends Affectation {
                if (matrix.nbTrues(equation) == 1) {
                   queue.add(new TrueAffectation(matrix.firstUnknown(equation)));
                } else if (matrix.nbTrues(equation) == 0) {
-                  queue.add(new FalseAffectation(matrix.firstUnknown(equation)));
+                  queue.add(new FalseAffectation(matrix.firstUnknown(equation), reify));
                }
             }
          }

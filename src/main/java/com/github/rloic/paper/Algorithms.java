@@ -1,6 +1,7 @@
 package com.github.rloic.paper;
 
 import com.github.rloic.inference.IAffectation;
+import com.github.rloic.inference.impl.Affectation;
 import com.github.rloic.inference.impl.FalseAffectation;
 import com.github.rloic.inference.impl.TrueAffectation;
 import com.github.rloic.util.Logger;
@@ -12,31 +13,22 @@ import java.util.List;
 
 public class Algorithms {
 
-   public static boolean makePivot(XORMatrix m, int pivot, int variable, List<IAffectation> queue) {
+   public static boolean makePivot(
+         XORMatrix m,
+         int[][] reify,
+         int pivot,
+         int variable,
+         List<IAffectation> queue
+   ) {
       assert !m.isInvalid(pivot);
-      if (m.nbUnknowns(pivot) == 1) {
-         assert m.firstUnknown(pivot) != -1;
-         if (m.nbTrues(pivot) == 0) {
-            queue.add(new FalseAffectation(m.firstUnknown(pivot)));
-         } else if (m.nbTrues(pivot) == 1) {
-            queue.add(new TrueAffectation(m.firstUnknown(pivot)));
-         }
-      }
+      if (!infer(m, reify, pivot, queue)) return false;
 
       IntList equationsOfVariable = new IntArrayList(m.equationsOf(variable));
-      for (int k : equationsOfVariable) {
-         if (k != pivot) {
-            boolean isValid = m.xor(k, pivot);
+      for (int equation : equationsOfVariable) {
+         if (equation != pivot) {
+            boolean isValid = m.xor(equation, pivot);
             if (!isValid) return false;
-            assert !m.isInvalid(k);
-            if (m.nbUnknowns(k) == 1) {
-               assert m.firstUnknown(k) != -1;
-               if (m.nbTrues(k) == 1) {
-                  queue.add(new TrueAffectation(m.firstUnknown(k)));
-               } else if (m.nbTrues(k) == 0) {
-                  queue.add(new FalseAffectation(m.firstUnknown(k)));
-               }
-            }
+            if(!infer(m, reify, equation, queue)) return false;
          }
       }
       m.setBase(pivot, variable);
@@ -44,7 +36,11 @@ public class Algorithms {
       return true;
    }
 
-   public static boolean normalize(XORMatrix m, List<IAffectation> queue) {
+   public static boolean normalize(
+         XORMatrix m,
+         int[][] reify,
+         List<IAffectation> queue
+   ) {
       if (!m.stableState()) return false;
       m.removeUnusedVariables();
       m.removeEmptyEquations();
@@ -58,7 +54,7 @@ public class Algorithms {
          for (int row : m.equations()) {
             if (row >= base && (m.isUnknown(row, col) || m.isTrue(row, col))) {
                if (row != base) m.swap(row, base);
-               if (!makePivot(m, base, col, queue)) return false;
+               if (!makePivot(m, reify, base, col, queue)) return false;
                nbBases += 1;
                if (validRows.hasNext()) {
                   base = validRows.nextInt();
@@ -72,7 +68,12 @@ public class Algorithms {
       return true;
    }
 
-   public static boolean assignToTrue(XORMatrix m, int variable, List<IAffectation> queue) {
+   public static boolean assignToTrue(
+         XORMatrix m,
+         int[][] reify,
+         int variable,
+         List<IAffectation> queue
+   ) {
       if (!m.stableState()) {
          Logger.err("Unstable state\n" + m);
          assert false;
@@ -91,15 +92,18 @@ public class Algorithms {
          if (m.isInvalid(equation)) {
             return false;
          }
-         if (m.nbUnknowns(equation) == 1 && m.nbTrues(equation) == 1) {
-            queue.add(new TrueAffectation(m.firstUnknown(equation)));
-         }
+         if (!infer(m, reify, equation, queue)) return false;
       }
       assert m.stableState();
       return true;
    }
 
-   public static boolean assignToFalse(XORMatrix m, int variable, List<IAffectation> queue) {
+   public static boolean assignToFalse(
+         XORMatrix m,
+         int[][] reify,
+         int variable,
+         List<IAffectation> queue
+   ) {
       if (!m.stableState()) {
          Logger.err("Unstable state\n" + m);
          assert false;
@@ -117,7 +121,7 @@ public class Algorithms {
          if (m.isEmptyEquation(ivar)) {
             m.removeRow(ivar);
          } else {
-            if (!makePivot(m, ivar, m.firstEligibleBase(ivar), queue)) {
+            if (!makePivot(m, reify, ivar, m.firstEligibleBase(ivar), queue)) {
                return false;
             }
          }
@@ -126,18 +130,52 @@ public class Algorithms {
             if(m.isInvalid(equation)) {
                return false;
             }
-            if (m.nbUnknowns(equation) == 1) {
-               if (m.nbTrues(equation) == 1) {
-                  queue.add(new TrueAffectation(m.firstUnknown(equation)));
-               } else if (m.nbTrues(equation) == 0) {
-                  queue.add(new FalseAffectation(m.firstUnknown(equation)));
-               }
-            }
+            if(!infer(m, reify, equation, queue)) return false;
          }
       }
       m.removeVar(variable);
       assert m.stableState();
       return true;
+   }
+
+   private static boolean infer(
+         XORMatrix m,
+         int[][] reify,
+         int equation,
+         List<IAffectation> queue
+   ) {
+
+      if (m.nbUnknowns(equation) == 1) {
+         if (m.nbTrues(equation) == 0) {
+            queue.add(new FalseAffectation(m.firstUnknown(equation), reify));
+         } else if (m.nbTrues(equation) == 1) {
+            queue.add(new TrueAffectation(m.firstUnknown(equation)));
+         }
+      } else if (m.nbUnknowns(equation) == 2) {
+         IntList unknowns = m.unknownsOf(equation);
+         assert unknowns.size() == 2;
+
+         int a = unknowns.getInt(0);
+         int b = unknowns.getInt(1);
+         int reifier = reify[a][b];
+
+         if (reifier != -1) {
+            if (m.nbTrues(equation) == 0) {
+               if (m.isFixed(reifier)) {
+                  return m.isFalse(reifier);
+               }
+               queue.add(new FalseAffectation(reifier, reify));
+            } else if (m.nbTrues(equation) == 1) {
+               if (m.isFixed(reifier)) {
+                  return m.isTrue(reifier);
+               }
+               queue.add(new TrueAffectation(reifier));
+            }
+         }
+      }
+
+      return true;
+
    }
 
 }

@@ -1,13 +1,13 @@
-package com.github.rloic.paper.impl.dancinglinks;
+package com.github.rloic.paper.impl.dancinglinks.dancinglinks;
 
 import java.util.Objects;
 
-public abstract class Cell<T> {
+public abstract class Cell {
 
-   private Cell<T> left;
-   private Cell<T> right;
-   private Cell<T> top;
-   private Cell<T> bottom;
+   private Cell left;
+   private Cell right;
+   private Cell top;
+   private Cell bottom;
 
 
    private Cell() {
@@ -30,7 +30,7 @@ public abstract class Cell<T> {
             && bottom.top == this;
    }
 
-   void addRight(Cell<T> cell) {
+   public void addRight(Cell cell) {
       Objects.requireNonNull(cell);
       right.left = cell;
       cell.right = right;
@@ -38,7 +38,7 @@ public abstract class Cell<T> {
       cell.left = this;
    }
 
-   void addBottom(Cell<T> cell) {
+   public void addBottom(Cell cell) {
       Objects.requireNonNull(cell);
       bottom.top = cell;
       cell.bottom = bottom;
@@ -46,45 +46,45 @@ public abstract class Cell<T> {
       cell.top = this;
    }
 
-   void unlinkBottom() {
+   public void unlinkBottom() {
       bottom.bottom.top = this;
       bottom = bottom.bottom;
    }
 
-   void unlinkRight() {
+   public void unlinkRight() {
       right.right.left = this;
       right = right.right;
    }
 
-   public Cell<T> left() {
+   public Cell left() {
       return left;
    }
 
-   public Cell<T> right() {
+   public Cell right() {
       return right;
    }
 
-   public Cell<T> bottom() {
+   public Cell bottom() {
       return bottom;
    }
 
-   public Cell<T> top() {
+   public Cell top() {
       return top;
    }
 
-   protected void left(Cell<T> left) {
+   protected void left(Cell left) {
       this.left = left;
    }
 
-   protected void right(Cell<T> right) {
+   protected void right(Cell right) {
       this.right = right;
    }
 
-   protected void top(Cell<T> top) {
+   protected void top(Cell top) {
       this.top = top;
    }
 
-   protected void bottom(Cell<T> bottom) {
+   protected void bottom(Cell bottom) {
       this.bottom = bottom;
    }
 
@@ -120,7 +120,7 @@ public abstract class Cell<T> {
       return builder.toString();
    }
 
-   public static class Header<T> extends Cell<T> {
+   public static class Header extends Cell {
 
       private String name;
 
@@ -168,16 +168,14 @@ public abstract class Cell<T> {
       }
    }
 
-   public static class Data<T> extends Cell<T> {
-      public final int x;
-      public final int y;
-      public final T value;
+   public static class Data extends Cell {
+      public final int equation;
+      public final int variable;
 
-      public Data(int x, int y, T value) {
+      public Data(int equation, int variable) {
          super();
-         this.x = x;
-         this.y = y;
-         this.value = value;
+         this.equation = equation;
+         this.variable = variable;
       }
 
       @Override
@@ -186,7 +184,7 @@ public abstract class Cell<T> {
             return true;
          }
          Cell.Data that = (Cell.Data) other;
-         return y > that.y;
+         return variable > that.variable;
       }
 
       @Override
@@ -195,7 +193,7 @@ public abstract class Cell<T> {
             return true;
          }
          Cell.Data that = (Cell.Data) other;
-         return y < that.y;
+         return variable < that.variable;
       }
 
       @Override
@@ -204,7 +202,7 @@ public abstract class Cell<T> {
             return true;
          }
          Cell.Data that = (Cell.Data) other;
-         return x > that.x;
+         return equation > that.equation;
       }
 
       @Override
@@ -213,12 +211,12 @@ public abstract class Cell<T> {
             return true;
          }
          Cell.Data that = (Cell.Data) other;
-         return x < that.x;
+         return equation < that.equation;
       }
 
       @Override
       protected String label() {
-         return "Data(value=" + value + ")";
+         return "Data(equation=" + equation + ", " + variable + ")";
       }
    }
 

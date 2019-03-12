@@ -315,35 +315,14 @@ public class NaiveMatrixImpl implements XORMatrix {
    }
 
    @Override
-   public IntList variablesOf(int equation) {
-      IntList variables = new IntArrayList();
-      for (int variable : columns) {
-         if (data[equation][variable]) {
-            variables.add(variable);
+   public IntList unknownsOf(int equation) {
+      IntList unknowns = new IntArrayList();
+      for (int variable: columns) {
+         if (data[equation][variable] && valueOf[variable] == UNDEFINED) {
+            unknowns.add(variable);
          }
       }
-      return variables;
-   }
-
-   @Override
-   public void unfix(int variable) {
-      assert valueOf[variable] != UNDEFINED;
-      for (int row : rows) {
-         if (isUnknown(row, variable)) {
-            nbUnknowns[row] += 1;
-            if (valueOf[variable] == TRUE) {
-               nbTrues[row] -= 1;
-            }
-         }
-      }
-      valueOf[variable] = UNDEFINED;
-   }
-
-   @Override
-   public void swapBase(int oldBaseVar, int newBaseVar) {
-      int pivot = pivotOf[oldBaseVar];
-      removeFromBase(oldBaseVar);
-      setBase(pivot, newBaseVar);
+      return unknowns;
    }
 
    @Override

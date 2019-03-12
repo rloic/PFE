@@ -19,7 +19,7 @@ public class TrueAffectation extends Affectation {
       m.fix(variable, true);
       for (int equation : m.equationsOf(variable)) {
          if (m.isInvalid(equation)) {
-            m.unfix(variable);
+            //m.unfix(variable);
             raiseConstradiction();
          }
          if (m.nbUnknowns(equation) == 1 && m.nbTrues(equation) == 1) {
@@ -32,7 +32,7 @@ public class TrueAffectation extends Affectation {
    @Override
    public void unapply(XORMatrix matrix) {
       assert matrix.stableState();
-      matrix.unfix(variable);
+      //matrix.unfix(variable);
       assert matrix.stableState();
    }
 }
