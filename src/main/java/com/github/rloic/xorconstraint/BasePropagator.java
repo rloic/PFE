@@ -3,11 +3,9 @@ package com.github.rloic.xorconstraint;
 import com.github.rloic.paper.impl.dancinglinks.Affectation;
 import com.github.rloic.paper.impl.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.impl.dancinglinks.actions.IUpdater;
-import com.github.rloic.paper.impl.dancinglinks.actions.Updater;
 import com.github.rloic.paper.impl.dancinglinks.actions.UpdaterList;
 import com.github.rloic.paper.impl.dancinglinks.actions.UpdaterState;
 import com.github.rloic.paper.impl.dancinglinks.actions.impl.Algorithms;
-import com.github.rloic.paper.impl.dancinglinks.dancinglinks.cell.Cell;
 import com.github.rloic.paper.impl.dancinglinks.dancinglinks.DancingLinksMatrix;
 import com.github.rloic.paper.impl.dancinglinks.dancinglinks.cell.Data;
 import org.chocosolver.solver.Solver;
@@ -17,9 +15,6 @@ import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.util.ESat;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
 
 import static com.github.rloic.paper.impl.dancinglinks.actions.UpdaterState.DONE;
@@ -153,7 +148,6 @@ public class BasePropagator extends Propagator<BoolVar> {
 
    @Override
    public ESat isEntailed() {
-      debug(null, "call isEntailed()");
       for (int equation = 0; equation < matrix.nbEquations(); equation++) {
          int nbTrue = 0;
          for(Data variableCells : matrix.variablesOf(equation)) {
@@ -176,50 +170,4 @@ public class BasePropagator extends Propagator<BoolVar> {
       return ESat.TRUE;
    }
 
-   private void debug(Integer n, String message) {
-      StringBuilder str;
-      if (message != null) {
-         str = new StringBuilder(message);
-      } else {
-         str = new StringBuilder();
-      }
-      str.append("           ");
-      for (int i = 0; i < vars.length; i++) {
-         if(n != null && i == n) {
-            str.append("   v");
-         } else {
-            str.append("    ");
-         }
-      }
-      str.append('\n');
-      str.append(" choco     ");
-      for (BoolVar var : vars) {
-         if (var.isInstantiated()) {
-            if (var.getValue() == 1) {
-               str.append("   1");
-            } else {
-               str.append("   0");
-            }
-         } else {
-            str.append("    ");
-         }
-      }
-      str.append('\n');
-      str.append(" internal  ");
-      for (int i = 0; i < vars.length; i++) {
-         if (!matrix.isUndefined(i)) {
-            if (matrix.isTrue(i)) {
-               str.append("   1");
-            } else {
-               str.append("   0");
-            }
-         } else {
-            str.append("    ");
-         }
-      }
-      str.append("\n\n");
-      try (FileWriter log = new FileWriter(new File("log.txt"), true)) {
-         log.write(str.toString());
-      } catch (IOException ignored) {}
-   }
 }

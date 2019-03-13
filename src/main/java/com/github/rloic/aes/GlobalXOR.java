@@ -10,6 +10,7 @@ import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
+import org.chocosolver.solver.variables.IntVar;
 
 import java.util.*;
 
@@ -27,8 +28,6 @@ public class GlobalXOR {
    private final int r;
    private final KeyBits KEY_BITS;
    public final BoolVar[] assignedVar;
-
-   private Map<Pair<BoolVar, BoolVar>, BoolVar> reify = new HashMap<>();
 
    private final Set<BoolVar> variables = new HashSet<>();
    private final List<BoolVar[]> equations = new ArrayList<>();
@@ -95,12 +94,10 @@ public class GlobalXOR {
                   for (int j = 0; j < 4; j++) {
                      DY2[j][i1][k1][i2][k2] = m.boolVar();
                      appendToGlobalXor(DY2[j][i1][k1][i2][k2], ΔY[i1][j][k1], ΔY[i2][j][k2]);
-                     // reify(DY2[j][i1][k1][i2][k2], ΔY[i1][j][k1], ΔY[i2][j][k2]);
-                     //m.ifThen(m.arithm(DY2[j][i1][k1][i2][k2], "=", 0), m.arithm(ΔY[i1][j][k1], "=", ΔY[i2][j][k2]));
+                     m.sum(new IntVar[]{ DY2[j][i1][k1][i2][k2], ΔY[i1][j][k1], ΔY[i2][j][k2] }, "!=", 1).post();
                      DZ2[j][i1][k1][i2][k2] = m.boolVar();
                      appendToGlobalXor(DZ2[j][i1][k1][i2][k2], ΔZ[i1][j][k1], ΔZ[i2][j][k2]);
-                     //reify(DZ2[j][i1][k1][i2][k2], ΔZ[i1][j][k1], ΔZ[i2][j][k2]);
-                     //m.ifThen(m.arithm(DZ2[j][i1][k1][i2][k2], "=", 0), m.arithm(ΔZ[i1][j][k1], "=", ΔZ[i2][j][k2]));
+                     m.sum(new IntVar[]{DZ2[j][i1][k1][i2][k2], ΔZ[i1][j][k1], ΔZ[i2][j][k2]}, "!=", 1).post();
                   }
                   m.sum(arrayOf(
                         DY2[0][i1][k1][i2][k2], DY2[1][i1][k1][i2][k2], DY2[2][i1][k1][i2][k2], DY2[3][i1][k1][i2][k2],
@@ -226,10 +223,6 @@ public class GlobalXOR {
       variables.add(C);
 
       equations.add(arrayOf(A, B, C));
-   }
-
-   private void reify(BoolVar res, BoolVar A, BoolVar B) {
-      reify.put(new Pair<>(A, B), res);
    }
 
    private MathSet<XOREquation> xorEq() {
