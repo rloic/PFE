@@ -13,6 +13,7 @@ import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.BoolVar;
+import org.chocosolver.solver.variables.Variable;
 import org.chocosolver.util.ESat;
 
 import java.util.*;
@@ -76,8 +77,10 @@ public class BasePropagator extends Propagator<BoolVar> {
       return false;
    }
 
-   private void createStep() {
-      commands.add(new UpdaterList());
+   private void createSteps() {
+      while (commands.size() < currentDepth) {
+         commands.add(new UpdaterList());
+      }
    }
 
    private IUpdater onPropagate(int variable, boolean value) {
@@ -93,10 +96,14 @@ public class BasePropagator extends Propagator<BoolVar> {
       Algorithms.gauss(matrix);
    }
 
+   long nbInstantiated(BoolVar[] vars) {
+      return Arrays.stream(vars).filter(Variable::isInstantiated).count();
+   }
+
    @Override
    public void propagate(int idxVarInProp, int mask) throws ContradictionException {
       if (backTrack()) doBackTrack();
-      if (goDeeper()) createStep();
+      if (goDeeper()) createSteps();
 
       if (!matrix.isUndefined(idxVarInProp)) {
          if(

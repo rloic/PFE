@@ -6,6 +6,7 @@ import org.apache.commons.cli.*;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.exception.SolverException;
+import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 import java.util.Arrays;
@@ -83,6 +84,9 @@ public class App {
         Solver solver = model.getSolver();
         EnumFilter enumFilter = new EnumFilter(model, sBoxes, objStep1);
         solver.plugMonitor(enumFilter);
+        solver.setSearch(
+              Search.intVarSearch(sBoxes)
+        );
         try {
             //noinspection StatementWithEmptyBody
             while (solver.solve()) {

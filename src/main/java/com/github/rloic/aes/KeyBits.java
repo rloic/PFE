@@ -19,7 +19,7 @@ public abstract class KeyBits {
 
     abstract public Pair<BytePosition, BytePosition> xorKeySchedulePi(int i, int j, int k);
 
-    abstract boolean isSBRound(int i);
+    public abstract boolean isSBRound(int i);
 
     abstract int getNbCol(int i);
 
@@ -61,7 +61,7 @@ public abstract class KeyBits {
         }
 
         @Override
-        boolean isSBRound(int i) {
+        public boolean isSBRound(int i) {
             return true;
         }
 
@@ -116,7 +116,7 @@ public abstract class KeyBits {
         }
 
         @Override
-        boolean isSBRound(int i) {
+        public boolean isSBRound(int i) {
             return i % 3 != 0;
         }
 
@@ -166,7 +166,7 @@ public abstract class KeyBits {
         }
 
         @Override
-        boolean isSBRound(int i) {
+        public boolean isSBRound(int i) {
             return i > 0;
         }
 
