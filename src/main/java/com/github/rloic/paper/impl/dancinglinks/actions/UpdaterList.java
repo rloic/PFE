@@ -27,6 +27,12 @@ public class UpdaterList extends Updater implements IUpdater {
       updaters.add(updater);
    }
 
+   public void addCommitted(IUpdater updater) {
+      if(lastCommitted != updaters.size() - 1) throw new RuntimeException("Non previous committed updates");
+      updaters.add(updater);
+      lastCommitted += 1;
+   }
+
    @Override
    protected boolean postCondition(IDancingLinksMatrix matrix) {
       return lastCommitted == updaters.size() - 1;

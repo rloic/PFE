@@ -1,10 +1,9 @@
 package com.github.rloic.paper.impl.dancinglinks.dancinglinks;
 
 import com.github.rloic.paper.impl.dancinglinks.IDancingLinksMatrix;
-import org.jetbrains.annotations.NotNull;
+import com.github.rloic.paper.impl.dancinglinks.dancinglinks.cell.*;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.function.Predicate;
 
 public class DancingLinksMatrix implements IDancingLinksMatrix {
@@ -13,9 +12,10 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    private static byte FALSE = -1;
    private static byte TRUE = 1;
 
-   private final Cell.Header[] equations;
-   private final Cell.Header[] variables;
-   private final Cell.Data[][] cells;
+   private final Root root;
+   private final Row[] variablesOf;
+   private final Column[] equationsOf;
+   private final Data[][] cells;
 
    private final boolean[] isBase;
    private final int[] pivotOf;
@@ -37,39 +37,66 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    ) {
       this.nbEquations = equations.length;
       this.nbVariables = nbVariables;
-      this.valueOf = new byte[nbVariables];
-      this.equations = new Cell.Header[equations.length];
-      this.equations[0] = new Cell.Header("row_0");
-      for (int i = 1; i < equations.length; i++) {
-         this.equations[i] = new Cell.Header("row_" + i);
-         this.equations[i - 1].addBottom(this.equations[i]);
-      }
-      variables = new Cell.Header[nbVariables];
-      variables[0] = new Cell.Header("col_0");
-      for (int j = 1; j < nbVariables; j++) {
-         variables[j] = new Cell.Header("col_" + j);
-         variables[j - 1].addRight(variables[j]);
-      }
+      valueOf = new byte[nbVariables];
 
-      isBase = new boolean[variables.length];
-      pivotOf = new int[variables.length];
+      root = new Root();
+      variablesOf = new Row[nbEquations];
+      if (equations.length > 0) {
+         variablesOf[0] = new Row(root);
+         for (int equation = 1; equation < nbEquations; equation++) {
+            variablesOf[equation] = new Row(variablesOf[equation - 1]);
+         }
+      }
+      assert variablesOf[nbEquations - 1].bottom() == root;
+
+      equationsOf = new Column[nbVariables];
+      if (nbVariables > 0) {
+         equationsOf[0] = new Column(root);
+         for (int variable = 1; variable < nbVariables; variable++) {
+            equationsOf[variable] = new Column(equationsOf[variable - 1]);
+         }
+      }
+      assert equationsOf[nbVariables - 1].right() == root;
+
+      isBase = new boolean[equationsOf.length];
+      pivotOf = new int[equationsOf.length];
       Arrays.fill(pivotOf, NO_PIVOT);
       baseOf = new int[equations.length];
       Arrays.fill(baseOf, NO_BASE);
-      nbUnknowns = new int[variables.length];
-      nbTrues = new int[variables.length];
+      nbUnknowns = new int[equationsOf.length];
+      nbTrues = new int[equationsOf.length];
 
-      cells = new Cell.Data[equations.length][nbVariables];
+      cells = new Data[equations.length][nbVariables];
       for (int i = 0; i < equations.length; i++) {
          nbUnknowns[i] = equations[i].length;
-         for (int j = 0; j < equations[i].length; j++) {
-            Arrays.sort(equations[i]);
-            int iVar = equations[i][j];
-            Cell.Data varCell = get(i, iVar);
-            Cell lastEquationOfVariable = variables[iVar].top();
-            lastEquationOfVariable.addBottom(varCell);
-            Cell lastVariableOfEquation = this.equations[i].left();
-            lastVariableOfEquation.addRight(varCell);
+         Arrays.sort(equations[i]);
+         for (int variable : equations[i]) {
+            Cell lastEquationOfVariable = equationsOf[variable].top();
+            Cell lastVariableOfEquation = variablesOf[i].left();
+
+            if (
+                  lastVariableOfEquation instanceof Row
+                        && lastEquationOfVariable instanceof Column
+            ) {
+               cells[i][variable] = new Data(i, variable, (Row) lastVariableOfEquation, (Column) lastEquationOfVariable);
+            } else if (
+                  lastVariableOfEquation instanceof Data
+                        && lastEquationOfVariable instanceof Column
+            ) {
+               cells[i][variable] = new Data(i, variable, (Data) lastVariableOfEquation, (Column) lastEquationOfVariable);
+            } else if (
+                  lastVariableOfEquation instanceof Row
+                        && lastEquationOfVariable instanceof Data
+            ) {
+               cells[i][variable] = new Data(i, variable, (Row) lastVariableOfEquation, (Data) lastEquationOfVariable);
+            } else if (
+                  lastVariableOfEquation instanceof Data
+                        && lastEquationOfVariable instanceof Data
+            ) {
+               cells[i][variable] = new Data(i, variable, (Data) lastVariableOfEquation, (Data) lastEquationOfVariable);
+            } else {
+               throw new RuntimeException();
+            }
          }
       }
    }
@@ -152,121 +179,89 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public boolean isUnused(int variable) {
-      return variables[variable].bottom() == variables[variable] || valueOf[variable] == FALSE;
+      return equationsOf[variable].bottom() == equationsOf[variable] || valueOf[variable] == FALSE;
    }
 
    @Override
-   public Iterable<Integer> equationsOf(int variable) {
-      return () -> new Iterator<Integer>() {
-         Cell cell = variables[variable];
-
-         @Override
-         public boolean hasNext() {
-            return cell.bottom() instanceof Cell.Data;
-         }
-
-         @Override
-         public Integer next() {
-            cell = cell.bottom();
-            return ((Cell.Data) cell).equation;
-         }
-      };
+   public Iterable<Data> equationsOf(int variable) {
+      return equationsOf[variable];
    }
 
-   private Cell.Data get(int equation, int variable) {
+   private Data get(int equation, int variable) {
       if (cells[equation][variable] == null) {
-         cells[equation][variable] = new Cell.Data(equation, variable);
+         cells[equation][variable] = new Data(equation, variable);
       }
       return cells[equation][variable];
    }
 
    @Override
    public void removeEquation(int equation) {
-      Cell header = equations[equation];
-      Cell cell = header;
-      do {
-         cell.top().unlinkBottom();
-         cell = cell.right();
-      } while (cell != header);
+      variablesOf[equation].remove();
    }
 
    @Override
    public void restoreEquation(int equation) {
-      Cell header = equations[equation];
-      Cell cell = header;
-      do {
-         cell.top().addBottom(cell);
-         cell = cell.left();
-      } while (cell != header);
+      variablesOf[equation].restore();
    }
 
    @Override
    public void removeVariable(int variable) {
-      Cell header = variables[variable];
-      Cell cell = header;
-      do {
-         cell.left().unlinkRight();
-         cell = cell.bottom();
-      } while (cell != header);
+      equationsOf[variable].remove();
    }
 
    @Override
    public void restoreVariable(int variable) {
-      Cell header = variables[variable];
-      Cell cell = header;
-      do {
-         cell.left().addRight(cell);
-         cell = cell.top();
-      } while (cell != header);
+      equationsOf[variable].restore();
    }
 
    @Override
    public void xor(int target, int pivot) {
-      Cell headerT = equations[target];
-      Cell headerP = equations[pivot];
+      Cell cellT = variablesOf[target].right();
+      Cell cellP = variablesOf[pivot].right();
 
-      Cell cellT = headerT.right();
-      Cell cellP = headerP.right();
+      while (cellT instanceof Data && cellP instanceof Data) {
+         Data dataT = (Data) cellT;
+         Data dataP = (Data) cellP;
 
-      while (cellT != headerT && cellP != headerP) {
-         if (cellT.isOnTheRightOf(cellP)) {
-            int variable = ((Cell.Data) cellP).variable;
-            Cell.Data newUnknown = get(target, variable);
-            Cell top = findLastInColumn(variable, it -> it.isAbove(newUnknown));
+         if (dataT.isOnTheRightOf(dataP)) {
+            int variable = dataP.variable;
+            Data newUnknown = get(target, variable);
+            Cell top = findLastInColumn(variable, it -> it.isAboveOf(newUnknown));
             Cell left = cellT.left();
-            linkCell(top, left, newUnknown);
+            newUnknown.relink(left, top);
 
-            if(isTrue(variable)) {
+            if (isTrue(variable)) {
                nbTrues[target] += 1;
             } else if (isUndefined(variable)) {
                nbUnknowns[target] += 1;
             }
 
             cellP = cellP.right();
-         } else if (cellP.isOnTheRightOf(cellT)) {
+         } else if (dataP.isOnTheRightOf(dataT)) {
             cellT = cellT.right();
          } else {
-            int variable = ((Cell.Data) cellT).variable;
+            int variable = dataT.variable;
             if (isTrue(variable)) {
                nbTrues[target] -= 1;
             } else if (isUndefined(variable)) {
                nbUnknowns[target] -= 1;
             }
-            cellT.left().unlinkRight();
-            cellT.top().unlinkBottom();
+            dataT.remove();
             cellT = cellT.right();
             cellP = cellP.right();
          }
       }
 
+      Row headerP = variablesOf[pivot];
+      Row headerT = variablesOf[target];
       while (cellP != headerP) {
-         int variable = ((Cell.Data) cellP).variable;
-         Cell.Data newUnknown = get(target, variable);
-         Cell top = findLastInColumn(variable, it -> it.isAbove(newUnknown));
+         int variable = ((Data) cellP).variable;
+         Data newUnknown = get(target, variable);
+         Cell top = findLastInColumn(variable, it -> it.isAboveOf(newUnknown));
          Cell left = headerT.left();
-         linkCell(top, left, newUnknown);
+         newUnknown.relink(left, top);
 
-         if(isTrue(variable)) {
+         if (isTrue(variable)) {
             nbTrues[target] += 1;
          } else if (isUndefined(variable)) {
             nbUnknowns[target] += 1;
@@ -277,26 +272,21 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    }
 
-   private Cell findLastInColumn(int y, Predicate<Cell.Data> predicate) {
-      Cell header = variables[y];
+   private Cell findLastInColumn(int y, Predicate<Data> predicate) {
+      Cell header = equationsOf[y];
       Cell cell = header.top();
-      while (cell instanceof Cell.Data && !predicate.test((Cell.Data) cell)) {
+      while (cell instanceof Data && !predicate.test((Data) cell)) {
          cell = cell.top();
       }
       return cell;
    }
 
-   private void linkCell(Cell top, Cell left, Cell unknown) {
-      top.addBottom(unknown);
-      left.addRight(unknown);
-   }
-
    @Override
    public String toString() {
       StringBuilder str = new StringBuilder("    ");
-      for (int j = 0; j < variables.length; j++) {
-         if (variables[j].isActive()) {
-            if (variables[j].isSeed()) {
+      for (int j = 0; j < equationsOf.length; j++) {
+         if (equationsOf[j].isActive()) {
+            if (equationsOf[j].isSeed()) {
                str.append(" [s] ");
             } else {
                str.append(" [*] ");
@@ -306,9 +296,9 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
          }
       }
       str.append('\n');
-      for (int i = 0; i < equations.length; i++) {
-         if (equations[i].isActive()) {
-            if (equations[i].isSeed()) {
+      for (int i = 0; i < variablesOf.length; i++) {
+         if (variablesOf[i].isActive()) {
+            if (variablesOf[i].isSeed()) {
                str.append("[s] ");
             } else {
                str.append("[*] ");
@@ -316,7 +306,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
          } else {
             str.append("[ ] ");
          }
-         for (int j = 0; j < variables.length; j++) {
+         for (int j = 0; j < equationsOf.length; j++) {
             if (cells[i][j] != null && cells[i][j].isActive()) {
                byte value = valueOf[cells[i][j].variable];
                str.append(debugAndTrim(value, isBase[j]));
@@ -366,21 +356,19 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    @Override
    public void set(int variable, boolean value) {
       valueOf[variable] = value ? TRUE : FALSE;
-      for(int equation : equationsOf(variable)) {
-         nbUnknowns[equation] -= 1;
-         if(value) {
-            nbTrues[equation] += 1;
-         }
+      int incNbTrue = value ? 1 : 0;
+      for (Data it : equationsOf(variable)) {
+         nbUnknowns[it.equation] -= 1;
+         nbTrues[it.equation] += incNbTrue;
       }
    }
 
    @Override
    public void unSet(int variable) {
-      for(int equation : equationsOf(variable)) {
-         nbUnknowns[equation] += 1;
-         if(valueOf[variable] == TRUE) {
-            nbTrues[equation] -= 1;
-         }
+      int decNbTrue = valueOf[variable] == TRUE ? 1 : 0;
+      for (Data it : equationsOf(variable)) {
+         nbUnknowns[it.equation] += 1;
+         nbTrues[it.equation] -= decNbTrue;
       }
       valueOf[variable] = UNDEFINED;
    }
@@ -392,31 +380,22 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public int eligibleBase(int pivot) {
-      Cell cell = equations[pivot].right();
-      while (cell instanceof Cell.Data) {
-         Cell.Data data = (Cell.Data) cell;
-         byte cellValue = valueOf[data.variable];
-         if((cellValue == TRUE || cellValue == UNDEFINED) && !isBase[data.variable]) {
-            return data.variable;
+      for (Data it : variablesOf[pivot]) {
+         byte value = valueOf[it.variable];
+         if ((value == TRUE || value == UNDEFINED) && !isBase[it.variable]) {
+            return it.variable;
          }
-         cell = cell.right();
       }
       return -1;
    }
 
    @Override
-   public Iterable<Integer> equations() {
-      return null;
-   }
-
-   @Override
    public int firstUnknown(int equation) {
-      Cell cell = equations[equation].right();
-      while (cell instanceof Cell.Data && valueOf[((Cell.Data) cell).variable] != UNDEFINED) {
-         cell = cell.right();
-      }
-      if(cell instanceof Cell.Data) {
-         return ((Cell.Data) cell).variable;
+      for (Data it : variablesOf[equation]) {
+         byte value = valueOf[it.variable];
+         if (value == UNDEFINED) {
+            return it.variable;
+         }
       }
       return -1;
    }
@@ -432,19 +411,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    }
 
    @Override
-   public Iterable<Cell.Data> variablesOf(int target) {
-      return () -> new Iterator<Cell.Data>() {
-         Cell cell = equations[target];
-         @Override
-         public boolean hasNext() {
-            return cell.right() instanceof Cell.Data;
-         }
-
-         @Override
-         public Cell.Data next() {
-            cell = cell.right();
-            return (Cell.Data) cell;
-         }
-      };
+   public Iterable<Data> variablesOf(int equation) {
+      return variablesOf[equation];
    }
 }

@@ -3,7 +3,8 @@ package com.github.rloic.paper.impl.dancinglinks.actions.impl;
 import com.github.rloic.paper.impl.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.impl.dancinglinks.actions.IUpdater;
 import com.github.rloic.paper.impl.dancinglinks.actions.UpdaterList;
-import com.github.rloic.paper.impl.dancinglinks.dancinglinks.Cell;
+import com.github.rloic.paper.impl.dancinglinks.dancinglinks.cell.Cell;
+import com.github.rloic.paper.impl.dancinglinks.dancinglinks.cell.Data;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
@@ -44,18 +45,18 @@ public class Algorithms {
 
    private static IUpdater inferForAllEquationsOf(IDancingLinksMatrix matrix, int variable) {
       UpdaterList updaterList = new UpdaterList("inferForAllEquations");
-      for (int equation : matrix.equationsOf(variable)) {
-         updaterList.add(new InferFromEquation(equation));
+      for (Data it : matrix.equationsOf(variable)) {
+         updaterList.add(new InferFromEquation(it.equation));
       }
       return updaterList;
    }
 
    private static IUpdater makeXORAndInferForAllEquationsOf(IDancingLinksMatrix matrix, int pivot, int variable) {
       UpdaterList updaterList = new UpdaterList("xorAndInferForAllEquations");
-      for (int equation : matrix.equationsOf(variable)) {
-         if (equation != pivot) {
-            updaterList.add(new XOR(equation, pivot));
-            updaterList.add(new InferFromEquation(equation));
+      for (Data it : matrix.equationsOf(variable)) {
+         if (it.equation != pivot) {
+            updaterList.add(new XOR(it.equation, pivot));
+            updaterList.add(new InferFromEquation(it.equation));
          }
       }
       return updaterList;
@@ -84,17 +85,14 @@ public class Algorithms {
       boolean[] hadAOne = new boolean[m.nbEquations()];
       IntList conflicts = new IntArrayList();
 
-      for (int variable = 0; variable < m.nbVariables(); variable++) {
+      for(int variable = 0; variable < m.nbVariables(); variable++) {
          conflicts.clear();
-         for (int equation = 0; equation < m.nbEquations(); equation++) {
-            if (m.isUnknown(equation, variable)) {
-               if (!isPivot[equation] && !hadAOne[equation] && !m.isBase(variable)) {
-                  m.setBase(equation, variable);
-                  isPivot[equation] = true;
-               } else {
-                  conflicts.add(equation);
-               }
-               hadAOne[equation] = true;
+         for(Data it : m.equationsOf(variable)) {
+            if(!isPivot[it.equation] && !hadAOne[it.equation] && !m.isBase(variable)) {
+               m.setBase(it.equation, variable);
+               isPivot[it.equation] = true;
+            } else {
+               conflicts.add(it.equation);
             }
          }
 
@@ -112,7 +110,7 @@ public class Algorithms {
    }
 
    private static boolean hasAOne(IDancingLinksMatrix m, int equation, int column) {
-      for(Cell.Data cell : m.variablesOf(equation)) {
+      for(Data cell : m.variablesOf(equation)) {
          if ((m.isTrue(cell.equation, cell.variable) || m.isUnknown(cell.equation, cell.variable)) && cell.variable < column) {
             return true;
          }

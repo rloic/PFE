@@ -4,6 +4,7 @@ import com.github.rloic.paper.impl.dancinglinks.Affectation;
 import com.github.rloic.paper.impl.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.impl.dancinglinks.actions.IUpdater;
 import com.github.rloic.paper.impl.dancinglinks.actions.Updater;
+import com.github.rloic.paper.impl.dancinglinks.dancinglinks.cell.Data;
 
 import java.util.List;
 
@@ -25,8 +26,8 @@ public class Fix extends Updater implements IUpdater {
 
    @Override
    protected boolean postCondition(IDancingLinksMatrix matrix) {
-      for(int equation : matrix.equationsOf(variable)) {
-         if(matrix.isInvalid(equation)) return false;
+      for(Data it : matrix.equationsOf(variable)) {
+         if(matrix.isInvalid(it.equation)) return false;
       }
       assert !matrix.isUndefined(variable);
       return true;

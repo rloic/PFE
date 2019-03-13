@@ -1,6 +1,6 @@
 package com.github.rloic.paper.impl.dancinglinks;
 
-import com.github.rloic.paper.impl.dancinglinks.dancinglinks.Cell;
+import com.github.rloic.paper.impl.dancinglinks.dancinglinks.cell.Data;
 
 public interface IDancingLinksMatrix {
 
@@ -44,7 +44,7 @@ public interface IDancingLinksMatrix {
 
    boolean isUnused(int variable);
 
-   Iterable<Integer> equationsOf(int variable);
+   Iterable<Data> equationsOf(int variable);
 
    int pivotOf(int variable);
 
@@ -56,13 +56,11 @@ public interface IDancingLinksMatrix {
 
    int eligibleBase(int pivot);
 
-   Iterable<Integer> equations();
-
    int firstUnknown(int equation);
 
    int nbEquations();
 
    int nbVariables();
 
-   Iterable<Cell.Data> variablesOf(int target);
+   Iterable<Data> variablesOf(int target);
 }
