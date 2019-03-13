@@ -30,21 +30,21 @@ public class TestGConstraint {
       ExecutorService executor = Executors.newFixedThreadPool(4);
       List<Exp> exps = Arrays.asList(
             new Exp(3, 5, AES_128, 2, TimeUnit.HOURS),
-            new Exp(4, 12, AES_128, 2, TimeUnit.HOURS),
+           // new Exp(4, 12, AES_128, 2, TimeUnit.HOURS),
 
             new Exp(3, 1, AES_192, 2, TimeUnit.HOURS),
-            new Exp(4, 4, AES_192, 2, TimeUnit.HOURS),
+      /*      new Exp(4, 4, AES_192, 2, TimeUnit.HOURS),
             new Exp(5, 5, AES_192, 2, TimeUnit.HOURS),
             new Exp(6, 10, AES_192, 2, TimeUnit.HOURS),
             new Exp(7, 13, AES_192, 2, TimeUnit.HOURS),
             new Exp(8, 18, AES_192, 2, TimeUnit.HOURS),
             new Exp(9, 24, AES_192, 2, TimeUnit.HOURS),
             new Exp(10, 27, AES_192, 2, TimeUnit.HOURS),
-
+*/
             new Exp(3, 1, AES_256, 2, TimeUnit.HOURS),
             new Exp(4, 3, AES_256, 2, TimeUnit.HOURS),
-            new Exp(5, 3, AES_256, 2, TimeUnit.HOURS),
-            new Exp(6, 5, AES_256, 2, TimeUnit.HOURS),
+            new Exp(5, 3, AES_256, 2, TimeUnit.HOURS)
+       /*     new Exp(6, 5, AES_256, 2, TimeUnit.HOURS),
             new Exp(7, 5, AES_256, 2, TimeUnit.HOURS),
             new Exp(8, 10, AES_256, 2, TimeUnit.HOURS),
             new Exp(9, 15, AES_256, 2, TimeUnit.HOURS),
@@ -54,7 +54,7 @@ public class TestGConstraint {
             new Exp(13, 24, AES_256, 2, TimeUnit.HOURS),
             new Exp(14, 24, AES_256, 2, TimeUnit.HOURS),
 
-            new Exp(5, 17, AES_128, 4, TimeUnit.DAYS)
+            new Exp(5, 17, AES_128, 4, TimeUnit.DAYS)*/
       );
 
       for (final Exp exp : exps) {
@@ -70,6 +70,7 @@ public class TestGConstraint {
                try {
                   task.get(exp.timeout, exp.unit);
                } catch (ExecutionException e) {
+                  e.printStackTrace();
                   Logger.err("ExecutionException on exp: " + exp);
                } catch (TimeoutException | InterruptedException e) {
                   Logger.info("Timeout reached for " + exp);

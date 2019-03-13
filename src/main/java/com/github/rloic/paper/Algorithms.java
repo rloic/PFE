@@ -1,6 +1,9 @@
 package com.github.rloic.paper;
 
+import com.github.rloic.inference.IAffectation;
 import com.github.rloic.inference.impl.Affectation;
+import com.github.rloic.inference.impl.FalseAffectation;
+import com.github.rloic.inference.impl.TrueAffectation;
 import com.github.rloic.util.Logger;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
@@ -10,12 +13,12 @@ import java.util.List;
 
 public class Algorithms {
 
-   private static boolean makePivot(
+   public static boolean makePivot(
          XORMatrix m,
          int[][] reify,
          int pivot,
          int variable,
-         List<Affectation> queue
+         List<IAffectation> queue
    ) {
       assert !m.isInvalid(pivot);
       if (!infer(m, reify, pivot, queue)) return false;
@@ -36,7 +39,7 @@ public class Algorithms {
    public static boolean normalize(
          XORMatrix m,
          int[][] reify,
-         List<Affectation> queue
+         List<IAffectation> queue
    ) {
       if (!m.stableState()) return false;
       m.removeUnusedVariables();
@@ -49,7 +52,7 @@ public class Algorithms {
       for (int col : m.variables()) {
          if (nbBases == m.nbEquations()) break;
          for (int row : m.equations()) {
-            if (row >= base && (m.isUndefined(row, col) || m.isTrue(row, col))) {
+            if (row >= base && (m.isUnknown(row, col) || m.isTrue(row, col))) {
                if (row != base) m.swap(row, base);
                if (!makePivot(m, reify, base, col, queue)) return false;
                nbBases += 1;
@@ -69,7 +72,7 @@ public class Algorithms {
          XORMatrix m,
          int[][] reify,
          int variable,
-         List<Affectation> queue
+         List<IAffectation> queue
    ) {
       if (!m.stableState()) {
          Logger.err("Unstable state\n" + m);
@@ -99,7 +102,7 @@ public class Algorithms {
          XORMatrix m,
          int[][] reify,
          int variable,
-         List<Affectation> queue
+         List<IAffectation> queue
    ) {
       if (!m.stableState()) {
          Logger.err("Unstable state\n" + m);
@@ -118,7 +121,7 @@ public class Algorithms {
          if (m.isEmptyEquation(ivar)) {
             m.removeRow(ivar);
          } else {
-            if (!makePivot(m, reify, ivar, m.firstEligiblePivot(ivar), queue)) {
+            if (!makePivot(m, reify, ivar, m.firstEligibleBase(ivar), queue)) {
                return false;
             }
          }
@@ -139,14 +142,14 @@ public class Algorithms {
          XORMatrix m,
          int[][] reify,
          int equation,
-         List<Affectation> queue
+         List<IAffectation> queue
    ) {
 
       if (m.nbUnknowns(equation) == 1) {
          if (m.nbTrues(equation) == 0) {
-            queue.add(new Affectation(m.firstUnknown(equation), false));
+            queue.add(new FalseAffectation(m.firstUnknown(equation), reify));
          } else if (m.nbTrues(equation) == 1) {
-            queue.add(new Affectation(m.firstUnknown(equation), true));
+            queue.add(new TrueAffectation(m.firstUnknown(equation)));
          }
       } else if (m.nbUnknowns(equation) == 2) {
          IntList unknowns = m.unknownsOf(equation);
@@ -161,12 +164,12 @@ public class Algorithms {
                if (m.isFixed(reifier)) {
                   return m.isFalse(reifier);
                }
-               queue.add(new Affectation(reifier, false));
+               queue.add(new FalseAffectation(reifier, reify));
             } else if (m.nbTrues(equation) == 1) {
                if (m.isFixed(reifier)) {
                   return m.isTrue(reifier);
                }
-               queue.add(new Affectation(reifier, true));
+               queue.add(new TrueAffectation(reifier));
             }
          }
       }

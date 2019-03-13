@@ -1,4 +1,4 @@
-package com.github.rloic.inference.impl;
+package com.github.rloic.paper.impl.dancinglinks;
 
 import com.github.rloic.inference.IAffectation;
 import org.chocosolver.solver.ICause;
@@ -7,7 +7,7 @@ import org.chocosolver.solver.variables.BoolVar;
 
 import java.util.Objects;
 
-public abstract class Affectation implements IAffectation {
+public class Affectation {
 
     public final int variable;
     public final boolean value;
@@ -17,21 +17,14 @@ public abstract class Affectation implements IAffectation {
         this.value = value;
     }
 
-    final void raiseConstradiction() throws ContradictionException {
-        throw new ContradictionException();
-    }
-
-    @Override
     final public int variable() {
         return variable;
     }
 
-    @Override
     final public boolean value() {
         return value;
     }
 
-    @Override
     public void propagate(BoolVar[] vars, ICause cause) throws ContradictionException {
         if (value) {
             vars[variable].setToTrue(cause);

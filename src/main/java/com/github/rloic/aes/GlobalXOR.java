@@ -4,6 +4,7 @@ import com.github.rloic.abstraction.MathSet;
 import com.github.rloic.abstraction.XOREquation;
 import com.github.rloic.collections.BytePosition;
 import com.github.rloic.util.Pair;
+import com.github.rloic.xorconstraint.BasePropagator;
 import com.github.rloic.xorconstraint.GlobalXorPropagator;
 import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.chocosolver.solver.Model;
@@ -94,12 +95,12 @@ public class GlobalXOR {
                   for (int j = 0; j < 4; j++) {
                      DY2[j][i1][k1][i2][k2] = m.boolVar();
                      appendToGlobalXor(DY2[j][i1][k1][i2][k2], ΔY[i1][j][k1], ΔY[i2][j][k2]);
-                     reify(DY2[j][i1][k1][i2][k2], ΔY[i1][j][k1], ΔY[i2][j][k2]);
-                     m.ifThen(m.arithm(DY2[j][i1][k1][i2][k2], "=", 0), m.arithm(ΔY[i1][j][k1], "=", ΔY[i2][j][k2]));
+                     // reify(DY2[j][i1][k1][i2][k2], ΔY[i1][j][k1], ΔY[i2][j][k2]);
+                     //m.ifThen(m.arithm(DY2[j][i1][k1][i2][k2], "=", 0), m.arithm(ΔY[i1][j][k1], "=", ΔY[i2][j][k2]));
                      DZ2[j][i1][k1][i2][k2] = m.boolVar();
                      appendToGlobalXor(DZ2[j][i1][k1][i2][k2], ΔZ[i1][j][k1], ΔZ[i2][j][k2]);
-                     reify(DZ2[j][i1][k1][i2][k2], ΔZ[i1][j][k1], ΔZ[i2][j][k2]);
-                     m.ifThen(m.arithm(DZ2[j][i1][k1][i2][k2], "=", 0), m.arithm(ΔZ[i1][j][k1], "=", ΔZ[i2][j][k2]));
+                     //reify(DZ2[j][i1][k1][i2][k2], ΔZ[i1][j][k1], ΔZ[i2][j][k2]);
+                     //m.ifThen(m.arithm(DZ2[j][i1][k1][i2][k2], "=", 0), m.arithm(ΔZ[i1][j][k1], "=", ΔZ[i2][j][k2]));
                   }
                   m.sum(arrayOf(
                         DY2[0][i1][k1][i2][k2], DY2[1][i1][k1][i2][k2], DY2[2][i1][k1][i2][k2], DY2[3][i1][k1][i2][k2],
@@ -127,7 +128,7 @@ public class GlobalXOR {
       BoolVar[][] eqs = new BoolVar[equations.size()][];
       equations.toArray(eqs);
 
-      m.post(new Constraint("GlobalXor", new GlobalXorPropagator(vars, eqs, m.getSolver(), reify)));
+      m.post(new Constraint("GlobalXor", new BasePropagator(vars, eqs, m.getSolver())));
    }
 
    private BoolVar[][][] buildΔX(int r, int rows, int columns) {

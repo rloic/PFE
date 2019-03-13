@@ -1,10 +1,10 @@
 package com.github.rloic.xorconstraint;
 
-import com.github.rloic.inference.impl.Affectation;
+import com.github.rloic.inference.IAffectation;
+import com.github.rloic.inference.impl.TrueAffectation;
 import com.github.rloic.paper.Algorithms;
 import com.github.rloic.paper.XORMatrix;
 import com.github.rloic.paper.impl.AdjacencyMatrixImpl;
-import com.github.rloic.paper.impl.NaiveMatrixImpl;
 import com.github.rloic.util.Logger;
 import com.github.rloic.util.Pair;
 import org.chocosolver.solver.Solver;
@@ -87,15 +87,15 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
       return (matrix.isFixed(idxVarInProp) && isTrue(idxVarInProp) != matrix.isTrue(idxVarInProp));
    }
 
-   private void infers(XORMatrix matrix, List<Affectation> affectations) {
+   private void infers(XORMatrix matrix, List<IAffectation> affectations) throws ContradictionException {
       for(int i = 0; i < affectations.size(); i++) {
-         Affectation affectation = affectations.get(i);
-         if (affectation.value) {
-            if(!Algorithms.assignToTrue(matrix, reify, affectation.variable, affectations)) {
+         IAffectation affectation = affectations.get(i);
+         if (affectation.value()) {
+            if(!Algorithms.assignToTrue(matrix, reify, affectation.variable(), affectations)) {
                throw new RuntimeException();
             }
          } else {
-            if (!Algorithms.assignToFalse(matrix, reify, affectation.variable, affectations)) {
+            if (!Algorithms.assignToFalse(matrix, reify, affectation.variable(), affectations)) {
                throw new RuntimeException();
             }
          }
@@ -105,7 +105,7 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
    @Override
    public void propagate(int idxVarInProp, int mask) throws ContradictionException {
       Logger.trace("Nb call " + (nbCall++));
-      List<Affectation> affectations = new ArrayList<>();
+      List<IAffectation> affectations = new ArrayList<>();
       if (chocoHasBacktrack() || chocoMakeReassignment(idxVarInProp)) {
          if (!hardReset(matrix, affectations)) {
             throw new ContradictionException();
@@ -121,12 +121,8 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
       }
       infers(matrix, affectations);
 
-      for (Affectation affectation : affectations) {
-         if (affectation.value) {
-            vars[affectation.variable].setToTrue(this);
-         } else {
-            vars[affectation.variable].setToFalse(this);
-         }
+      for(IAffectation affectation : affectations) {
+         affectation.propagate(vars, this);
       }
    }
 
@@ -139,16 +135,11 @@ public class GlobalXorPropagator extends Propagator<BoolVar> {
    @Override
    public ESat isEntailed() {
       if (!hardReset(matrix, new ArrayList<>())) return ESat.FALSE;
-      for (int equation : matrix.equations()) {
-         if (matrix.nbUnknowns(equation) != 0) {
-            return ESat.UNDEFINED;
-         }
-      }
       assert matrix.stableState();
       return ESat.TRUE;
    }
 
-   private boolean hardReset(XORMatrix matrix, List<Affectation> affectations) {
+   private boolean hardReset(XORMatrix matrix, List<IAffectation> affectations) {
       matrix.clear();
       for (int j = 0; j < vars.length; j++) {
          if (vars[j].isInstantiated()) {

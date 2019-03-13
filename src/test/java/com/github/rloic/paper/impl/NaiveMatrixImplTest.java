@@ -1,15 +1,10 @@
 package com.github.rloic.paper.impl;
 
-import com.github.rloic.inference.impl.Affectation;
 import com.github.rloic.paper.Algorithms;
-import com.github.rloic.paper.InferenceEngine;
 import com.github.rloic.paper.XORMatrix;
-import org.chocosolver.solver.exception.ContradictionException;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class NaiveMatrixImplTest {
 
@@ -28,10 +23,10 @@ class NaiveMatrixImplTest {
     /* Toy matrix
          A   B   C   D   E   F   G
          v   v   v   v
-         _   _  (x)  _   _   x   x
-         _   _   _  (x)  x   x   _
-         _  (x)  _   _   x   x   x
-        (x)  _   _   _   _   _   x
+         _   _  (equation)  _   _   equation   equation
+         _   _   _  (equation)  equation   equation   _
+         _  (equation)  _   _   equation   equation   equation
+        (equation)  _   _   _   _   _   equation
      */
     private XORMatrix toyMatrix() {
         return new NaiveMatrixImpl(
@@ -48,7 +43,7 @@ class NaiveMatrixImplTest {
     @Test
     void should_do_something() {
         XORMatrix matrix = toyMatrix();
-        Algorithms.normalize(matrix, new ArrayList<>());
+        Algorithms.normalize(matrix, new int[][]{}, new ArrayList<>());
         matrix.fix(C, true);
         System.out.println("");
     }

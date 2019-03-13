@@ -138,7 +138,7 @@ class AlgorithmsTest {
             gXorEquations[i][j] = gXorVars[equations[i][j]];
          }
       }
-      gXor.post(new Constraint("GlobalXor", new GlobalXorPropagator(gXorVars, gXorEquations, gXor.getSolver())));
+//      gXor.post(new Constraint("GlobalXor", new GlobalXorPropagator(gXorVars, gXorEquations, gXor.getSolver())));
 
       return new Pair<>(collectSolutions(naive, naiveVars), collectSolutions(gXor, gXorVars));
    }
