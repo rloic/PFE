@@ -1,12 +1,10 @@
 package com.github.rloic.aes;
 
-import com.github.rloic.abstraction.MathSet;
-import com.github.rloic.abstraction.XOREquation;
-import com.github.rloic.collections.BytePosition;
+import com.github.rloic.common.abstraction.MathSet;
+import com.github.rloic.common.abstraction.XOREquation;
+import com.github.rloic.common.collections.BytePosition;
 import com.github.rloic.util.Pair;
 import com.github.rloic.xorconstraint.BasePropagator;
-import com.github.rloic.xorconstraint.GlobalXorPropagator;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
@@ -17,8 +15,8 @@ import java.util.*;
 import static com.github.rloic.aes.KeyBits.AES128.AES_128;
 import static com.github.rloic.aes.KeyBits.AES192.AES_192;
 import static com.github.rloic.aes.KeyBits.AES256.AES_256;
-import static com.github.rloic.collections.ArrayExtensions.arrayOf;
-import static com.github.rloic.collections.ArrayExtensions.intArrayOf;
+import static com.github.rloic.common.collections.ArrayExtensions.arrayOf;
+import static com.github.rloic.common.collections.ArrayExtensions.intArrayOf;
 
 @SuppressWarnings("NonAsciiCharacters")
 public class GlobalXOR {

@@ -1,10 +1,9 @@
 package com.github.rloic.xorconstraint;
 
-import com.github.rloic.inference.IAffectation;
-import com.github.rloic.inference.impl.TrueAffectation;
-import com.github.rloic.paper.Algorithms;
-import com.github.rloic.paper.XORMatrix;
-import com.github.rloic.paper.impl.AdjacencyMatrixImpl;
+import com.github.rloic.paper.basic.actions.IAffectation;
+import com.github.rloic.paper.basic.Algorithms;
+import com.github.rloic.paper.basic.XORMatrix;
+import com.github.rloic.paper.basic.impl.AdjacencyMatrixImpl;
 import com.github.rloic.util.Logger;
 import com.github.rloic.util.Pair;
 import org.chocosolver.solver.Solver;

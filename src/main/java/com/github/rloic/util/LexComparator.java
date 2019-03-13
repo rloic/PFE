@@ -1,6 +1,6 @@
 package com.github.rloic.util;
 
-import com.github.rloic.collections.BytePosition;
+import com.github.rloic.common.collections.BytePosition;
 
 import java.util.Comparator;
 

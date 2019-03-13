@@ -1,13 +1,13 @@
 package com.github.rloic.xorconstraint;
 
-import com.github.rloic.paper.impl.dancinglinks.Affectation;
-import com.github.rloic.paper.impl.dancinglinks.IDancingLinksMatrix;
-import com.github.rloic.paper.impl.dancinglinks.actions.IUpdater;
-import com.github.rloic.paper.impl.dancinglinks.actions.UpdaterList;
-import com.github.rloic.paper.impl.dancinglinks.actions.UpdaterState;
-import com.github.rloic.paper.impl.dancinglinks.actions.impl.Algorithms;
-import com.github.rloic.paper.impl.dancinglinks.dancinglinks.DancingLinksMatrix;
-import com.github.rloic.paper.impl.dancinglinks.dancinglinks.cell.Data;
+import com.github.rloic.paper.dancinglinks.actions.Affectation;
+import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
+import com.github.rloic.paper.dancinglinks.actions.IUpdater;
+import com.github.rloic.paper.dancinglinks.actions.UpdaterList;
+import com.github.rloic.paper.dancinglinks.actions.UpdaterState;
+import com.github.rloic.paper.dancinglinks.Algorithms;
+import com.github.rloic.paper.dancinglinks.impl.DancingLinksMatrix;
+import com.github.rloic.paper.dancinglinks.cell.Data;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
@@ -17,7 +17,7 @@ import org.chocosolver.util.ESat;
 
 import java.util.*;
 
-import static com.github.rloic.paper.impl.dancinglinks.actions.UpdaterState.DONE;
+import static com.github.rloic.paper.dancinglinks.actions.UpdaterState.DONE;
 
 public class BasePropagator extends Propagator<BoolVar> {
 

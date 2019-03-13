@@ -2,15 +2,10 @@ package com.github.rloic.aes.aes128;
 
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
-import org.chocosolver.solver.exception.SolverException;
 import org.chocosolver.solver.variables.BoolVar;
-import org.chocosolver.solver.variables.IntVar;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static com.github.rloic.collections.ArrayExtensions.arrayOf;
-import static com.github.rloic.collections.ArrayExtensions.intArrayOf;
+import static com.github.rloic.common.collections.ArrayExtensions.arrayOf;
+import static com.github.rloic.common.collections.ArrayExtensions.intArrayOf;
 
 @SuppressWarnings("NonAsciiCharacters")
 public

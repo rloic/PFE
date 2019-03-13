@@ -1,7 +1,8 @@
 package com.github.rloic.paper.impl;
 
-import com.github.rloic.paper.Algorithms;
-import com.github.rloic.paper.XORMatrix;
+import com.github.rloic.paper.basic.Algorithms;
+import com.github.rloic.paper.basic.XORMatrix;
+import com.github.rloic.paper.basic.impl.NaiveMatrixImpl;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;

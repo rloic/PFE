@@ -1,11 +1,10 @@
 package com.github.rloic;
 
-import com.github.rloic.paper.impl.dancinglinks.Affectation;
-import com.github.rloic.paper.impl.dancinglinks.IDancingLinksMatrix;
-import com.github.rloic.paper.impl.dancinglinks.actions.IUpdater;
-import com.github.rloic.paper.impl.dancinglinks.actions.UpdaterState;
-import com.github.rloic.paper.impl.dancinglinks.actions.impl.Algorithms;
-import com.github.rloic.paper.impl.dancinglinks.dancinglinks.DancingLinksMatrix;
+import com.github.rloic.paper.dancinglinks.actions.Affectation;
+import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
+import com.github.rloic.paper.dancinglinks.actions.IUpdater;
+import com.github.rloic.paper.dancinglinks.actions.UpdaterState;
+import com.github.rloic.paper.dancinglinks.Algorithms;
 import com.github.rloic.xorconstraint.BasePropagator;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
