@@ -29,7 +29,7 @@ public class GlobalXOR {
    private final KeyBits KEY_BITS;
    public final BoolVar[] assignedVar;
 
-   private final Set<BoolVar> variables = new HashSet<>();
+   private final List<BoolVar> variables = new ArrayList<>();
    private final List<BoolVar[]> equations = new ArrayList<>();
 
    public GlobalXOR(
@@ -243,10 +243,15 @@ public class GlobalXOR {
    }
 
    private void appendToGlobalXor(BoolVar A, BoolVar B, BoolVar C) {
-      variables.add(A);
-      variables.add(B);
-      variables.add(C);
-
+      if(!variables.contains(A)) {
+         variables.add(A);
+      }
+      if(!variables.contains(B)) {
+         variables.add(B);
+      }
+      if(!variables.contains(C)) {
+         variables.add(C);
+      }
       equations.add(arrayOf(A, B, C));
    }
 
