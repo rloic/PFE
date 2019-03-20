@@ -1,6 +1,10 @@
 package com.github.rloic.paper.dancinglinks;
 
+import com.github.rloic.paper.dancinglinks.cell.Column;
 import com.github.rloic.paper.dancinglinks.cell.Data;
+import com.github.rloic.paper.dancinglinks.cell.Row;
+import it.unimi.dsi.fastutil.ints.IntList;
+import org.chocosolver.solver.constraints.nary.nvalue.amnv.differences.D;
 
 public interface IDancingLinksMatrix {
 
@@ -63,4 +67,20 @@ public interface IDancingLinksMatrix {
    int nbVariables();
 
    Iterable<Data> variablesOf(int target);
+
+   IntList offBase();
+
+   boolean sameOffBaseVariables(int eq1, int eq2);
+   boolean sameOffBaseVariables(Row eq1, Row eq2);
+
+   boolean sameOffBaseVariables(int eq1, int eq2, int ignoreVar);
+
+   int baseVariableOf(int equation);
+   int baseVariableOf(Row equation);
+
+   Iterable<Row> activeEquations();
+
+   Iterable<Column> activeVariables();
+
+   IntList equationsWithBaseVarSetToOne();
 }

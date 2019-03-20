@@ -1,11 +1,11 @@
 package com.github.rloic.xorconstraint;
 
-import com.github.rloic.paper.dancinglinks.actions.Affectation;
+import com.github.rloic.paper.dancinglinks.actions.*;
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
-import com.github.rloic.paper.dancinglinks.actions.IUpdater;
-import com.github.rloic.paper.dancinglinks.actions.UpdaterList;
-import com.github.rloic.paper.dancinglinks.actions.UpdaterState;
 import com.github.rloic.paper.dancinglinks.Algorithms;
+import com.github.rloic.paper.dancinglinks.cell.Cell;
+import com.github.rloic.paper.dancinglinks.cell.Column;
+import com.github.rloic.paper.dancinglinks.cell.Row;
 import com.github.rloic.paper.dancinglinks.impl.DancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.cell.Data;
 import org.chocosolver.solver.Solver;
@@ -78,9 +78,10 @@ public class BasePropagator extends Propagator<BoolVar> {
    }
 
    private void createSteps() {
-      while (commands.size() < currentDepth) {
-         commands.add(new UpdaterList());
+      while (commands.size() < currentDepth - 1) {
+         commands.add(Nothing.INSTANCE);
       }
+      commands.add(new UpdaterList());
    }
 
    private IUpdater onPropagate(int variable, boolean value) {
@@ -91,12 +92,20 @@ public class BasePropagator extends Propagator<BoolVar> {
       }
    }
 
+   private boolean isTrue(BoolVar variable) {
+      return variable.isInstantiated() && variable.getValue() == 1;
+   }
+
+   private boolean isFalse(BoolVar variable) {
+      return variable.isInstantiated() && variable.getValue() == 0;
+   }
+
    @Override
    public void propagate(int evtmask) {
       Algorithms.gauss(matrix);
    }
 
-   long nbInstantiated(BoolVar[] vars) {
+   private long nbInstantiated(BoolVar[] vars) {
       return Arrays.stream(vars).filter(Variable::isInstantiated).count();
    }
 
@@ -107,8 +116,8 @@ public class BasePropagator extends Propagator<BoolVar> {
 
       if (!matrix.isUndefined(idxVarInProp)) {
          if(
-               (matrix.isTrue(idxVarInProp) && vars[idxVarInProp].getValue() == 0)
-                     || (matrix.isFalse(idxVarInProp) && vars[idxVarInProp].getValue() == 1)
+               (matrix.isTrue(idxVarInProp) && isFalse(vars[idxVarInProp]))
+                     || (matrix.isFalse(idxVarInProp) && isTrue(vars[idxVarInProp]))
          ) {
             throw new ContradictionException();
          }
@@ -117,8 +126,8 @@ public class BasePropagator extends Propagator<BoolVar> {
 
       UpdaterList step = commands.peek();
       List<Affectation> inferences = new ArrayList<>();
-      Affectation _affectation = new Affectation(idxVarInProp, vars[idxVarInProp].getValue() == 1);
-      IUpdater updater = onPropagate(idxVarInProp, vars[idxVarInProp].getValue() == 1);
+      Affectation _affectation = new Affectation(idxVarInProp, isTrue(vars[idxVarInProp]));
+      IUpdater updater = onPropagate(idxVarInProp, isTrue(vars[idxVarInProp]));
       UpdaterState state = updater.update(matrix, inferences);
 
       switch (state) {
@@ -137,16 +146,16 @@ public class BasePropagator extends Propagator<BoolVar> {
          int variable = inference.variable;
          boolean value = inference.value;
 
-         if (!matrix.isUndefined(variable)) {
-            if ((matrix.isTrue(variable) && !value) || (matrix.isFalse(variable) && value)) {
-               throw new IllegalStateException();
-            }
-         } else {
+         if (matrix.isUndefined(variable)) {
             updater = onPropagate(inference.variable(), inference.value());
-            if (updater.update(matrix, inferences) != DONE) throw new IllegalStateException();
+            UpdaterState status = updater.update(matrix, inferences);
+            assert status == DONE;
             step.addCommitted(updater);
          }
+         assert (matrix.isTrue(variable) && value) || (matrix.isFalse(variable) && !value);
       }
+
+      assert checkState(matrix);
 
       for (Affectation affectation : inferences) {
          affectation.propagate(vars, this);
@@ -155,15 +164,17 @@ public class BasePropagator extends Propagator<BoolVar> {
 
    @Override
    public ESat isEntailed() {
+      boolean hasUndefined = false;
       for (int equation = 0; equation < matrix.nbEquations(); equation++) {
          int nbTrue = 0;
          for(Data variableCells : matrix.variablesOf(equation)) {
             boolean isTrue;
+
             if(matrix.isUndefined(variableCells.variable)) {
-               assert vars[variableCells.variable].isInstantiated();
-               isTrue = vars[variableCells.variable].getValue() == 1;
+               hasUndefined = true;
+               isTrue = isTrue(vars[variableCells.variable]);
             } else {
-               assert (vars[variableCells.variable].getValue() == 1) == (matrix.isTrue(variableCells.variable));
+               assert isTrue(vars[variableCells.variable]) == (matrix.isTrue(variableCells.variable));
                isTrue = matrix.isTrue(variableCells.variable);
             }
             if (isTrue) {
@@ -174,7 +185,75 @@ public class BasePropagator extends Propagator<BoolVar> {
             return ESat.FALSE;
          }
       }
-      return ESat.TRUE;
+      return hasUndefined ? ESat.UNDEFINED : ESat.TRUE;
    }
+
+   boolean checkState(IDancingLinksMatrix m) {
+      return atLeastTwoVarsPerLine(m)
+            && twoVarsAndOneAtTrueImpliesOtherAtTrue(m)
+            && basesEqualities(m)
+            && isNormalForm(m);
+   }
+
+   boolean atLeastTwoVarsPerLine(IDancingLinksMatrix m) {
+      for(Row equation : m.activeEquations()) {
+         int count = 0;
+         for (Data variable : equation) {
+            count += 1;
+         }
+         if (count < 2) {
+            return false;
+         }
+      }
+      return true;
+   }
+
+   boolean twoVarsAndOneAtTrueImpliesOtherAtTrue(IDancingLinksMatrix m) {
+      for(Row equation : m.activeEquations()) {
+         int count = 0;
+         int nbTrues = 0;
+         for (Data variable : equation) {
+            count += 1;
+            if (m.isTrue(variable.variable)) {
+               nbTrues += 1;
+            }
+         }
+         if (count == 2 && nbTrues == 1){
+            return false;
+         }
+      }
+      return true;
+   }
+
+   boolean basesEqualities(IDancingLinksMatrix m) {
+      for (Row equation : m.activeEquations()){
+         int baseVar = m.baseVariableOf(equation);
+         if (baseVar != -1 && m.isTrue(baseVar)) {
+            for (Row equationJ : m.activeEquations()) {
+               if (equation != equationJ && m.sameOffBaseVariables(equation, equationJ)) {
+                  if (!m.isTrue(m.baseVariableOf(equationJ))) {
+                     return false;
+                  }
+               }
+            }
+         }
+      }
+      return true;
+   }
+
+   boolean isNormalForm(IDancingLinksMatrix m) {
+      for (Row equation : m.activeEquations()) {
+         int baseVar = m.baseVariableOf(equation);
+         int count = 0;
+         for (Data it : m.equationsOf(baseVar)) {
+            count += 1;
+         }
+         if (count != 1) {
+            return false;
+         }
+      }
+      return true;
+   }
+
 
 }

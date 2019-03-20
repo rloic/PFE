@@ -40,7 +40,7 @@ public interface IUpdater {
 
          @Override
          public String toString() {
-            return "IUpdater(" + self + ", then=" + next + ")";
+            return "" + self + " |> " + next + "";
          }
       };
    }
@@ -73,7 +73,7 @@ public interface IUpdater {
 
          @Override
          public String toString() {
-            return "IUpdater(" + self + ", then=" + next + ")";
+            return "" + self + " |> " + next + "";
          }
       };
    }
@@ -106,7 +106,7 @@ public interface IUpdater {
 
          @Override
          public String toString() {
-            return "IUpdater(" + self + ", then=" + next + ")";
+            return "" + self + " |> " + next + "";
          }
       };
    }

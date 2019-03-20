@@ -6,8 +6,11 @@ import java.util.Iterator;
 
 final public class Row extends Header {
 
+   public final int index;
+
    // checked
-   private Row(Cell previous) {
+   private Row(Cell previous, int index) {
+      this.index = index;
       top = previous;
       bottom = previous.bottom;
       left = this;
@@ -18,11 +21,11 @@ final public class Row extends Header {
    }
 
    public Row(Row previous) {
-      this((Cell) previous);
+      this(previous, previous.index + 1);
    }
 
    public Row(Root previous) {
-      this((Cell) previous);
+      this(previous, 0);
    }
 
    //checked
@@ -69,7 +72,7 @@ final public class Row extends Header {
    @Override
    public final boolean isActive() {
       return top.bottom == this
-            && bottom.top != this;
+            && bottom.top == this;
    }
 
    @Override

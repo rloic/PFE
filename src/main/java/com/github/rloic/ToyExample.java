@@ -1,19 +1,31 @@
 package com.github.rloic;
 
+import com.github.rloic.aes.AdvancedModelPaper;
+import com.github.rloic.aes.EnumFilter;
+import com.github.rloic.aes.GlobalXOR;
+import com.github.rloic.aes.KeyBits;
+import com.github.rloic.benchmark.Experiment;
 import com.github.rloic.paper.dancinglinks.actions.Affectation;
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.actions.IUpdater;
 import com.github.rloic.paper.dancinglinks.actions.UpdaterState;
 import com.github.rloic.paper.dancinglinks.Algorithms;
+import com.github.rloic.wip.AdvancedModelPaperWithGlobalXOR;
 import com.github.rloic.xorconstraint.BasePropagator;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.exception.ContradictionException;
+import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+import static com.github.rloic.aes.KeyBits.AES128.AES_128;
+import static com.github.rloic.aes.KeyBits.AES192.AES_192;
+import static com.github.rloic.aes.KeyBits.AES256.AES_256;
 
 
 public class ToyExample {
@@ -27,61 +39,48 @@ public class ToyExample {
    }
 
    public static void main(String[] args) throws ContradictionException {
-      final int A = 0;
-      final int B = 1;
-      final int C = 2;
-      final int D = 3;
-      final int E = 4;
-      final int F = 5;
-      final int G = 6;
-      final int H = 7;
-
-      Model m = new Model();
-      BoolVar[] variables = m.boolVarArray(4);
-      Solver s = m.getSolver();
-      m.sum(new IntVar[]{variables[B], variables[D]}, "!=", 1).post();
-      m.post(
-            new Constraint(
-                  "GlobalXOR",
-                  new BasePropagator(
-                        variables,
-                        new BoolVar[][]{
-                              new BoolVar[]{variables[A], variables[C], variables[D]},
-                              new BoolVar[]{variables[B], variables[C], variables[D]},
-                        },
-                        s
-                  )
-            )
+      List<Experiment> experiments = Arrays.asList(
+            new Experiment(3, 5, AES_128, 0, TimeUnit.SECONDS),
+            new Experiment(3, 5, AES_128, 0, TimeUnit.SECONDS),
+            new Experiment(3, 5, AES_128, 0, TimeUnit.SECONDS)
       );
 
-      while (s.solve()) {
-         System.out.println(Arrays.toString(variables));
-         s.printShortStatistics();
+      for(Experiment experiment : experiments) {
+         System.out.println("******************************************");
+         System.out.println(experiment);
+         GlobalXOR model = new GlobalXOR(experiment.round, experiment.objStep1, experiment.key);
+         Solver solver = model.m.getSolver();
+         solver.plugMonitor(new EnumFilter(model.m, model.sBoxes, experiment.objStep1));
+         solver.setSearch(
+               Search.intVarSearch(model.sBoxes),
+               Search.intVarSearch(model.assignedVar),
+               Search.intVarSearch(model.m.retrieveBoolVars()),
+               Search.intVarSearch(model.m.retrieveIntVars(false))
+         );
+         while (solver.solve()) {
+            printVars(model.sBoxes);
+            solver.printShortStatistics();
+         }
+         solver.printShortStatistics();
       }
-      s.printShortStatistics();
    }
 
-   static boolean play(int variable, boolean value) {
-      List<Affectation> affectations = new ArrayList<>();
-      IUpdater assignment;
-      if (value) {
-         assignment = Algorithms.buildTrueAssignation(variable);
-      } else {
-         assignment = Algorithms.buildFalseAssignation(variable);
+   static void printVars(BoolVar[] vars) {
+
+      for (BoolVar variable : vars) {
+         if (variable.isInstantiated()) {
+            if (variable.getValue() == 1) {
+               System.out.print("1 ");
+            } else {
+               System.out.print("0 ");
+            }
+         } else {
+            System.out.print("x ");
+         }
       }
-      UpdaterState state = assignment.update(matrix, affectations);
-      System.out.println(variable + "<-" + value + ": " + state);
-      System.out.println("Inferences => " + affectations);
-      if (state != UpdaterState.EARLY_FAIL) {
-         updates.add(assignment);
-      }
-      System.out.println(matrix);
-      return state == UpdaterState.DONE;
+      System.out.println();
+
    }
 
-   static void rollback() {
-      updates.pop().restore(matrix);
-      System.out.println(matrix);
-   }
 
 }

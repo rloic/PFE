@@ -32,6 +32,14 @@ public class UpdaterList extends Updater implements IUpdater {
       lastCommitted += 1;
    }
 
+   public boolean isEmpty() {
+      return updaters.isEmpty();
+   }
+
+   public boolean isNotEmpty() {
+      return !updaters.isEmpty();
+   }
+
    @Override
    protected boolean postCondition(IDancingLinksMatrix matrix) {
       return lastCommitted == updaters.size() - 1;

@@ -1,5 +1,6 @@
 package com.github.rloic.benchmark;
 
+import com.github.rloic.benchmark.impl.EnumXORGlobal;
 import com.github.rloic.benchmark.impl.EnumXORImpl;
 import com.github.rloic.benchmark.impl.GlobalXORImpl;
 import com.github.rloic.util.Logger;
@@ -21,7 +22,7 @@ import static com.github.rloic.util.Logger.InfoLogger.INFO;
 
 public class Benchmark {
 
-   private static final int time = 45;
+   private static final int time = 5;
    private static final TimeUnit unit = TimeUnit.MINUTES;
 
    public static void main(String[] args) throws InterruptedException {
@@ -49,8 +50,9 @@ public class Benchmark {
                      logWriter.write("Timeout after: " + experiment.timeout + " " + experiment.unit);
                   } finally {
                      monoExecutor.shutdown();
+                     monoExecutor.awaitTermination(30, TimeUnit.SECONDS);
                   }
-               } catch (IOException ioe) {
+               } catch (IOException | InterruptedException ioe) {
                   Logger.err(ioe);
                }
             });
@@ -63,7 +65,8 @@ public class Benchmark {
 
    private static List<Pair<String, Function<ExperimentData, Implementation>>> implementations() {
       return Arrays.asList(
-            new Pair<>("enum_xor", data -> new EnumXORImpl(data.experiment, data.logWriter, data.resultWriter)),
+            // new Pair<>("enum_xor", data -> new EnumXORImpl(data.experiment, data.logWriter, data.resultWriter)),
+            // new Pair<>("enum_global_xor", data -> new EnumXORGlobal(data.experiment, data.logWriter, data.resultWriter)),
             new Pair<>("global_xor", data -> new GlobalXORImpl(data.experiment, data.logWriter, data.resultWriter))
       );
    }
@@ -74,7 +77,7 @@ public class Benchmark {
 //            new Experiment(4, 12, AES_128, time, unit),
 //            new Experiment(5, 17, AES_128, time, unit),
             new Experiment(3, 1, AES_192, time, unit),
-//            new Experiment(4, 4, AES_192, time, unit),
+            new Experiment(4, 4, AES_192, time, unit),
 //            new Experiment(5, 5, AES_192, time, unit),
 //            new Experiment(6, 10, AES_192, time, unit),
 //            new Experiment(7, 13, AES_192, time, unit),
@@ -85,7 +88,7 @@ public class Benchmark {
             new Experiment(4, 3, AES_256, time, unit),
             new Experiment(5, 3, AES_256, time, unit)
 //            new Experiment(6, 5, AES_256, time, unit),
-//            new Experiment(7, 5, AES_256, time, unit),
+//            new Experiment(7, 5, AES_256, time, unit)
 //            new Experiment(8, 10, AES_256, time, unit),
 //            new Experiment(9, 15, AES_256, time, unit),
 //            new Experiment(10, 16, AES_256, time, unit),

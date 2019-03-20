@@ -3,6 +3,7 @@ package com.github.rloic.aes;
 import com.github.rloic.common.abstraction.MathSet;
 import com.github.rloic.common.abstraction.XOREquation;
 import com.github.rloic.common.collections.BytePosition;
+import com.github.rloic.util.Logger;
 import com.github.rloic.util.Pair;
 import com.github.rloic.xorconstraint.BasePropagator;
 import org.chocosolver.solver.Model;
@@ -11,6 +12,7 @@ import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.github.rloic.aes.KeyBits.AES128.AES_128;
 import static com.github.rloic.aes.KeyBits.AES192.AES_192;
@@ -57,7 +59,7 @@ public class GlobalXOR {
       for (int i = 0; i <= r - 2; i++) {
          for (int j = 0; j <= 3; j++) {
             for (int k = 0; k <= 3; k++) {
-               appendToGlobalXor(ΔZ[i][j][k], ΔK[i + 1][j][k], ΔX[i + 1][j][k]);
+               appendToGlobalXor(ΔK[i + 1][j][k], ΔX[i + 1][j][k], ΔZ[i][j][k]);
             }
          }
       }
@@ -69,8 +71,11 @@ public class GlobalXOR {
             ), "=", m.intVar(intArrayOf(0, 5, 6, 7, 8))).post();
          }
       }
+
+      MathSet<XOREquation> xorEq = xorEq();
+
       // KeySchedule
-      for (XOREquation eq : xorEq()) {
+      for (XOREquation eq : xorEq) {
          List<BytePosition> elements = new ArrayList<>(eq);
          appendToGlobalXor(
                ΔK[elements.get(0).i][elements.get(0).j][elements.get(0).k],
@@ -91,10 +96,10 @@ public class GlobalXOR {
                for (int k2 = firstk2; k2 < 4; k2++) {
                   for (int j = 0; j < 4; j++) {
                      DY2[j][i1][k1][i2][k2] = m.boolVar();
-                     appendToGlobalXor(DY2[j][i1][k1][i2][k2], ΔY[i1][j][k1], ΔY[i2][j][k2]);
-                     m.sum(new IntVar[]{ DY2[j][i1][k1][i2][k2], ΔY[i1][j][k1], ΔY[i2][j][k2] }, "!=", 1).post();
+                     appendToGlobalXor(ΔY[i1][j][k1], ΔY[i2][j][k2], DY2[j][i1][k1][i2][k2]);
+                     m.sum(new IntVar[]{DY2[j][i1][k1][i2][k2], ΔY[i1][j][k1], ΔY[i2][j][k2]}, "!=", 1).post();
                      DZ2[j][i1][k1][i2][k2] = m.boolVar();
-                     appendToGlobalXor(DZ2[j][i1][k1][i2][k2], ΔZ[i1][j][k1], ΔZ[i2][j][k2]);
+                     appendToGlobalXor(ΔZ[i1][j][k1], ΔZ[i2][j][k2], DZ2[j][i1][k1][i2][k2]);
                      m.sum(new IntVar[]{DZ2[j][i1][k1][i2][k2], ΔZ[i1][j][k1], ΔZ[i2][j][k2]}, "!=", 1).post();
                   }
                   m.sum(arrayOf(
@@ -105,6 +110,30 @@ public class GlobalXOR {
             }
          }
       }
+
+      MathSet<XOREquation> extendedXorEq = new MathSet<>(xorEq);
+      extendedXorEq.addAll(combineXor(xorEq, xorEq));
+      BoolVar[][][][][] DK2 = new BoolVar[4][r][4][r][4];
+      // j ∈ [0, 3] i ∈ [0, r - 1], k ∈ [0, 3 + 1] pour δSK
+      for (int j = 0; j <= 3; j++) {
+         for (int i1 = 0; i1 <= r - 1; i1++) {
+            for (int k1 = 0; k1 <= 3; k1++) {
+               for (int i2 = i1; i2 <= r - 1; i2++) {
+                  int k2Init = (i1 == i2) ? k1 + 1 : 0;
+                  for (int k2 = k2Init; k2 <= 3; k2++) {
+                     // C'7: diff(δB1,δB2) = diff(δB2,δB1)
+                     BoolVar diff_δk1_δk2 = m.boolVar();
+                     DK2[j][i1][k1][i2][k2] = diff_δk1_δk2;
+                     DK2[j][i2][k2][i1][k1] = diff_δk1_δk2;
+                     appendToGlobalXor(diff_δk1_δk2, ΔK[i1][j][k1], ΔK[i2][j][k2]);
+                     m.sum(new IntVar[]{diff_δk1_δk2, ΔK[i1][j][k1], ΔK[i2][j][k2]}, "!=", 1).post();
+                  }
+               }
+            }
+         }
+      }
+
+      c10c11(DK2, ΔK, extendedXorEq);
 
       assignedVar = new BoolVar[3 * r * 4 * 4];
       int cpt = 0;
@@ -137,7 +166,7 @@ public class GlobalXOR {
       for (int i = 0; i < r; i++) {
          for (int j = 0; j < rows; j++) {
             for (int k = 0; k < columns - 1; k++) {
-               result[i][j][k] = m.boolVar();
+               result[i][j][k] = m.boolVar("ΔK[" + i + ", " + j + ", " + k + "]");
             }
          }
       }
@@ -213,9 +242,7 @@ public class GlobalXOR {
       return ΔZ;
    }
 
-
    private void appendToGlobalXor(BoolVar A, BoolVar B, BoolVar C) {
-      // m.sum(arrayOf(A, B, C), "!=", 1).post();
       variables.add(A);
       variables.add(B);
       variables.add(C);
@@ -239,4 +266,108 @@ public class GlobalXOR {
 
       return initialKeyScheduleXORs;
    }
+
+   private MathSet<XOREquation> combineXor(MathSet<XOREquation> lhs, MathSet<XOREquation> rhs) {
+        /*
+            combineXOR(L1,L2) = Lxor =>
+                NewXOR = [],
+                foreach(X1 in L1, X2 in L2, X1 != X2)
+                    X1X2 = merge(X1,X2),
+                    if (len(X1X2)<min(len(X1)+len(X2),5), not membchk(X1X2,L2), not membchk(X1X2,NewXOR)) then
+                        %write(X1), print(" + "), write(X2), print(" = "), writeln(X1X2),
+                        NewXOR := [X1X2|NewXOR]
+                        end
+                    end,
+                print("   [CombineXOR] Number of new XOR = "), writeln(len(NewXOR)), println("----------"), writeln(NewXOR), println("----------"),
+                Lxor = NewXOR ++ combineXOR(NewXOR,NewXOR ++ L2).
+         */
+
+      if (lhs.isEmpty()) return new MathSet<>();
+      MathSet<XOREquation> newEquationsSet = new MathSet<>();
+      for (XOREquation equation1 : lhs) {
+         for (XOREquation equation2 : rhs) {
+            if (!equation1.equals(equation2)) {
+               XOREquation mergedEquation = equation1.merge(equation2);
+               if (mergedEquation.size() < Math.min(equation1.size() + equation2.size(), 5) && !rhs.contains(mergedEquation)) {
+                  // not membchk(X1X2,NewXOR)) is not necessary since newEquationsSet is a Set
+                  // so the same equation cannot be present twice
+                  newEquationsSet.add(mergedEquation);
+               }
+            }
+         }
+      }
+      Logger.debug("    [CombinedXOR] Number of new XOR = " + newEquationsSet.size());
+      return newEquationsSet.union(combineXor(newEquationsSet, newEquationsSet.union(rhs)));
+   }
+
+   // C'10 CHECKED
+   private void c10(
+         BoolVar[][][][][] diffK,
+         BoolVar[][][] ΔK,
+         BytePosition B1,
+         BytePosition B2,
+         BytePosition B3
+   ) {
+      if (B1.j == B2.j && B1.j == B3.j && B1.k < 4 && B2.k < 4 && B3.k < 4) {
+         // C11: (diff(δB1,δB2) = ∆B_{3}) ∧ (diff(δB1,δB3) = ∆B_{2}) ∧ (diff(δB2,δB3) = ∆B_{1})
+         m.arithm(diffOf(diffK, B1, B2), "=", deltaOf(ΔK, B3)).post();
+         m.arithm(diffOf(diffK, B1, B3), "=", deltaOf(ΔK, B2)).post();
+         m.arithm(diffOf(diffK, B2, B3), "=", deltaOf(ΔK, B1)).post();
+      }
+   }
+
+
+   // C'11 CHECKED
+   private void c11(
+         BoolVar[][][][][] diffK,
+         BytePosition B1,
+         BytePosition B2,
+         BytePosition B3,
+         BytePosition B4
+   ) {
+      if (B1.j == B2.j && B1.j == B3.j && B1.j == B4.j && B1.k < 4 && B2.k < 4 && B3.k < 4 && B4.k < 4) {
+
+         // C11: (diff(δB1,δB2) = diff(δB3,δB4)) ∧ (diff(δB1,δB3) = diff(δB2,δB4)) ∧ (diff(δB1,δB4) = diff(δB2,δB3))
+         m.arithm(diffOf(diffK, B1, B2), "=", diffOf(diffK, B3, B4)).post();
+         m.arithm(diffOf(diffK, B1, B3), "=", diffOf(diffK, B2, B4)).post();
+         m.arithm(diffOf(diffK, B1, B4), "=", diffOf(diffK, B2, B3)).post();
+      }
+   }
+
+   // CHECKED
+   private void c10c11(
+         BoolVar[][][][][] diffK,
+         BoolVar[][][] ΔK,
+         MathSet<XOREquation> xorEq
+   ) {
+      for (XOREquation eq : xorEq) {
+         List<BytePosition> elements = new ArrayList<>(eq);
+         if (elements.size() == 3) {
+            // C'10
+            c10(diffK, ΔK, elements.get(0), elements.get(1), elements.get(2));
+         } else {
+            // C'11
+            c11(diffK, elements.get(0), elements.get(1), elements.get(2), elements.get(3));
+         }
+      }
+   }
+
+   private BoolVar diffOf(BoolVar[][][][][] diff, BytePosition B1, BytePosition B2) {
+      if (B1.j != B2.j)
+         throw new IllegalArgumentException("B1.j must be equals to B2.j. Given: B1=" + B1 + ", B2=" + B2 + ".");
+      return diff[B1.j][B1.i][B1.k][B2.i][B2.k];
+   }
+
+   private BoolVar deltaOf(BoolVar[][][] Δ, BytePosition B) {
+      return Δ[B.i][B.j][B.k];
+   }
+
+   private boolean sameXor(MathSet<XOREquation> xorEq, BytePosition... coordinates) {
+      List<BytePosition> checkedCoordinates = Arrays.asList(coordinates);
+      for (XOREquation eq : xorEq) {
+         if (eq.containsAll(checkedCoordinates)) return true;
+      }
+      return false;
+   }
+
 }

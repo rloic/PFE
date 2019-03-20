@@ -16,7 +16,7 @@ public class Experiment {
    public final long timeout;
    public final TimeUnit unit;
 
-   Experiment(int round, int objStep1, KeyBits key, long timeout, TimeUnit unit) {
+   public Experiment(int round, int objStep1, KeyBits key, long timeout, TimeUnit unit) {
       this.round = round;
       this.objStep1 = objStep1;
       this.key = key;

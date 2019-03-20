@@ -6,7 +6,10 @@ import java.util.Iterator;
 
 public class Column extends Header {
 
-   private Column(Cell previous) {
+   public final int index;
+
+   private Column(Cell previous, int index) {
+      this.index = index;
       left = previous;
       right = previous.right;
       left.right = this;
@@ -17,11 +20,11 @@ public class Column extends Header {
    }
 
    public Column(Root previous) {
-      this((Cell) previous);
+      this(previous, 0);
    }
 
    public Column(Column previous) {
-      this((Cell) previous);
+      this(previous, previous.index + 1);
    }
 
    @Override

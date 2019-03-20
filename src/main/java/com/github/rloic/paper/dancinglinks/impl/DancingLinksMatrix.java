@@ -2,6 +2,8 @@ package com.github.rloic.paper.dancinglinks.impl;
 
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.cell.*;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 
 import java.util.Arrays;
 import java.util.function.Predicate;
@@ -27,6 +29,8 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    private final int nbEquations;
    private final int nbVariables;
+
+   private final IntList equationWithBaseVarToOne = new IntArrayList();
 
    private static final int NO_PIVOT = -1;
    private static final int NO_BASE = -1;
@@ -58,15 +62,15 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       }
       assert equationsOf[nbVariables - 1].right() == root;
 
-      isBase = new boolean[equationsOf.length];
-      pivotOf = new int[equationsOf.length];
+      isBase = new boolean[nbVariables];
+      pivotOf = new int[nbVariables];
       Arrays.fill(pivotOf, NO_PIVOT);
       baseOf = new int[equations.length];
       Arrays.fill(baseOf, NO_BASE);
-      nbUnknowns = new int[equationsOf.length];
-      nbTrues = new int[equationsOf.length];
+      nbUnknowns = new int[nbEquations];
+      nbTrues = new int[nbEquations];
 
-      cells = new Data[equations.length][nbVariables];
+      cells = new Data[nbEquations][nbVariables];
       for (int i = 0; i < equations.length; i++) {
          nbUnknowns[i] = equations[i].length;
          Arrays.sort(equations[i]);
@@ -139,6 +143,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    public void setBase(int pivot, int variable) {
       isBase[variable] = true;
       pivotOf[variable] = pivot;
+      baseOf[pivot] = variable;
    }
 
    @Override
@@ -361,15 +366,22 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
          nbUnknowns[it.equation] -= 1;
          nbTrues[it.equation] += incNbTrue;
       }
+      if (isBase[variable] && value) {
+         equationWithBaseVarToOne.add(pivotOf[variable]);
+      }
    }
 
    @Override
    public void unSet(int variable) {
       int decNbTrue = valueOf[variable] == TRUE ? 1 : 0;
+      if (isBase[variable] && valueOf[variable] == TRUE) {
+         equationWithBaseVarToOne.rem(pivotOf[variable]);
+      }
       for (Data it : equationsOf(variable)) {
          nbUnknowns[it.equation] += 1;
          nbTrues[it.equation] -= decNbTrue;
       }
+
       valueOf[variable] = UNDEFINED;
    }
 
@@ -413,5 +425,122 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    @Override
    public Iterable<Data> variablesOf(int equation) {
       return variablesOf[equation];
+   }
+
+   @Override
+   public IntList offBase() {
+      IntList offBase = new IntArrayList();
+      for (int variable = 0; variable < nbVariables; variable++) {
+         if (!isBase[variable]) {
+            offBase.add(variable);
+         }
+      }
+      return offBase;
+   }
+
+   @Override
+   public boolean sameOffBaseVariables(int eq1, int eq2) {
+      return sameOffBaseVariables(variablesOf[eq1], variablesOf[eq2]);
+   }
+
+   @Override
+   public boolean sameOffBaseVariables(Row eq1, Row eq2) {
+      Cell cVarEq1 = eq1.right();
+      Cell cVarEq2 = eq2.right();
+
+      while (cVarEq1 instanceof Data && cVarEq2 instanceof Data) {
+         Data varEq1 = (Data) cVarEq1;
+         Data varEq2 = (Data) cVarEq2;
+
+         if (isBase[varEq1.variable] || isBase[varEq2.variable]) {
+            if (isBase[varEq1.variable]) {
+               cVarEq1 = cVarEq1.right();
+            }
+            if (isBase[varEq2.variable]) {
+               cVarEq2 = cVarEq2.right();
+            }
+         } else {
+            if (varEq1.variable != varEq2.variable) {
+               break;
+            }
+
+            cVarEq1 = cVarEq1.right();
+            cVarEq2 = cVarEq2.right();
+         }
+      }
+
+      return (cVarEq1 instanceof Row && cVarEq2 instanceof Row)
+            || (cVarEq1 instanceof Row && isBase[((Data) cVarEq2).variable])
+            || (cVarEq2 instanceof Row && isBase[((Data) cVarEq1).variable]);
+   }
+
+   @Override
+   public boolean sameOffBaseVariables(int eq1, int eq2, int ignoreVar) {
+      Cell cVarEq1 = variablesOf[eq1].right();
+      Cell cVarEq2 = variablesOf[eq2].right();
+
+      while (cVarEq1 instanceof Data && cVarEq2 instanceof Data) {
+         Data varEq1 = (Data) cVarEq1;
+         Data varEq2 = (Data) cVarEq2;
+
+         if (
+               isBase[varEq1.variable]
+                     || isBase[varEq2.variable]
+                     || varEq1.variable == ignoreVar
+                     || varEq2.variable == ignoreVar
+         ) {
+            if (isBase[varEq1.variable] || varEq1.variable == ignoreVar) {
+               cVarEq1 = cVarEq1.right();
+            }
+            if (isBase[varEq2.variable] || varEq2.variable == ignoreVar) {
+               cVarEq2 = cVarEq2.right();
+            }
+         } else {
+            if (varEq1.variable != varEq2.variable) {
+               break;
+            }
+
+            cVarEq1 = cVarEq1.right();
+            cVarEq2 = cVarEq2.right();
+         }
+      }
+
+      return (cVarEq1 instanceof Row && cVarEq2 instanceof Row)
+            || (cVarEq1 instanceof Row && isBase[((Data) cVarEq2).variable])
+            || (cVarEq2 instanceof Row && isBase[((Data) cVarEq1).variable]);
+   }
+
+   @Override
+   public int baseVariableOf(int equation) {
+      return baseVariableOf(variablesOf[equation]);
+   }
+
+   @Override
+   public int baseVariableOf(Row equation) {
+      Cell variable = equation.right();
+      while (variable instanceof Data && !isBase[((Data) variable).variable]) {
+         variable = variable.right();
+      }
+
+      if (variable instanceof Data) {
+         return ((Data) variable).variable;
+      } else {
+         return -1;
+      }
+   }
+
+   @Override
+   public Iterable<Row> activeEquations() {
+      return root.rows();
+   }
+
+   @Override
+   public Iterable<Column> activeVariables() {
+      return root.columns();
+   }
+
+   @Override
+   public IntList equationsWithBaseVarSetToOne() {
+      return equationWithBaseVarToOne;
    }
 }
