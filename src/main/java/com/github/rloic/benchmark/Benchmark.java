@@ -22,7 +22,7 @@ import static com.github.rloic.util.Logger.InfoLogger.INFO;
 
 public class Benchmark {
 
-   private static final int time = 5;
+   private static final int time = 10;
    private static final TimeUnit unit = TimeUnit.MINUTES;
 
    public static void main(String[] args) throws InterruptedException {
@@ -78,7 +78,7 @@ public class Benchmark {
 //            new Experiment(5, 17, AES_128, time, unit),
             new Experiment(3, 1, AES_192, time, unit),
             new Experiment(4, 4, AES_192, time, unit),
-//            new Experiment(5, 5, AES_192, time, unit),
+            new Experiment(5, 5, AES_192, time, unit),
 //            new Experiment(6, 10, AES_192, time, unit),
 //            new Experiment(7, 13, AES_192, time, unit),
 //            new Experiment(8, 18, AES_192, time, unit),

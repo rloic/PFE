@@ -53,9 +53,9 @@ public class ToyExample {
          solver.plugMonitor(new EnumFilter(model.m, model.sBoxes, experiment.objStep1));
          solver.setSearch(
                Search.intVarSearch(model.sBoxes),
-               Search.intVarSearch(model.assignedVar),
-               Search.intVarSearch(model.m.retrieveBoolVars()),
-               Search.intVarSearch(model.m.retrieveIntVars(false))
+               Search.intVarSearch(model.assignedVar)
+              // Search.intVarSearch(model.m.retrieveBoolVars()),
+              // Search.intVarSearch(model.m.retrieveIntVars(false))
          );
          while (solver.solve()) {
             printVars(model.sBoxes);
