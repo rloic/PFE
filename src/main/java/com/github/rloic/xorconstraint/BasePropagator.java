@@ -8,6 +8,7 @@ import com.github.rloic.paper.dancinglinks.cell.Column;
 import com.github.rloic.paper.dancinglinks.cell.Row;
 import com.github.rloic.paper.dancinglinks.impl.DancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.cell.Data;
+import com.github.rloic.util.Logger;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
@@ -244,12 +245,14 @@ public class BasePropagator extends Propagator<BoolVar> {
    boolean isNormalForm(IDancingLinksMatrix m) {
       for (Row equation : m.activeEquations()) {
          int baseVar = m.baseVariableOf(equation);
-         int count = 0;
-         for (Data it : m.equationsOf(baseVar)) {
-            count += 1;
-         }
-         if (count != 1) {
-            return false;
+         if(baseVar != -1) {
+            int count = 0;
+            for (Data it : m.equationsOf(baseVar)) {
+               count += 1;
+            }
+            if (count != 1) {
+               return false;
+            }
          }
       }
       return true;

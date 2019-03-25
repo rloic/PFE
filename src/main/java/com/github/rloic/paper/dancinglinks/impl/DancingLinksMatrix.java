@@ -6,6 +6,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Predicate;
 
 public class DancingLinksMatrix implements IDancingLinksMatrix {
@@ -149,6 +151,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    @Override
    public void setOffBase(int variable) {
       isBase[variable] = false;
+      baseOf[pivotOf[variable]] = NO_BASE;
       pivotOf[variable] = NO_PIVOT;
    }
 
@@ -469,9 +472,15 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
          }
       }
 
-      return (cVarEq1 instanceof Row && cVarEq2 instanceof Row)
-            || (cVarEq1 instanceof Row && isBase[((Data) cVarEq2).variable])
-            || (cVarEq2 instanceof Row && isBase[((Data) cVarEq1).variable]);
+      if (cVarEq1 instanceof Data && isBase[((Data) cVarEq1).variable]) {
+         cVarEq1 = cVarEq1.right();
+      }
+
+      if (cVarEq2 instanceof Data && isBase[((Data) cVarEq2).variable]) {
+         cVarEq2 = cVarEq2.right();
+      }
+
+      return (cVarEq1 instanceof Row && cVarEq2 instanceof Row);
    }
 
    @Override
@@ -512,21 +521,12 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public int baseVariableOf(int equation) {
-      return baseVariableOf(variablesOf[equation]);
+      return baseOf[equation];
    }
 
    @Override
    public int baseVariableOf(Row equation) {
-      Cell variable = equation.right();
-      while (variable instanceof Data && !isBase[((Data) variable).variable]) {
-         variable = variable.right();
-      }
-
-      if (variable instanceof Data) {
-         return ((Data) variable).variable;
-      } else {
-         return -1;
-      }
+      return baseOf[equation.index];
    }
 
    @Override
@@ -543,4 +543,53 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    public IntList equationsWithBaseVarSetToOne() {
       return equationWithBaseVarToOne;
    }
+
+   @Override
+   public boolean subsetOf(int subset, int superset) {
+      Cell subsetCell = variablesOf[subset].right();
+      Cell supersetCell = variablesOf[superset].right();
+
+      while (subsetCell instanceof Data && supersetCell instanceof Data) {
+         Data subsetVar = (Data) subsetCell;
+         Data supersetVar = (Data) supersetCell;
+
+         if (isBase[subsetVar.variable] || isBase[supersetVar.variable]) {
+            if (isBase[subsetVar.variable]) {
+               subsetCell = subsetCell.right();
+            }
+            if (isBase[supersetVar.variable]) {
+               supersetCell = supersetCell.right();
+            }
+         } else {
+            while (subsetVar.variable > supersetVar.variable) {
+               supersetCell = supersetCell.right();
+               if (supersetCell instanceof Data) {
+                  supersetVar = (Data) supersetCell;
+               } else {
+                  return false;
+               }
+            }
+            if (subsetVar.variable != supersetVar.variable) {
+               break;
+            }
+
+            subsetCell = subsetCell.right();
+            supersetCell = supersetCell.right();
+         }
+      }
+
+      return subsetCell instanceof Row;
+   }
+
+   @Override
+   public int firstOffBase(int pivot) {
+      for (Data it : variablesOf[pivot]) {
+         byte value = valueOf[it.variable];
+         if (!isBase[it.variable]) {
+            return it.variable;
+         }
+      }
+      return -1;
+   }
+
 }

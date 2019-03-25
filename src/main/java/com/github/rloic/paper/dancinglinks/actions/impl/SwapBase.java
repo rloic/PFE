@@ -31,15 +31,15 @@ public class SwapBase extends Updater implements IUpdater {
    @Override
    protected void onUpdate(IDancingLinksMatrix matrix, List<Affectation> inferences) {
       int pivot = matrix.pivotOf(oldBaseVar);
-      matrix.setBase(pivot, newBaseVar);
       matrix.setOffBase(oldBaseVar);
+      matrix.setBase(pivot, newBaseVar);
    }
 
    @Override
    public void restore(IDancingLinksMatrix matrix) {
       int pivot = matrix.pivotOf(newBaseVar);
-      matrix.setBase(pivot, oldBaseVar);
       matrix.setOffBase(newBaseVar);
+      matrix.setBase(pivot, oldBaseVar);
    }
 
    @Override

@@ -83,4 +83,8 @@ public interface IDancingLinksMatrix {
    Iterable<Column> activeVariables();
 
    IntList equationsWithBaseVarSetToOne();
+
+   int firstOffBase(int pivot);
+
+   boolean subsetOf(int pivot, int equation);
 }

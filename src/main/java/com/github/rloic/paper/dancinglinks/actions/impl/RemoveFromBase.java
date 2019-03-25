@@ -1,38 +1,37 @@
 package com.github.rloic.paper.dancinglinks.actions.impl;
 
-import com.github.rloic.paper.dancinglinks.actions.Affectation;
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
+import com.github.rloic.paper.dancinglinks.actions.Affectation;
 import com.github.rloic.paper.dancinglinks.actions.IUpdater;
 import com.github.rloic.paper.dancinglinks.actions.Updater;
 
 import java.util.List;
 
-public class RemoveEquation extends Updater implements IUpdater {
+public class RemoveFromBase extends Updater implements IUpdater {
 
-   private final int equation;
+   private final int base;
+   private final int pivot;
 
-   public RemoveEquation(int equation) {
-      this.equation = equation;
+   public RemoveFromBase(int pivot, int base) {
+      this.base = base;
+      this.pivot = pivot;
    }
 
    @Override
    protected boolean preCondition(IDancingLinksMatrix matrix) {
-      assert matrix.isEmpty(equation) || matrix.nbUnknowns(equation) == 0;
+      assert matrix.isBase(base)
+            && matrix.pivotOf(base) == pivot
+            && matrix.baseVariableOf(pivot) == base;
       return true;
    }
 
    @Override
    protected void onUpdate(IDancingLinksMatrix matrix, List<Affectation> inferences) {
-      matrix.removeEquation(equation);
+      matrix.setOffBase(base);
    }
 
    @Override
    public void restore(IDancingLinksMatrix matrix) {
-      matrix.restoreEquation(equation);
-   }
-
-   @Override
-   public String toString() {
-      return "RemoveEquation(equation=" + equation + ")";
+      matrix.setBase(pivot, base);
    }
 }
