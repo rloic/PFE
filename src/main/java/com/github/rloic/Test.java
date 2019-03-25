@@ -4,6 +4,7 @@ import com.github.rloic.paper.dancinglinks.Algorithms;
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.actions.impl.Fix;
 import com.github.rloic.paper.dancinglinks.impl.DancingLinksMatrix;
+import com.github.rloic.util.Logger;
 import com.github.rloic.xorconstraint.BasePropagator;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
@@ -14,6 +15,8 @@ import org.chocosolver.solver.variables.IntVar;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.stream.Collectors;
+
+import static com.github.rloic.util.Logger.DebugLogger.DEBUG;
 
 public class Test {
 
@@ -31,7 +34,7 @@ public class Test {
    }
 
    public static void main(String[] args) {
-
+      Logger.level(DEBUG);
       int lastUsedLetter = diff_b_c;
       int[][] xors = new int[][]{
             xor(A, B, C, diff_a_b),

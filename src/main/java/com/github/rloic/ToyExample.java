@@ -1,26 +1,14 @@
 package com.github.rloic;
 
-import com.github.rloic.aes.AdvancedModelPaper;
 import com.github.rloic.aes.EnumFilter;
 import com.github.rloic.aes.GlobalXOR;
-import com.github.rloic.aes.KeyBits;
 import com.github.rloic.benchmark.Experiment;
-import com.github.rloic.paper.dancinglinks.actions.Affectation;
-import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
-import com.github.rloic.paper.dancinglinks.actions.IUpdater;
-import com.github.rloic.paper.dancinglinks.actions.UpdaterState;
-import com.github.rloic.paper.dancinglinks.Algorithms;
-import com.github.rloic.wip.AdvancedModelPaperWithGlobalXOR;
-import com.github.rloic.xorconstraint.BasePropagator;
-import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
-import org.chocosolver.solver.constraints.Constraint;
-import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.variables.BoolVar;
-import org.chocosolver.solver.variables.IntVar;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.github.rloic.aes.KeyBits.AES128.AES_128;
@@ -30,18 +18,8 @@ import static com.github.rloic.aes.KeyBits.AES256.AES_256;
 
 public class ToyExample {
 
-   static Scanner s = new Scanner(System.in);
-   static IDancingLinksMatrix matrix;
-   static Stack<IUpdater> updates = new Stack<>();
-
-   static String readLine() {
-      return s.nextLine();
-   }
-
-   public static void main(String[] args) throws ContradictionException {
+   public static void main(String[] args) {
       List<Experiment> experiments = Arrays.asList(
-            new Experiment(3, 5, AES_128, 0, TimeUnit.SECONDS),
-            new Experiment(3, 5, AES_128, 0, TimeUnit.SECONDS),
             new Experiment(3, 5, AES_128, 0, TimeUnit.SECONDS)
       );
 
