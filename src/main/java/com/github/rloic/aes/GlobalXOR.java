@@ -32,6 +32,8 @@ public class GlobalXOR {
    private final List<BoolVar> variables = new ArrayList<>();
    private final List<BoolVar[]> equations = new ArrayList<>();
 
+   public final BasePropagator propagator;
+
    public GlobalXOR(
          int r,
          int objStep1,
@@ -95,10 +97,10 @@ public class GlobalXOR {
                if (i2 == i1) firstk2 = k1 + 1;
                for (int k2 = firstk2; k2 < 4; k2++) {
                   for (int j = 0; j < 4; j++) {
-                     DY2[j][i1][k1][i2][k2] = m.boolVar();
+                     DY2[j][i1][k1][i2][k2] = m.boolVar("diffY[" + j + "][" + i1 + "][" + k1 + "][" + i2 + "][" + k2 + "]");
                      appendToGlobalXor(ΔY[i1][j][k1], ΔY[i2][j][k2], DY2[j][i1][k1][i2][k2]);
                      m.sum(new IntVar[]{DY2[j][i1][k1][i2][k2], ΔY[i1][j][k1], ΔY[i2][j][k2]}, "!=", 1).post();
-                     DZ2[j][i1][k1][i2][k2] = m.boolVar();
+                     DZ2[j][i1][k1][i2][k2] = m.boolVar("diffZ[" + j + "][" + i1 + "][" + k1 + "][" + i2 + "][" + k2 + "]");
                      appendToGlobalXor(ΔZ[i1][j][k1], ΔZ[i2][j][k2], DZ2[j][i1][k1][i2][k2]);
                      m.sum(new IntVar[]{DZ2[j][i1][k1][i2][k2], ΔZ[i1][j][k1], ΔZ[i2][j][k2]}, "!=", 1).post();
                   }
@@ -122,11 +124,13 @@ public class GlobalXOR {
                   int k2Init = (i1 == i2) ? k1 + 1 : 0;
                   for (int k2 = k2Init; k2 <= 3; k2++) {
                      // C'7: diff(δB1,δB2) = diff(δB2,δB1)
-                     BoolVar diff_δk1_δk2 = m.boolVar();
-                     DK2[j][i1][k1][i2][k2] = diff_δk1_δk2;
-                     DK2[j][i2][k2][i1][k1] = diff_δk1_δk2;
-                     appendToGlobalXor(diff_δk1_δk2, ΔK[i1][j][k1], ΔK[i2][j][k2]);
-                     m.sum(new IntVar[]{diff_δk1_δk2, ΔK[i1][j][k1], ΔK[i2][j][k2]}, "!=", 1).post();
+                     if (contains(sBoxes, ΔK[i1][j][k1]) && contains(sBoxes, ΔK[i2][j][k2])) {
+                        BoolVar diff_δk1_δk2 = m.boolVar("diffK[" + j + "][" + i1 + "][" + k1 + "][" + i2 + "][" + k2 + "]");
+                        DK2[j][i1][k1][i2][k2] = diff_δk1_δk2;
+                        DK2[j][i2][k2][i1][k1] = diff_δk1_δk2;
+                        appendToGlobalXor(diff_δk1_δk2, ΔK[i1][j][k1], ΔK[i2][j][k2]);
+                        m.sum(new IntVar[]{diff_δk1_δk2, ΔK[i1][j][k1], ΔK[i2][j][k2]}, "!=", 1).post();
+                     }
                   }
                }
             }
@@ -152,12 +156,13 @@ public class GlobalXOR {
       BoolVar[][] eqs = new BoolVar[equations.size()][];
       equations.toArray(eqs);
 
-      m.post(new Constraint("GlobalXor", new BasePropagator(vars, eqs, m.getSolver())));
+      this.propagator = new BasePropagator(vars, eqs, m.getSolver());
+      m.post(new Constraint("GlobalXor", propagator));
    }
 
    private BoolVar[][][] buildΔX(int r, int rows, int columns) {
       BoolVar[][][] result = new BoolVar[r][][];
-      for (int i = 0; i < r; i++) result[i] = m.boolVarMatrix(rows, columns);
+      for (int i = 0; i < r; i++) result[i] = m.boolVarMatrix("ΔX[" + i + "]", rows, columns);
       return result;
    }
 
@@ -226,14 +231,13 @@ public class GlobalXOR {
       return sBoxes;
    }
 
-
    private BoolVar[][][] c6(BoolVar[][][] ΔY) {
       BoolVar[][][] ΔZ = new BoolVar[r][4][4];
       // ∀j, k ∈ [0, 3]
       for (int j = 0; j <= 3; j++) {
          for (int k = 0; k <= 3; k++) {
             for (int i = 0; i <= r - 2; i++) {
-               ΔZ[i][j][k] = m.boolVar();
+               ΔZ[i][j][k] = m.boolVar("ΔZ[" + i + "][" + j + "][" + k + "]");
             }
             // C6: ∆Z[r−1][j][k] = ∆Y[r−1][j][k]
             ΔZ[r - 1][j][k] = ΔY[r - 1][j][k];
@@ -243,13 +247,13 @@ public class GlobalXOR {
    }
 
    private void appendToGlobalXor(BoolVar A, BoolVar B, BoolVar C) {
-      if(!variables.contains(A)) {
+      if (!variables.contains(A)) {
          variables.add(A);
       }
-      if(!variables.contains(B)) {
+      if (!variables.contains(B)) {
          variables.add(B);
       }
-      if(!variables.contains(C)) {
+      if (!variables.contains(C)) {
          variables.add(C);
       }
       equations.add(arrayOf(A, B, C));
@@ -273,20 +277,6 @@ public class GlobalXOR {
    }
 
    private MathSet<XOREquation> combineXor(MathSet<XOREquation> lhs, MathSet<XOREquation> rhs) {
-        /*
-            combineXOR(L1,L2) = Lxor =>
-                NewXOR = [],
-                foreach(X1 in L1, X2 in L2, X1 != X2)
-                    X1X2 = merge(X1,X2),
-                    if (len(X1X2)<min(len(X1)+len(X2),5), not membchk(X1X2,L2), not membchk(X1X2,NewXOR)) then
-                        %write(X1), print(" + "), write(X2), print(" = "), writeln(X1X2),
-                        NewXOR := [X1X2|NewXOR]
-                        end
-                    end,
-                print("   [CombineXOR] Number of new XOR = "), writeln(len(NewXOR)), println("----------"), writeln(NewXOR), println("----------"),
-                Lxor = NewXOR ++ combineXOR(NewXOR,NewXOR ++ L2).
-         */
-
       if (lhs.isEmpty()) return new MathSet<>();
       MathSet<XOREquation> newEquationsSet = new MathSet<>();
       for (XOREquation equation1 : lhs) {
@@ -294,8 +284,6 @@ public class GlobalXOR {
             if (!equation1.equals(equation2)) {
                XOREquation mergedEquation = equation1.merge(equation2);
                if (mergedEquation.size() < Math.min(equation1.size() + equation2.size(), 5) && !rhs.contains(mergedEquation)) {
-                  // not membchk(X1X2,NewXOR)) is not necessary since newEquationsSet is a Set
-                  // so the same equation cannot be present twice
                   newEquationsSet.add(mergedEquation);
                }
             }
@@ -315,9 +303,15 @@ public class GlobalXOR {
    ) {
       if (B1.j == B2.j && B1.j == B3.j && B1.k < 4 && B2.k < 4 && B3.k < 4) {
          // C11: (diff(δB1,δB2) = ∆B_{3}) ∧ (diff(δB1,δB3) = ∆B_{2}) ∧ (diff(δB2,δB3) = ∆B_{1})
-         m.arithm(diffOf(diffK, B1, B2), "=", deltaOf(ΔK, B3)).post();
-         m.arithm(diffOf(diffK, B1, B3), "=", deltaOf(ΔK, B2)).post();
-         m.arithm(diffOf(diffK, B2, B3), "=", deltaOf(ΔK, B1)).post();
+         if (diffOf(diffK, B1, B2) != null) {
+            m.arithm(diffOf(diffK, B1, B2), "=", deltaOf(ΔK, B3)).post();
+         }
+         if (diffOf(diffK, B1, B3) != null) {
+            m.arithm(diffOf(diffK, B1, B3), "=", deltaOf(ΔK, B2)).post();
+         }
+         if (diffOf(diffK, B2, B3) != null) {
+            m.arithm(diffOf(diffK, B2, B3), "=", deltaOf(ΔK, B1)).post();
+         }
       }
    }
 
@@ -333,9 +327,15 @@ public class GlobalXOR {
       if (B1.j == B2.j && B1.j == B3.j && B1.j == B4.j && B1.k < 4 && B2.k < 4 && B3.k < 4 && B4.k < 4) {
 
          // C11: (diff(δB1,δB2) = diff(δB3,δB4)) ∧ (diff(δB1,δB3) = diff(δB2,δB4)) ∧ (diff(δB1,δB4) = diff(δB2,δB3))
-         m.arithm(diffOf(diffK, B1, B2), "=", diffOf(diffK, B3, B4)).post();
-         m.arithm(diffOf(diffK, B1, B3), "=", diffOf(diffK, B2, B4)).post();
-         m.arithm(diffOf(diffK, B1, B4), "=", diffOf(diffK, B2, B3)).post();
+         if (diffOf(diffK, B1, B2) != null && diffOf(diffK, B3, B4) != null) {
+            m.arithm(diffOf(diffK, B1, B2), "=", diffOf(diffK, B3, B4)).post();
+         }
+         if (diffOf(diffK, B1, B3) != null && diffOf(diffK, B2, B4) != null) {
+            m.arithm(diffOf(diffK, B1, B3), "=", diffOf(diffK, B2, B4)).post();
+         }
+         if (diffOf(diffK, B1, B4) != null && diffOf(diffK, B2, B3) != null) {
+            m.arithm(diffOf(diffK, B1, B4), "=", diffOf(diffK, B2, B3)).post();
+         }
       }
    }
 
@@ -367,12 +367,12 @@ public class GlobalXOR {
       return Δ[B.i][B.j][B.k];
    }
 
-   private boolean sameXor(MathSet<XOREquation> xorEq, BytePosition... coordinates) {
-      List<BytePosition> checkedCoordinates = Arrays.asList(coordinates);
-      for (XOREquation eq : xorEq) {
-         if (eq.containsAll(checkedCoordinates)) return true;
+   private <T> boolean contains(T[] array, T element) {
+      int i = 0;
+      while (i < array.length && array[i] != element) {
+         i += 1;
       }
-      return false;
+      return i != array.length;
    }
 
 }

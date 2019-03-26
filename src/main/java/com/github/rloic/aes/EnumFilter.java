@@ -21,6 +21,7 @@ public class EnumFilter implements IMonitorSolution {
         BoolVar[] negations = new BoolVar[objStep1];
         int cpt = 0;
         for (BoolVar sBox : sBoxes) {
+            if(!sBox.isInstantiated()) throw new IllegalStateException("Not instantiated sBox");
             if (sBox.getValue() == 1) {
                 negations[cpt++] = sBox;
             }

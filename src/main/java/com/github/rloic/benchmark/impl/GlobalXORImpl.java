@@ -1,11 +1,16 @@
 package com.github.rloic.benchmark.impl;
 
+import com.github.rloic.CustomDomOverWDeg;
 import com.github.rloic.aes.EnumFilter;
 import com.github.rloic.aes.GlobalXOR;
 import com.github.rloic.benchmark.Experiment;
 import com.github.rloic.benchmark.Implementation;
+import com.github.rloic.xorconstraint.BasePropagator;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.search.strategy.Search;
+import org.chocosolver.solver.search.strategy.selectors.values.IntDomainBest;
+import org.chocosolver.solver.search.strategy.selectors.variables.VariableSelector;
+import org.chocosolver.solver.variables.IntVar;
 
 import java.io.FileWriter;
 
@@ -23,10 +28,7 @@ public class GlobalXORImpl extends Implementation {
       EnumFilter enumFilter = new EnumFilter(gXor.m, gXor.sBoxes, experiment.objStep1);
       solver.plugMonitor(enumFilter);
       solver.setSearch(
-            Search.intVarSearch(gXor.sBoxes),
-            Search.intVarSearch(gXor.assignedVar)
-         //   Search.intVarSearch(gXor.m.retrieveBoolVars()),
-         //   Search.intVarSearch(gXor.m.retrieveIntVars(false))
+            new CustomDomOverWDeg(gXor.sBoxes, 0L, IntVar::getLB)
       );
       return run( solver, gXor.sBoxes);
    }
