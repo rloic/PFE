@@ -62,6 +62,7 @@ public class GlobalXOR {
          for (int j = 0; j <= 3; j++) {
             for (int k = 0; k <= 3; k++) {
                appendToGlobalXor(ΔK[i + 1][j][k], ΔX[i + 1][j][k], ΔZ[i][j][k]);
+               m.sum(new IntVar[]{ΔK[i + 1][j][k], ΔX[i + 1][j][k], ΔZ[i][j][k]}, "!=", 1).post();
             }
          }
       }
@@ -112,7 +113,7 @@ public class GlobalXOR {
             }
          }
       }
-
+/*
       MathSet<XOREquation> extendedXorEq = new MathSet<>(xorEq);
       extendedXorEq.addAll(combineXor(xorEq, xorEq));
       BoolVar[][][][][] DK2 = new BoolVar[4][r][4][r][4];
@@ -138,7 +139,7 @@ public class GlobalXOR {
       }
 
       c10c11(DK2, ΔK, extendedXorEq);
-
+*/
       assignedVar = new BoolVar[3 * r * 4 * 4];
       int cpt = 0;
       for (int i = 0; i < r; i++) {

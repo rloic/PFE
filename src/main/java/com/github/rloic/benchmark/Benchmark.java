@@ -78,7 +78,7 @@ public class Benchmark {
             new Experiment(3, 1, AES_192, time, unit),
             new Experiment(4, 4, AES_192, time, unit),
             new Experiment(5, 5, AES_192, time, unit),
-//            new Experiment(6, 10, AES_192, time, unit),
+            new Experiment(6, 10, AES_192, time, unit),
 //            new Experiment(7, 13, AES_192, time, unit),
 //            new Experiment(8, 18, AES_192, time, unit),
 //            new Experiment(9, 24, AES_192, time, unit),
@@ -87,8 +87,8 @@ public class Benchmark {
             new Experiment(4, 3, AES_256, time, unit),
             new Experiment(5, 3, AES_256, time, unit),
             new Experiment(6, 5, AES_256, time, unit),
-            new Experiment(7, 5, AES_256, time, unit)
-//            new Experiment(8, 10, AES_256, time, unit)
+            new Experiment(7, 5, AES_256, time, unit),
+            new Experiment(8, 10, AES_256, time, unit)
 //            new Experiment(9, 15, AES_256, time, unit),
 //            new Experiment(10, 16, AES_256, time, unit),
 //            new Experiment(11, 20, AES_256, time, unit),

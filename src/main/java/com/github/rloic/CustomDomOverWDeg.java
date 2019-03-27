@@ -18,8 +18,10 @@ import org.chocosolver.util.objects.IntMap;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -64,17 +66,19 @@ public class CustomDomOverWDeg extends AbstractStrategy<IntVar> implements IMoni
     */
    protected IntMap p2w;
 
-   /**
-    * Creates a DomOverWDeg variable selector
-    *
-    * @param variables     decision variables
-    * @param seed          seed for breaking ties randomly
-    * @param valueSelector a value selector
-    */
    public CustomDomOverWDeg(
          IntVar[] variables,
          long seed,
          IntValueSelector valueSelector
+   ) {
+      this(variables, seed, valueSelector, null);
+   }
+
+   public CustomDomOverWDeg(
+         IntVar[] variables,
+         long seed,
+         IntValueSelector valueSelector,
+         FileWriter writer
    ) {
       super(variables);
       Model model = variables[0].getModel();
@@ -126,6 +130,17 @@ public class CustomDomOverWDeg extends AbstractStrategy<IntVar> implements IMoni
    public Decision<IntVar> computeDecision(IntVar variable) {
       if (variable == null || variable.isInstantiated()) {
          return null;
+      }
+      if (writer != null) {
+         try {
+            writer.write("Domains: \n");
+            String domains = Arrays.stream(getVariables()).map(Object::toString).collect(Collectors.joining(", "));
+            writer.write(domains);
+            writer.write("\n");
+            writer.write("Choice: \n");
+            writer.write(variable.toString());
+            writer.write("\n");
+         } catch (IOException unused) {}
       }
       int currentVal = valueSelector.selectValue(variable);
       return variable.getModel().getSolver().getDecisionPath().makeIntDecision(variable, DecisionOperatorFactory.makeIntEq(), currentVal);

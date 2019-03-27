@@ -20,14 +20,16 @@ import static com.github.rloic.util.Logger.DebugLogger.DEBUG;
 
 public class Test {
 
-   final static int A = 0;
-   final static int B = 1;
-   final static int C = 2;
-
-   final static int diff_a_b = 3;
-   final static int diff_a_c = 4;
-   final static int diff_b_c = 5;
-
+   static final int A = 0;
+   static final int B = 1;
+   static final int C = 2;
+   static final int D = 3;
+   static final int A_B = 4;
+   static final int A_C = 5;
+   static final int A_D = 6;
+   static final int B_C = 7;
+   static final int B_D = 8;
+   static final int C_D = 9;
 
    static int[] xor(int... elements) {
       return elements;
@@ -35,11 +37,11 @@ public class Test {
 
    public static void main(String[] args) {
       Logger.level(DEBUG);
-      int lastUsedLetter = diff_b_c;
+      int lastUsedLetter = D;
       int[][] xors = new int[][]{
-            xor(A, B, C, diff_a_b),
-            xor(A, B, C, diff_a_c),
-            xor(A, B, C, diff_b_c)
+            xor(A, C, D),
+            xor(B, C, D)
+
       };
 
       int nbVariables = lastUsedLetter + 1;

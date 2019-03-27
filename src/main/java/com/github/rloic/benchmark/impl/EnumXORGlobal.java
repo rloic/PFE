@@ -24,9 +24,7 @@ public class EnumXORGlobal extends Implementation {
       EnumFilter enumFilter = new EnumFilter(gXor.m, gXor.sBoxes, experiment.objStep1);
       solver.plugMonitor(enumFilter);
       solver.setSearch(
-            Search.intVarSearch(gXor.sBoxes),
-            Search.intVarSearch(gXor.m.retrieveBoolVars()),
-            Search.intVarSearch(gXor.m.retrieveIntVars(false))
+            Search.intVarSearch(gXor.sBoxes)
       );
       return run(solver, gXor.sBoxes);
    }
