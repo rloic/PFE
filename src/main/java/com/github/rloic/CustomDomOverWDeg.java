@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 
 /**
  * Implementation of CustomDomOverWDeg[1].
- *
+ * <p>
  * [1]: F. Boussemart, F. Hemery, C. Lecoutre, and L. Sais, Boosting Systematic Search by Weighting
  * Constraints, ECAI-04. <br/>
  *
@@ -38,7 +38,7 @@ public class CustomDomOverWDeg extends AbstractStrategy<IntVar> implements IMoni
    /**
     * Kind of duplicate of pid2ari to limit calls of backtrackable objects
     */
-   private Map<Integer, ExpirableInteger> pid2arity;
+   private IntMap pid2arity;
 
    /**
     * Temporary. Stores index of variables with the same (best) score
@@ -78,7 +78,7 @@ public class CustomDomOverWDeg extends AbstractStrategy<IntVar> implements IMoni
    ) {
       super(variables);
       Model model = variables[0].getModel();
-      pid2arity = new HashMap<>(model.getCstrs().length * 3 / 2 + 1);
+      pid2arity = new IntMap(model.getCstrs().length * 3 / 2 + 1, -1);
       bests = new TIntArrayList();
       this.valueSelector = valueSelector;
       random = new java.util.Random(seed);
@@ -99,7 +99,7 @@ public class CustomDomOverWDeg extends AbstractStrategy<IntVar> implements IMoni
    @Override
    public boolean init() {
       Solver solver = vars[0].getModel().getSolver();
-      if(!solver.getSearchMonitors().contains(this)) {
+      if (!solver.getSearchMonitors().contains(this)) {
          vars[0].getModel().getSolver().plugMonitor(this);
       }
       return true;
@@ -108,7 +108,7 @@ public class CustomDomOverWDeg extends AbstractStrategy<IntVar> implements IMoni
    @Override
    public void remove() {
       Solver solver = vars[0].getModel().getSolver();
-      if(solver.getSearchMonitors().contains(this)) {
+      if (solver.getSearchMonitors().contains(this)) {
          vars[0].getModel().getSolver().unplugMonitor(this);
       }
    }
@@ -176,40 +176,14 @@ public class CustomDomOverWDeg extends AbstractStrategy<IntVar> implements IMoni
       for (int i = 0; i < nbp; i++) {
          Propagator prop = v.getPropagator(i);
          int pid = prop.getId();
-         // if the propagator has been already evaluated
-         //ExpirableInteger arity = pid2arity.get(pid);
-         //if (pid2arity.get(pid) != null && arity.value() != null) {
-         //   w += p2w.get(prop.getId());
-         //} else {
-            // the arity of this propagator is not yet known
-            int futVars = prop.arity();
-            assert futVars > -1;
-            pid2arity.put(pid, new ExpirableInteger(vars.length * 10, futVars));
-            if (futVars > 1) {
-               w += p2w.get(prop.getId());
-            }
-         //}
+         int futVars = prop.arity();
+         assert futVars > -1;
+         pid2arity.put(pid, futVars);
+         if (futVars > 1) {
+            w += p2w.get(prop.getId());
+         }
       }
       return w;
-   }
-
-   static class ExpirableInteger {
-
-      long maxUsage;
-      long usage = 0L;
-      private int value;
-
-      ExpirableInteger(long maxUsage, int value) {
-         this.maxUsage = System.currentTimeMillis() + maxUsage;
-         this.value = value;
-      }
-
-      Integer value() {
-         if (usage == maxUsage) return null;
-         usage += 1;
-         return value;
-      }
-
    }
 
 }

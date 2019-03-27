@@ -6,8 +6,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.function.Predicate;
 
 public class DancingLinksMatrix implements IDancingLinksMatrix {
@@ -32,7 +30,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    private final int nbEquations;
    private final int nbVariables;
 
-   private final IntList equationWithBaseVarToOne = new IntArrayList();
+   private int numberOfUndefinedVariables;
 
    private static final int NO_PIVOT = -1;
    private static final int NO_BASE = -1;
@@ -43,6 +41,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    ) {
       this.nbEquations = equations.length;
       this.nbVariables = nbVariables;
+      this.numberOfUndefinedVariables = nbVariables;
       valueOf = new byte[nbVariables];
 
       root = new Root();
@@ -363,23 +362,19 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public void set(int variable, boolean value) {
+      numberOfUndefinedVariables -= 1;
       valueOf[variable] = value ? TRUE : FALSE;
       int incNbTrue = value ? 1 : 0;
       for (Data it : equationsOf(variable)) {
          nbUnknowns[it.equation] -= 1;
          nbTrues[it.equation] += incNbTrue;
       }
-      if (isBase[variable] && value) {
-         equationWithBaseVarToOne.add(pivotOf[variable]);
-      }
    }
 
    @Override
    public void unSet(int variable) {
+      numberOfUndefinedVariables += 1;
       int decNbTrue = valueOf[variable] == TRUE ? 1 : 0;
-      if (isBase[variable] && valueOf[variable] == TRUE) {
-         equationWithBaseVarToOne.rem(pivotOf[variable]);
-      }
       for (Data it : equationsOf(variable)) {
          nbUnknowns[it.equation] += 1;
          nbTrues[it.equation] -= decNbTrue;
@@ -540,11 +535,6 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    }
 
    @Override
-   public IntList equationsWithBaseVarSetToOne() {
-      return equationWithBaseVarToOne;
-   }
-
-   @Override
    public boolean subsetOf(int subset, int superset) {
       Cell subsetCell = variablesOf[subset].right();
       Cell supersetCell = variablesOf[superset].right();
@@ -584,7 +574,6 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    @Override
    public int firstOffBase(int pivot) {
       for (Data it : variablesOf[pivot]) {
-         byte value = valueOf[it.variable];
          if (!isBase[it.variable]) {
             return it.variable;
          }
@@ -592,4 +581,8 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       return -1;
    }
 
+   @Override
+   public int numberOfUndefinedVariables() {
+      return numberOfUndefinedVariables;
+   }
 }

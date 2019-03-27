@@ -71,20 +71,23 @@ public interface IDancingLinksMatrix {
    IntList offBase();
 
    boolean sameOffBaseVariables(int eq1, int eq2);
+
    boolean sameOffBaseVariables(Row eq1, Row eq2);
 
    boolean sameOffBaseVariables(int eq1, int eq2, int ignoreVar);
 
    int baseVariableOf(int equation);
+
    int baseVariableOf(Row equation);
 
    Iterable<Row> activeEquations();
 
    Iterable<Column> activeVariables();
 
-   IntList equationsWithBaseVarSetToOne();
-
    int firstOffBase(int pivot);
 
    boolean subsetOf(int pivot, int equation);
+
+   int numberOfUndefinedVariables();
+
 }

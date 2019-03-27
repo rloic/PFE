@@ -1,5 +1,6 @@
 package com.github.rloic.xorconstraint;
 
+import com.github.rloic.paper.dancinglinks.InferenceEngine;
 import com.github.rloic.paper.dancinglinks.actions.*;
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.Algorithms;
@@ -29,6 +30,8 @@ public class BasePropagator extends Propagator<BoolVar> {
    private long backTrackCount = 0L;
    private long currentDepth = 0L;
 
+   private int arity;
+
    public BasePropagator(
          BoolVar[] vars,
          BoolVar[][] xors,
@@ -51,63 +54,48 @@ public class BasePropagator extends Propagator<BoolVar> {
             equations[i][j] = indexOf.get(xors[i][j]);
          }
       }
-
+      arity = lastIndex;
       matrix = new DancingLinksMatrix(equations, lastIndex);
    }
 
-   private boolean backTrack() {
-      if (backTrackCount < solver.getBackTrackCount()) {
-         backTrackCount = solver.getBackTrackCount();
-         return true;
-      }
-      return false;
-   }
 
-   private void doBackTrack() {
-      currentDepth = solver.getCurrentDepth() - 1;
-      while (commands.size() > currentDepth) {
-         commands.pop().restore(matrix);
-      }
-   }
-
-   private boolean goDeeper() {
-      if (currentDepth < solver.getCurrentDepth()) {
-         currentDepth = solver.getCurrentDepth();
-         return true;
-      }
-      return false;
-   }
-
-   private void createSteps() {
-      while (commands.size() < currentDepth - 1) {
-         commands.add(Nothing.INSTANCE);
-      }
-      commands.add(new UpdaterList());
-   }
-
-   private IUpdater onPropagate(int variable, boolean value) {
-      if (value) {
-         return Algorithms.buildTrueAssignation(variable);
-      } else {
-         return Algorithms.buildFalseAssignation(variable);
-      }
-   }
-
-   private boolean isTrue(BoolVar variable) {
-      return variable.isInstantiated() && variable.getValue() == 1;
-   }
-
-   private boolean isFalse(BoolVar variable) {
-      return variable.isInstantiated() && variable.getValue() == 0;
+   @Override
+   public int arity() {
+      return matrix.numberOfUndefinedVariables();
    }
 
    @Override
    public void propagate(int evtmask) {
       Algorithms.gauss(matrix);
-   }
+      List<Affectation> inferences = new ArrayList<>();
+      for (Row equation : matrix.activeEquations()) {
+         inferences.addAll(InferenceEngine.infer(matrix, equation.index));
+      }
 
-   private long nbInstantiated(BoolVar[] vars) {
-      return Arrays.stream(vars).filter(Variable::isInstantiated).count();
+      IUpdater updater;
+      for (int i = 0; i < inferences.size(); i++) {
+         Affectation inference = inferences.get(i);
+         int variable = inference.variable;
+         boolean value = inference.value;
+
+         if (matrix.isUndefined(variable)) {
+            updater = onPropagate(inference.variable(), inference.value());
+            UpdaterState status = updater.update(matrix, inferences);
+            assert status == DONE;
+         }
+         assert (matrix.isTrue(variable) && value) || (matrix.isFalse(variable) && !value);
+      }
+
+      assert checkState(matrix);
+
+      for (Affectation affectation : inferences) {
+         try {
+            affectation.propagate(vars, this);
+         } catch (ContradictionException contradiction) {
+            throw new RuntimeException(contradiction);
+         }
+      }
+
    }
 
    @Override
@@ -116,7 +104,7 @@ public class BasePropagator extends Propagator<BoolVar> {
       if (goDeeper()) createSteps();
 
       if (!matrix.isUndefined(idxVarInProp)) {
-         if(
+         if (
                (matrix.isTrue(idxVarInProp) && isFalse(vars[idxVarInProp]))
                      || (matrix.isFalse(idxVarInProp) && isTrue(vars[idxVarInProp]))
          ) {
@@ -168,10 +156,10 @@ public class BasePropagator extends Propagator<BoolVar> {
       boolean hasUndefined = false;
       for (int equation = 0; equation < matrix.nbEquations(); equation++) {
          int nbTrue = 0;
-         for(Data variableCells : matrix.variablesOf(equation)) {
+         for (Data variableCells : matrix.variablesOf(equation)) {
             boolean isTrue;
 
-            if(matrix.isUndefined(variableCells.variable)) {
+            if (matrix.isUndefined(variableCells.variable)) {
                hasUndefined = true;
                isTrue = isTrue(vars[variableCells.variable]);
             } else {
@@ -182,22 +170,68 @@ public class BasePropagator extends Propagator<BoolVar> {
                nbTrue += 1;
             }
          }
-         if(nbTrue == 1) {
+         if (nbTrue == 1) {
             return ESat.FALSE;
          }
       }
       return hasUndefined ? ESat.UNDEFINED : ESat.TRUE;
    }
 
-   boolean checkState(IDancingLinksMatrix m) {
+   private boolean backTrack() {
+      if (backTrackCount < solver.getBackTrackCount()) {
+         backTrackCount = solver.getBackTrackCount();
+         return true;
+      }
+      return false;
+   }
+
+   private void doBackTrack() {
+      currentDepth = solver.getCurrentDepth() - 1;
+      while (commands.size() > currentDepth) {
+         commands.pop().restore(matrix);
+      }
+   }
+
+   private boolean goDeeper() {
+      if (currentDepth < solver.getCurrentDepth()) {
+         currentDepth = solver.getCurrentDepth();
+         return true;
+      }
+      return false;
+   }
+
+   private void createSteps() {
+      while (commands.size() < currentDepth - 1) {
+         commands.add(Nothing.INSTANCE);
+      }
+      commands.add(new UpdaterList());
+   }
+
+   private IUpdater onPropagate(int variable, boolean value) {
+      if (value) {
+         return Algorithms.buildTrueAssignation(variable);
+      } else {
+         return Algorithms.buildFalseAssignation(variable);
+      }
+   }
+
+   private boolean isTrue(BoolVar variable) {
+      return variable.isInstantiated() && variable.getValue() == 1;
+   }
+
+   private boolean isFalse(BoolVar variable) {
+      return variable.isInstantiated() && variable.getValue() == 0;
+   }
+
+   private boolean checkState(IDancingLinksMatrix m) {
       return atLeastTwoVarsPerLine(m)
             && twoVarsAndOneAtTrueImpliesOtherAtTrue(m)
             && basesEqualities(m)
             && isNormalForm(m);
    }
 
-   boolean atLeastTwoVarsPerLine(IDancingLinksMatrix m) {
-      for(Row equation : m.activeEquations()) {
+   private boolean atLeastTwoVarsPerLine(IDancingLinksMatrix m) {
+      for (Row equation : m.activeEquations()) {
          int count = 0;
          for (Data variable : equation) {
             count += 1;
@@ -209,8 +243,8 @@ public class BasePropagator extends Propagator<BoolVar> {
       return true;
    }
 
-   boolean twoVarsAndOneAtTrueImpliesOtherAtTrue(IDancingLinksMatrix m) {
-      for(Row equation : m.activeEquations()) {
+   private boolean twoVarsAndOneAtTrueImpliesOtherAtTrue(IDancingLinksMatrix m) {
+      for (Row equation : m.activeEquations()) {
          int count = 0;
          int nbTrues = 0;
          for (Data variable : equation) {
@@ -219,15 +253,15 @@ public class BasePropagator extends Propagator<BoolVar> {
                nbTrues += 1;
             }
          }
-         if (count == 2 && nbTrues == 1){
+         if (count == 2 && nbTrues == 1) {
             return false;
          }
       }
       return true;
    }
 
-   boolean basesEqualities(IDancingLinksMatrix m) {
-      for (Row equation : m.activeEquations()){
+   private boolean basesEqualities(IDancingLinksMatrix m) {
+      for (Row equation : m.activeEquations()) {
          int baseVar = m.baseVariableOf(equation);
          if (baseVar != -1 && m.isTrue(baseVar)) {
             for (Row equationJ : m.activeEquations()) {
@@ -242,10 +276,10 @@ public class BasePropagator extends Propagator<BoolVar> {
       return true;
    }
 
-   boolean isNormalForm(IDancingLinksMatrix m) {
+   private boolean isNormalForm(IDancingLinksMatrix m) {
       for (Row equation : m.activeEquations()) {
          int baseVar = m.baseVariableOf(equation);
-         if(baseVar != -1) {
+         if (baseVar != -1) {
             int count = 0;
             for (Data it : m.equationsOf(baseVar)) {
                count += 1;
