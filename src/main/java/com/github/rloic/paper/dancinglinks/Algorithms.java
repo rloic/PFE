@@ -19,17 +19,6 @@ public class Algorithms {
                   int pivot = matrix.pivotOf(variable);
                   return inferOnlyForEquation(pivot)
                         .then(inferBasesEqualities(pivot));
-                        /*.then(m -> {
-                           if(isFull(m, pivot)) {
-                              if(m.nbTrues(pivot) > 2) {
-                                 return replaceBase(m, pivot);
-                              } else {
-                                 return removeEquation(pivot);
-                              }
-                           } else {
-                              return Nothing.INSTANCE;
-                           }
-                        });*/
                } else {
                   return inferForAllEquationsOf(matrix, variable);
                }

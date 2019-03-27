@@ -118,9 +118,9 @@ public class GlobalXOR {
       BoolVar[][][][][] DK2 = new BoolVar[4][r][4][r][4];
       // j ∈ [0, 3] i ∈ [0, r - 1], k ∈ [0, 3 + 1] pour δSK
       for (int j = 0; j <= 3; j++) {
-         for (int i1 = 0; i1 <= r - 1; i1++) {
+         for (int i1 = 0; i1 <= r - 2; i1++) {
             for (int k1 = 0; k1 <= 3; k1++) {
-               for (int i2 = i1; i2 <= r - 1; i2++) {
+               for (int i2 = i1; i2 <= r - 2; i2++) {
                   int k2Init = (i1 == i2) ? k1 + 1 : 0;
                   for (int k2 = k2Init; k2 <= 3; k2++) {
                      // C'7: diff(δB1,δB2) = diff(δB2,δB1)
@@ -225,6 +225,7 @@ public class GlobalXOR {
             }
          }
       }
+      Collections.reverse(sBoxesList);
       BoolVar[] sBoxes = new BoolVar[sBoxesList.size()];
       sBoxesList.toArray(sBoxes);
       m.sum(sBoxes, "=", objStep1).post();
