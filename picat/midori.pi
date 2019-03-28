@@ -2,10 +2,10 @@ import sat. % use "import mip" instead of "import sat" to solve with MIP (Gurobi
 % Midori 128 : 20 rounds
 % Midori 64 : 16 rounds
 
-step1(R,ObjStep1) =>
-    model(R, ObjStep1, DX, DY, DZ, DK),
-    solve_all([DX[I,J,K] : I in 1..R, J in 1..4, K in 1..4]) = Solutions,
-    write(len(Solutions)), print("\n"). % suppress "len" to print solutions (instead of printing the number of solutions)
+main([A1, A2]) =>
+    model(A1.to_integer(), A2.to_integer(), DX, DY, DZ, DK),
+    solve_all([DX[I,J,K] : I in 1..A1.to_integer(), J in 1..4, K in 1..4]) = Solutions,
+    print(A1.to_integer()), print(","), write(len(Solutions)), print("\n"). % suppress "len" to print solutions (instead of printing the number of solutions)
 
 model(R, ObjStep1, DX, DY, DZ, DK) =>
 % KC = number of columns in the key, R = number of rounds, ObjStep1 = number of active Sboxes,
