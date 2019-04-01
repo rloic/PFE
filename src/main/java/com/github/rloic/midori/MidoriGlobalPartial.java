@@ -1,5 +1,9 @@
 package com.github.rloic.midori;
 
+import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEngine;
+import com.github.rloic.paper.dancinglinks.inferenceengine.impl.PartialInferenceEngine;
+import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
+import com.github.rloic.paper.dancinglinks.rulesapplier.impl.PartialRulesApplier;
 import com.github.rloic.xorconstraint.BasePropagator;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
@@ -9,7 +13,7 @@ import org.chocosolver.solver.variables.IntVar;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MidoriGlobalXOR {
+public class MidoriGlobalPartial {
 
    public final Model m;
    public final BoolVar[] sBoxes;
@@ -18,9 +22,8 @@ public class MidoriGlobalXOR {
    private List<BoolVar> xorElements = new ArrayList<>();
    private List<BoolVar[]> xorEquations = new ArrayList<>();
 
-
-   public MidoriGlobalXOR(int r, int objStep1) {
-      m = new Model("Midori Global XOR");
+   public MidoriGlobalPartial(int r, int objStep1) {
+      m = new Model("Midori Global[1-3]");
       BoolVar[][][] DX = new BoolVar[r][][];
       BoolVar[][][] DY = new BoolVar[r - 1][4][4];
       BoolVar[][][] DZ = new BoolVar[r - 1][][];
@@ -105,7 +108,13 @@ public class MidoriGlobalXOR {
       BoolVar[][] xors = new BoolVar[xorEquations.size()][];
       xorEquations.toArray(xors);
 
-      BasePropagator globalXORProp = new BasePropagator(vars, xors, m.getSolver());
+      BasePropagator globalXORProp = new BasePropagator(
+            vars,
+            xors,
+            new PartialInferenceEngine(),
+            new PartialRulesApplier(),
+            m.getSolver()
+      );
       m.post(new Constraint("Global XOR", globalXORProp));
 
       assignedVar = new BoolVar[r * 4 * 4];

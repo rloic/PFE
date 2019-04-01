@@ -4,6 +4,8 @@ import com.github.rloic.aes.KeyBits;
 import com.github.rloic.common.abstraction.MathSet;
 import com.github.rloic.common.abstraction.XOREquation;
 import com.github.rloic.common.collections.BytePosition;
+import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEngine;
+import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
 import com.github.rloic.util.Logger;
 import com.github.rloic.util.Pair;
 import com.github.rloic.xorconstraint.BasePropagator;
@@ -69,7 +71,7 @@ public class AdvancedModelPaperWithGlobalXOR {
         m.post(
               new Constraint(
                     "GlobalXor",
-                    new BasePropagator(vars, eqs, m.getSolver())
+                    new BasePropagator(vars, eqs, new FullInferenceEngine(), new FullRulesApplier(), m.getSolver())
               )
         );
 

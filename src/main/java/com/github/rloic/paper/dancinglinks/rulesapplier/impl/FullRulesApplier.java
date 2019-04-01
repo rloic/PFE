@@ -1,18 +1,31 @@
-package com.github.rloic.paper.dancinglinks;
+package com.github.rloic.paper.dancinglinks.rulesapplier.impl;
 
+import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.actions.IUpdater;
 import com.github.rloic.paper.dancinglinks.actions.Nothing;
 import com.github.rloic.paper.dancinglinks.actions.UpdaterList;
 import com.github.rloic.paper.dancinglinks.actions.impl.*;
 import com.github.rloic.paper.dancinglinks.cell.Data;
-import com.github.rloic.paper.dancinglinks.cell.Row;
+import com.github.rloic.paper.dancinglinks.inferenceengine.InferenceEngine;
+import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEngine;
+import com.github.rloic.paper.dancinglinks.rulesapplier.RulesApplier;
 import it.unimi.dsi.fastutil.Function;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
-public class Algorithms {
+public class FullRulesApplier implements RulesApplier {
 
-   public static IUpdater buildTrueAssignation(int variable) {
+   private final InferenceEngine engine;
+
+   public FullRulesApplier() {
+      this.engine = new FullInferenceEngine();
+   }
+
+   FullRulesApplier(InferenceEngine engine) {
+      this.engine = engine;
+   }
+
+   public IUpdater buildTrueAssignation(int variable) {
       return new Fix(variable, true)
             .then(matrix -> {
                if (matrix.isBase(variable)) {
@@ -25,7 +38,7 @@ public class Algorithms {
             });
    }
 
-   public static IUpdater buildFalseAssignation(int variable) {
+   public IUpdater buildFalseAssignation(int variable) {
       return fix(variable, false)
             .then(matrix -> {
                if (matrix.isBase(variable)) {
@@ -43,32 +56,13 @@ public class Algorithms {
             .then(inferAllBaseEqualities(variable));
    }
 
-   private static IUpdater replaceBase(IDancingLinksMatrix m, int pivot) {
-      UpdaterList updates = new UpdaterList("replaceBase");
-      int base = m.baseVariableOf(pivot);
-      int firstOffBaseVar = m.firstOffBase(pivot);
-      for (Data it : m.equationsOf(firstOffBaseVar)) {
-         if (
-               it.equation != pivot
-                     && m.nbUnknowns(pivot) <= m.nbUnknowns(it.equation)
-                     && m.subsetOf(pivot, it.equation)
-         ) {
-            updates.add(xor(it.equation, pivot));
-            updates.add(infer(it.equation));
-         }
-      }
-      updates.add(removeFromBase(pivot, base));
-      updates.add(removeEquation(pivot));
-      return updates;
-   }
-
-   private static Function<IDancingLinksMatrix, IUpdater> inferBasesEqualities(int pivot) {
+   private Function<IDancingLinksMatrix, IUpdater> inferBasesEqualities(int pivot) {
       return matrix -> {
          IDancingLinksMatrix m = (IDancingLinksMatrix) matrix;
          int baseVar = m.baseVariableOf(pivot);
          if (baseVar != -1 && m.isTrue(baseVar)) {
             UpdaterList sameVar = new UpdaterList("InferBasesEqualities");
-            int firstOffBase = m.eligibleBase(pivot);
+            int firstOffBase = m.minEligibleBase(pivot);
             for (Data eqCell : m.equationsOf(firstOffBase)) {
                int baseVariableOfEquation = m.baseVariableOf(eqCell.equation);
                if (
@@ -88,56 +82,36 @@ public class Algorithms {
       };
    }
 
-   private static IUpdater inferOnlyForEquation(int equation) {
+   final IUpdater inferOnlyForEquation(int equation) {
       return infer(equation);
    }
 
-   private static IUpdater inferForAllEquationsOf(IDancingLinksMatrix matrix, int variable) {
+   final IUpdater inferForAllEquationsOf(IDancingLinksMatrix matrix, int variable) {
       UpdaterList updaterList = new UpdaterList("inferForAllEquations");
       for (Data it : matrix.equationsOf(variable)) {
-         updaterList.add(new InferFromEquation(it.equation));
+         updaterList.add(infer(it.equation));
       }
       return updaterList.isNotEmpty() ? updaterList : Nothing.INSTANCE;
    }
 
-   private static boolean isFull(IDancingLinksMatrix m, int equation) {
-      return (m.nbUnknowns(equation) == 0) || m.isEmpty(equation);
-   }
-
-   private static IUpdater inferAndRemoveIfFullForAllEquationsOf(IDancingLinksMatrix matrix, int variable) {
-      UpdaterList updates = new UpdaterList("inferForAllEquations");
-      for (Data it : matrix.equationsOf(variable)) {
-         if (isFull(matrix, it.equation)) {
-            if (matrix.nbTrues(it.equation) == 2) {
-               updates.add(removeEquation(it.equation));
-            } else if( matrix.nbTrues(it.equation) > 2) {
-               updates.add(Nothing.INSTANCE.then(m ->replaceBase(m, it.equation)));
-            }
-         } else {
-            updates.add(new InferFromEquation(it.equation));
-         }
-      }
-      return updates.isNotEmpty() ? updates : Nothing.INSTANCE;
-   }
-
-   private static IUpdater xorAndInferAllEquationsOf(IDancingLinksMatrix matrix, int pivot, int variable) {
+   final IUpdater xorAndInferAllEquationsOf(IDancingLinksMatrix matrix, int pivot, int variable) {
       UpdaterList updaterList = new UpdaterList("xorAndInferForAllEquations");
       for (Data it : matrix.equationsOf(variable)) {
          if (it.equation != pivot) {
-            updaterList.add(new XOR(it.equation, pivot));
-            updaterList.add(new InferFromEquation(it.equation));
+            updaterList.add(xor(it.equation, pivot));
+            updaterList.add(infer(it.equation));
          }
       }
       return updaterList.isNotEmpty() ? updaterList : Nothing.INSTANCE;
    }
 
-   private static IUpdater makePivot(IDancingLinksMatrix matrix, int pivot, int oldBaseVar) {
+   final IUpdater makePivot(IDancingLinksMatrix matrix, int pivot, int oldBaseVar) {
       int newBaseVar = matrix.eligibleBase(pivot);
       return new SwapBase(oldBaseVar, newBaseVar)
             .then(it -> xorAndInferAllEquationsOf(it, pivot, newBaseVar));
    }
 
-   private static Function<IDancingLinksMatrix, IUpdater> inferAllBaseEqualities(int variable) {
+   final Function<IDancingLinksMatrix, IUpdater> inferAllBaseEqualities(int variable) {
       return matrix -> {
          IDancingLinksMatrix m = (IDancingLinksMatrix) matrix;
          UpdaterList updaters = new UpdaterList();
@@ -146,7 +120,7 @@ public class Algorithms {
             int pivot = row.equation;
             int base = m.baseVariableOf(pivot);
             if (base != -1) {
-               int firstOffBase = m.eligibleBase(pivot);
+               int firstOffBase = m.minEligibleBase(pivot);
                if(firstOffBase != -1) {
                   if (m.isTrue(base)) {
                      for (Data targetO : m.equationsOf(firstOffBase)) {
@@ -185,32 +159,28 @@ public class Algorithms {
       };
    }
 
-   private static IUpdater removeEquation(int equation) {
+   final IUpdater removeEquation(int equation) {
       return new RemoveEquation(equation);
    }
 
-   private static IUpdater fix(int variable, boolean value) {
+   final IUpdater fix(int variable, boolean value) {
       return new Fix(variable, value);
    }
 
-   private static IUpdater removeVariable(int variable) {
+   final IUpdater removeVariable(int variable) {
       return new RemoveVariable(variable);
    }
 
-   private static IUpdater infer(int equation) {
-      return new InferFromEquation(equation);
+   final IUpdater infer(int equation) {
+      return new InferFromEquation(engine, equation);
    }
 
-   private static IUpdater assignation(int variable, boolean value) {
+   final IUpdater assignation(int variable, boolean value) {
       return new InferAffectation(variable, value);
    }
 
-   private static IUpdater xor(int target, int pivot) {
+   final IUpdater xor(int target, int pivot) {
       return new XOR(target, pivot);
-   }
-
-   private static IUpdater removeFromBase(int pivot, int base) {
-      return new RemoveFromBase(pivot, base);
    }
 
    public static void gauss(IDancingLinksMatrix m) {

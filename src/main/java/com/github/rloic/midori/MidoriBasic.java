@@ -9,13 +9,13 @@ import org.chocosolver.solver.variables.IntVar;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MidoriGlobalSum {
+public class MidoriBasic {
 
    public final Model m;
    public final BoolVar[] sBoxes;
    public final BoolVar[] assignedVar;
 
-   public MidoriGlobalSum(int r, int objStep1) {
+   public MidoriBasic(int r, int objStep1) {
       m = new Model("Midori Global Sum");
       BoolVar[][][] DX = new BoolVar[r][][];
       BoolVar[][][] DY = new BoolVar[r - 1][4][4];

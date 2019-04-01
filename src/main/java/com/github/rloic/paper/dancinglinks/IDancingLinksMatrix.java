@@ -60,6 +60,8 @@ public interface IDancingLinksMatrix {
 
    int eligibleBase(int pivot);
 
+   int minEligibleBase(int pivot);
+
    int firstUnknown(int equation);
 
    int nbEquations();
@@ -68,13 +70,9 @@ public interface IDancingLinksMatrix {
 
    Iterable<Data> variablesOf(int target);
 
-   IntList offBase();
-
    boolean sameOffBaseVariables(int eq1, int eq2);
 
    boolean sameOffBaseVariables(Row eq1, Row eq2);
-
-   boolean sameOffBaseVariables(int eq1, int eq2, int ignoreVar);
 
    int baseVariableOf(int equation);
 
@@ -82,12 +80,12 @@ public interface IDancingLinksMatrix {
 
    Iterable<Row> activeEquations();
 
-   Iterable<Column> activeVariables();
-
    int firstOffBase(int pivot);
 
    boolean subsetOf(int pivot, int equation);
 
    int numberOfUndefinedVariables();
+
+   int numberOfEquationsOf(int variable);
 
 }

@@ -3,6 +3,8 @@ package com.github.rloic.aes;
 import com.github.rloic.common.abstraction.MathSet;
 import com.github.rloic.common.abstraction.XOREquation;
 import com.github.rloic.common.collections.BytePosition;
+import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEngine;
+import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
 import com.github.rloic.util.Logger;
 import com.github.rloic.util.Pair;
 import com.github.rloic.xorconstraint.BasePropagator;
@@ -157,7 +159,13 @@ public class GlobalXOR {
       BoolVar[][] eqs = new BoolVar[equations.size()][];
       equations.toArray(eqs);
 
-      this.propagator = new BasePropagator(vars, eqs, m.getSolver());
+      this.propagator = new BasePropagator(
+            vars,
+            eqs,
+            new FullInferenceEngine(),
+            new FullRulesApplier(),
+            m.getSolver()
+      );
       m.post(new Constraint("GlobalXor", propagator));
    }
 

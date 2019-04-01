@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 import static com.github.rloic.util.Logger.TraceLogger.TRACE;
 import static org.junit.jupiter.api.Assertions.*;
 
-class AlgorithmsTest {
+class FullRulesApplierTest {
 
    private static int A = 0;
    private static int B = 1;

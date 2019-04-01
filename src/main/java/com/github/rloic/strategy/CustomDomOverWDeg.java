@@ -1,4 +1,4 @@
-package com.github.rloic;
+package com.github.rloic.strategy;
 
 import gnu.trove.list.array.TIntArrayList;
 

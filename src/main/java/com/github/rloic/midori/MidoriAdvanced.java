@@ -7,17 +7,17 @@ import org.chocosolver.solver.variables.IntVar;
 import static com.github.rloic.common.collections.ArrayExtensions.arrayOf;
 import static com.github.rloic.common.collections.ArrayExtensions.intArrayOf;
 
-public class MidoriSumXOR {
+public class MidoriAdvanced {
 
    public final Model m;
    public final BoolVar[] sBoxes;
    public final BoolVar[] assignedVar;
 
-   public MidoriSumXOR(
+   public MidoriAdvanced(
          int r,
          int objStep1
    ) {
-      this.m = new Model("Midori Sum");
+      this.m = new Model("Midori Advanced");
 
       BoolVar[][][] ΔX = new BoolVar[r][][];
       for (int i = 0; i < r; i++) ΔX[i] = m.boolVarMatrix(4, 4);

@@ -1,21 +1,18 @@
 package com.github.rloic.xorconstraint;
 
-import com.github.rloic.paper.dancinglinks.InferenceEngine;
+import com.github.rloic.paper.dancinglinks.inferenceengine.InferenceEngine;
 import com.github.rloic.paper.dancinglinks.actions.*;
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
-import com.github.rloic.paper.dancinglinks.Algorithms;
-import com.github.rloic.paper.dancinglinks.cell.Cell;
-import com.github.rloic.paper.dancinglinks.cell.Column;
+import com.github.rloic.paper.dancinglinks.rulesapplier.RulesApplier;
+import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
 import com.github.rloic.paper.dancinglinks.cell.Row;
 import com.github.rloic.paper.dancinglinks.impl.DancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.cell.Data;
-import com.github.rloic.util.Logger;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.BoolVar;
-import org.chocosolver.solver.variables.Variable;
 import org.chocosolver.util.ESat;
 
 import java.util.*;
@@ -26,22 +23,27 @@ public class BasePropagator extends Propagator<BoolVar> {
 
    private final Solver solver;
    private final Stack<UpdaterList> commands;
-   private final IDancingLinksMatrix matrix;
+   public final IDancingLinksMatrix matrix;
+   public final Map<BoolVar, Integer> indexOf;
+   private final InferenceEngine engine;
+   private final RulesApplier rulesApplier;
    private long backTrackCount = 0L;
    private long currentDepth = 0L;
-
-   private int arity;
 
    public BasePropagator(
          BoolVar[] vars,
          BoolVar[][] xors,
+         InferenceEngine engine,
+         RulesApplier rulesApplier,
          Solver solver
    ) {
       super(vars, PropagatorPriority.CUBIC, true);
-      this.solver = solver;
       this.commands = new Stack<>();
+      this.engine = engine;
+      this.rulesApplier = rulesApplier;
+      this.solver = solver;
 
-      final Map<BoolVar, Integer> indexOf = new HashMap<>();
+      indexOf = new HashMap<>();
       int lastIndex = 0;
       for (BoolVar variable : vars) {
          indexOf.put(variable, lastIndex++);
@@ -54,7 +56,6 @@ public class BasePropagator extends Propagator<BoolVar> {
             equations[i][j] = indexOf.get(xors[i][j]);
          }
       }
-      arity = lastIndex;
       matrix = new DancingLinksMatrix(equations, lastIndex);
    }
 
@@ -66,10 +67,10 @@ public class BasePropagator extends Propagator<BoolVar> {
 
    @Override
    public void propagate(int evtmask) {
-      Algorithms.gauss(matrix);
+      FullRulesApplier.gauss(matrix);
       List<Affectation> inferences = new ArrayList<>();
       for (Row equation : matrix.activeEquations()) {
-         inferences.addAll(InferenceEngine.infer(matrix, equation.index));
+         inferences.addAll(engine.infer(matrix, equation.index));
       }
 
       IUpdater updater;
@@ -108,7 +109,7 @@ public class BasePropagator extends Propagator<BoolVar> {
                (matrix.isTrue(idxVarInProp) && isFalse(vars[idxVarInProp]))
                      || (matrix.isFalse(idxVarInProp) && isTrue(vars[idxVarInProp]))
          ) {
-            throw new ContradictionException();
+            throw new ContradictionException().set(this, vars[idxVarInProp], "");
          }
          return;
       }
@@ -124,10 +125,10 @@ public class BasePropagator extends Propagator<BoolVar> {
             step.addCommitted(updater);
             break;
          case EARLY_FAIL:
-            throw new ContradictionException();
+            throw new ContradictionException().set(this, vars[idxVarInProp], "");
          case LATE_FAIL:
             updater.restore(matrix);
-            throw new ContradictionException();
+            throw new ContradictionException().set(this, vars[idxVarInProp], "");
       }
 
       for (int i = 0; i < inferences.size(); i++) {
@@ -188,6 +189,9 @@ public class BasePropagator extends Propagator<BoolVar> {
    private void doBackTrack() {
       currentDepth = solver.getCurrentDepth() - 1;
       while (commands.size() > currentDepth) {
+         if(commands.isEmpty()) {
+            throw new RuntimeException();
+         }
          commands.pop().restore(matrix);
       }
    }
@@ -209,9 +213,9 @@ public class BasePropagator extends Propagator<BoolVar> {
 
    private IUpdater onPropagate(int variable, boolean value) {
       if (value) {
-         return Algorithms.buildTrueAssignation(variable);
+         return rulesApplier.buildTrueAssignation(variable);
       } else {
-         return Algorithms.buildFalseAssignation(variable);
+         return rulesApplier.buildFalseAssignation(variable);
       }
    }
 

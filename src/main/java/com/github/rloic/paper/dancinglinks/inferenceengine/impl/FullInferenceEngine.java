@@ -1,16 +1,15 @@
-package com.github.rloic.paper.dancinglinks;
+package com.github.rloic.paper.dancinglinks.inferenceengine.impl;
 
+import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.actions.Affectation;
-import com.github.rloic.paper.dancinglinks.cell.Data;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
+import com.github.rloic.paper.dancinglinks.inferenceengine.InferenceEngine;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class InferenceEngine {
+public class FullInferenceEngine implements InferenceEngine {
 
-   public static List<Affectation> infer(
+   public List<Affectation> infer(
          IDancingLinksMatrix matrix,
          int equation
    ) {

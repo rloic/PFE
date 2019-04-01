@@ -3,6 +3,7 @@ package com.github.rloic.paper.dancinglinks.impl;
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.cell.*;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntComparator;
 import it.unimi.dsi.fastutil.ints.IntList;
 
 import java.util.Arrays;
@@ -31,6 +32,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    private final int nbVariables;
 
    private int numberOfUndefinedVariables;
+   private int[] numberOfEquationsOf;
 
    private static final int NO_PIVOT = -1;
    private static final int NO_BASE = -1;
@@ -42,6 +44,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       this.nbEquations = equations.length;
       this.nbVariables = nbVariables;
       this.numberOfUndefinedVariables = nbVariables;
+      this.numberOfEquationsOf = new int[nbVariables];
       valueOf = new byte[nbVariables];
 
       root = new Root();
@@ -75,6 +78,9 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       for (int i = 0; i < equations.length; i++) {
          nbUnknowns[i] = equations[i].length;
          Arrays.sort(equations[i]);
+         for (int variable : equations[i]) {
+            numberOfEquationsOf[variable] += 1;
+         }
          for (int variable : equations[i]) {
             Cell lastEquationOfVariable = equationsOf[variable].top();
             Cell lastVariableOfEquation = variablesOf[i].left();
@@ -237,6 +243,8 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
             Cell left = cellT.left();
             newUnknown.relink(left, top);
 
+            numberOfEquationsOf[newUnknown.variable] += 1;
+
             if (isTrue(variable)) {
                nbTrues[target] += 1;
             } else if (isUndefined(variable)) {
@@ -253,6 +261,9 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
             } else if (isUndefined(variable)) {
                nbUnknowns[target] -= 1;
             }
+
+            numberOfEquationsOf[dataT.variable] -= 1;
+
             dataT.remove();
             cellT = cellT.right();
             cellP = cellP.right();
@@ -267,6 +278,8 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
          Cell top = findLastInColumn(variable, it -> it.isAboveOf(newUnknown));
          Cell left = headerT.left();
          newUnknown.relink(left, top);
+
+         numberOfEquationsOf[newUnknown.variable] += 1;
 
          if (isTrue(variable)) {
             nbTrues[target] += 1;
@@ -327,6 +340,16 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
                .append(" | nbTrues: ")
                .append(nbTrues(i))
                .append('\n');
+      }
+      str.append("    ");
+      for(int var = 0; var < nbVariables; var++) {
+         int nbEquationOfVariable = numberOfEquationsOf[var];
+         if (nbEquationOfVariable < 10) {
+            str.append("  ");
+         } else {
+            str.append(' ');
+         }
+         str.append(nbEquationOfVariable).append("  ");
       }
       return str.toString();
    }
@@ -390,12 +413,23 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public int eligibleBase(int pivot) {
+      for (Data it : variablesOf[pivot]) {
+         byte value = valueOf[it.variable];
+         if ((value == TRUE || value == UNDEFINED) && !isBase[it.variable]) {
+            return it.variable;
+         }
+      }
+      return -1;
+   }
+
+   @Override
+   public int minEligibleBase(int pivot) {
       int bestNbXor = Integer.MAX_VALUE;
       int eligibleBase = -1;
       for (Data it : variablesOf[pivot]) {
          byte value = valueOf[it.variable];
          int nbEquationsOfVar = numberOfEquationsOf[it.variable];
-         if ((value == TRUE || value == UNDEFINED) && !isBase[it.variable] && nbEquationsOfVar < bestNbXor) {
+         if ((value == TRUE || value == UNDEFINED) && !isBase[it.variable] & nbEquationsOfVar < bestNbXor) {
             bestNbXor = nbEquationsOfVar;
             eligibleBase = it.variable;
          }
@@ -427,17 +461,6 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    @Override
    public Iterable<Data> variablesOf(int equation) {
       return variablesOf[equation];
-   }
-
-   @Override
-   public IntList offBase() {
-      IntList offBase = new IntArrayList();
-      for (int variable = 0; variable < nbVariables; variable++) {
-         if (!isBase[variable]) {
-            offBase.add(variable);
-         }
-      }
-      return offBase;
    }
 
    @Override
@@ -483,42 +506,6 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    }
 
    @Override
-   public boolean sameOffBaseVariables(int eq1, int eq2, int ignoreVar) {
-      Cell cVarEq1 = variablesOf[eq1].right();
-      Cell cVarEq2 = variablesOf[eq2].right();
-
-      while (cVarEq1 instanceof Data && cVarEq2 instanceof Data) {
-         Data varEq1 = (Data) cVarEq1;
-         Data varEq2 = (Data) cVarEq2;
-
-         if (
-               isBase[varEq1.variable]
-                     || isBase[varEq2.variable]
-                     || varEq1.variable == ignoreVar
-                     || varEq2.variable == ignoreVar
-         ) {
-            if (isBase[varEq1.variable] || varEq1.variable == ignoreVar) {
-               cVarEq1 = cVarEq1.right();
-            }
-            if (isBase[varEq2.variable] || varEq2.variable == ignoreVar) {
-               cVarEq2 = cVarEq2.right();
-            }
-         } else {
-            if (varEq1.variable != varEq2.variable) {
-               break;
-            }
-
-            cVarEq1 = cVarEq1.right();
-            cVarEq2 = cVarEq2.right();
-         }
-      }
-
-      return (cVarEq1 instanceof Row && cVarEq2 instanceof Row)
-            || (cVarEq1 instanceof Row && isBase[((Data) cVarEq2).variable])
-            || (cVarEq2 instanceof Row && isBase[((Data) cVarEq1).variable]);
-   }
-
-   @Override
    public int baseVariableOf(int equation) {
       return baseOf[equation];
    }
@@ -531,11 +518,6 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    @Override
    public Iterable<Row> activeEquations() {
       return root.rows();
-   }
-
-   @Override
-   public Iterable<Column> activeVariables() {
-      return root.columns();
    }
 
    @Override
@@ -588,5 +570,10 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    @Override
    public int numberOfUndefinedVariables() {
       return numberOfUndefinedVariables;
+   }
+
+   @Override
+   public int numberOfEquationsOf(int variable) {
+      return numberOfEquationsOf[variable];
    }
 }
