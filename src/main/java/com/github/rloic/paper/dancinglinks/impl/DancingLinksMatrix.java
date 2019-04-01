@@ -390,13 +390,17 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public int eligibleBase(int pivot) {
+      int bestNbXor = Integer.MAX_VALUE;
+      int eligibleBase = -1;
       for (Data it : variablesOf[pivot]) {
          byte value = valueOf[it.variable];
-         if ((value == TRUE || value == UNDEFINED) && !isBase[it.variable]) {
-            return it.variable;
+         int nbEquationsOfVar = numberOfEquationsOf[it.variable];
+         if ((value == TRUE || value == UNDEFINED) && !isBase[it.variable] && nbEquationsOfVar < bestNbXor) {
+            bestNbXor = nbEquationsOfVar;
+            eligibleBase = it.variable;
          }
       }
-      return -1;
+      return eligibleBase;
    }
 
    @Override
