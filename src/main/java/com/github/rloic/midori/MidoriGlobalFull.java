@@ -139,8 +139,5 @@ public class MidoriGlobalFull {
          }
       }
       xorEquations.add(equation);
-      IntVar[] variables = new IntVar[equation.length];
-      System.arraycopy(equation, 0, variables, 0, equation.length);
-      m.sum(variables, "!=", 1).post();
    }
 }

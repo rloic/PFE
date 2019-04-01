@@ -64,7 +64,6 @@ public class GlobalXOR {
          for (int j = 0; j <= 3; j++) {
             for (int k = 0; k <= 3; k++) {
                appendToGlobalXor(ΔK[i + 1][j][k], ΔX[i + 1][j][k], ΔZ[i][j][k]);
-               m.sum(new IntVar[]{ΔK[i + 1][j][k], ΔX[i + 1][j][k], ΔZ[i][j][k]}, "!=", 1).post();
             }
          }
       }
@@ -102,10 +101,8 @@ public class GlobalXOR {
                   for (int j = 0; j < 4; j++) {
                      DY2[j][i1][k1][i2][k2] = m.boolVar("diffY[" + j + "][" + i1 + "][" + k1 + "][" + i2 + "][" + k2 + "]");
                      appendToGlobalXor(ΔY[i1][j][k1], ΔY[i2][j][k2], DY2[j][i1][k1][i2][k2]);
-                     m.sum(new IntVar[]{DY2[j][i1][k1][i2][k2], ΔY[i1][j][k1], ΔY[i2][j][k2]}, "!=", 1).post();
                      DZ2[j][i1][k1][i2][k2] = m.boolVar("diffZ[" + j + "][" + i1 + "][" + k1 + "][" + i2 + "][" + k2 + "]");
                      appendToGlobalXor(ΔZ[i1][j][k1], ΔZ[i2][j][k2], DZ2[j][i1][k1][i2][k2]);
-                     m.sum(new IntVar[]{DZ2[j][i1][k1][i2][k2], ΔZ[i1][j][k1], ΔZ[i2][j][k2]}, "!=", 1).post();
                   }
                   m.sum(arrayOf(
                         DY2[0][i1][k1][i2][k2], DY2[1][i1][k1][i2][k2], DY2[2][i1][k1][i2][k2], DY2[3][i1][k1][i2][k2],
@@ -115,33 +112,7 @@ public class GlobalXOR {
             }
          }
       }
-/*
-      MathSet<XOREquation> extendedXorEq = new MathSet<>(xorEq);
-      extendedXorEq.addAll(combineXor(xorEq, xorEq));
-      BoolVar[][][][][] DK2 = new BoolVar[4][r][4][r][4];
-      // j ∈ [0, 3] i ∈ [0, r - 1], k ∈ [0, 3 + 1] pour δSK
-      for (int j = 0; j <= 3; j++) {
-         for (int i1 = 0; i1 <= r - 2; i1++) {
-            for (int k1 = 0; k1 <= 3; k1++) {
-               for (int i2 = i1; i2 <= r - 2; i2++) {
-                  int k2Init = (i1 == i2) ? k1 + 1 : 0;
-                  for (int k2 = k2Init; k2 <= 3; k2++) {
-                     // C'7: diff(δB1,δB2) = diff(δB2,δB1)
-                     if (contains(sBoxes, ΔK[i1][j][k1]) && contains(sBoxes, ΔK[i2][j][k2])) {
-                        BoolVar diff_δk1_δk2 = m.boolVar("diffK[" + j + "][" + i1 + "][" + k1 + "][" + i2 + "][" + k2 + "]");
-                        DK2[j][i1][k1][i2][k2] = diff_δk1_δk2;
-                        DK2[j][i2][k2][i1][k1] = diff_δk1_δk2;
-                        appendToGlobalXor(diff_δk1_δk2, ΔK[i1][j][k1], ΔK[i2][j][k2]);
-                        m.sum(new IntVar[]{diff_δk1_δk2, ΔK[i1][j][k1], ΔK[i2][j][k2]}, "!=", 1).post();
-                     }
-                  }
-               }
-            }
-         }
-      }
 
-      c10c11(DK2, ΔK, extendedXorEq);
-*/
       assignedVar = new BoolVar[3 * r * 4 * 4];
       int cpt = 0;
       for (int i = 0; i < r; i++) {

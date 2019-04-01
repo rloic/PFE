@@ -31,8 +31,8 @@ val algorithms = arrayOf(
     Algorithm("Advanced", ::createAdvanced)
 )
 
-const val TIMEOUT = 30
-val UNIT = TimeUnit.SECONDS
+const val TIMEOUT = 5
+val UNIT = TimeUnit.MINUTES
 
 fun searchStrategy(solver: Solver, sBoxes: Array<BoolVar>, assignedVars: Array<BoolVar>) {
     solver.setSearch(
