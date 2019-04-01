@@ -41,25 +41,41 @@ public class MidoriGlobalXOR {
       }
 
       for (int i = 0; i < r - 1; i++) {
-         DY[i][0][0] = DX[i][0][0];
-         DY[i][1][0] = DX[i][2][2];
-         DY[i][2][0] = DX[i][1][1];
-         DY[i][3][0] = DX[i][3][3];
+         DY[i][0][0] = m.boolVar();
+         m.arithm(DY[i][0][0], "=", DX[i][0][0]).post();
+         DY[i][1][0] = m.boolVar();
+         m.arithm(DY[i][1][0], "=", DX[i][2][2]).post();
+         DY[i][2][0] = m.boolVar();
+         m.arithm(DY[i][2][0], "=", DX[i][1][1]).post();
+         DY[i][3][0] = m.boolVar();
+         m.arithm(DY[i][3][0], "=", DX[i][3][3]).post();
 
-         DY[i][0][1] = DX[i][2][3];
-         DY[i][1][1] = DX[i][0][1];
-         DY[i][2][1] = DX[i][3][2];
-         DY[i][3][1] = DX[i][1][0];
+         DY[i][0][1] = m.boolVar();
+         m.arithm(DY[i][0][1], "=", DX[i][2][3]).post();
+         DY[i][1][1] = m.boolVar();
+         m.arithm(DY[i][1][1], "=", DX[i][0][1]).post();
+         DY[i][2][1] = m.boolVar();
+         m.arithm(DY[i][2][1], "=", DX[i][3][2]).post();
+         DY[i][3][1] = m.boolVar();
+         m.arithm(DY[i][3][1], "=", DX[i][1][0]).post();
 
-         DY[i][0][2] = DX[i][1][2];
-         DY[i][1][2] = DX[i][3][0];
-         DY[i][2][2] = DX[i][0][3];
-         DY[i][3][2] = DX[i][2][1];
+         DY[i][0][2] = m.boolVar();
+         m.arithm(DY[i][0][2], "=", DX[i][1][2]).post();
+         DY[i][1][2] = m.boolVar();
+         m.arithm(DY[i][1][2], "=", DX[i][3][0]).post();
+         DY[i][2][2] = m.boolVar();
+         m.arithm(DY[i][2][2], "=", DX[i][0][3]).post();
+         DY[i][3][2] = m.boolVar();
+         m.arithm(DY[i][3][2], "=", DX[i][2][1]).post();
 
-         DY[i][0][3] = DX[i][3][1];
-         DY[i][1][3] = DX[i][1][3];
-         DY[i][2][3] = DX[i][2][0];
-         DY[i][3][3] = DX[i][0][2];
+         DY[i][0][3] = m.boolVar();
+         m.arithm(DY[i][0][3], "=", DX[i][3][1]).post();
+         DY[i][1][3] = m.boolVar();
+         m.arithm(DY[i][1][3], "=", DX[i][1][3]).post();
+         DY[i][2][3] = m.boolVar();
+         m.arithm(DY[i][2][3], "=", DX[i][2][0]).post();
+         DY[i][3][3] = m.boolVar();
+         m.arithm(DY[i][3][3], "=", DX[i][0][2]).post();
       }
 
       for (int i = 0; i < r - 1; i++) {
