@@ -13,11 +13,13 @@ import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin
 import org.chocosolver.solver.variables.BoolVar
 import org.chocosolver.util.criteria.Criterion
 import java.awt.Dimension
+import java.awt.event.ActionListener
 import java.io.File
 import java.io.FileWriter
 import java.lang.RuntimeException
 import java.time.Duration
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -33,19 +35,19 @@ val algorithms = arrayOf(
     Algorithm("Advanced", ::createAdvanced)
 )
 
-const val TIMEOUT = 20
-val UNIT = TimeUnit.MINUTES
+const val TIMEOUT = 1
+val UNIT = TimeUnit.HOURS
 
 fun searchStrategy(solver: Solver, sBoxes: Array<BoolVar>, assignedVars: Array<BoolVar>, model: Model, basePropagator: BasePropagator?) {
 
     if (basePropagator != null) {
         solver.setSearch(
-            WDeg(sBoxes, 0L, IntDomainMin(), model, basePropagator)//,
+            WDeg(sBoxes, 0L, IntDomainMin(), model)//,
             //CustomDomOverWDeg(assignedVars, 0L, IntDomainMin())
         )
     } else {
         solver.setSearch(
-            CustomDomOverWDeg(sBoxes, 0L, IntDomainMin())//,
+            WDeg(sBoxes, 0L, IntDomainMin(), model)//,
             //CustomDomOverWDeg(assignedVars, 0L, IntDomainMin())
         )
     }
@@ -102,22 +104,30 @@ class TaskButton(
 
     companion object {
         private val workers = Executors.newFixedThreadPool(4)
+        private val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     }
+
+    private var clickListener: ActionListener = ActionListener{ click() }
 
     fun click(): Future<*> {
         text = "$title - Waiting for worker"
         return workers.submit {
+            removeActionListener(clickListener)
             val start = LocalDateTime.now()
-            text = "$title - Working [starting @ $start]"
-            onClick()
-            Thread.sleep(1000L)
+            text = "$title - Working [starting@${format.format(start)}]"
+            try {
+                onClick()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
             val end = LocalDateTime.now()
             text = "$title - Done in ${Duration.between(start, end)}"
+            addActionListener(clickListener)
         }
     }
 
     init {
-        addActionListener { click() }
+        addActionListener(clickListener)
     }
 
 }

@@ -7,13 +7,11 @@ import com.github.rloic.aes.KeyBits.AES128.AES_128
 import com.github.rloic.aes.KeyBits.AES192.AES_192
 import com.github.rloic.aes.KeyBits.AES256.AES_256
 import com.github.rloic.midori.MidoriGlobalFull
-import com.github.rloic.strategy.CustomDomOverWDeg
 import com.github.rloic.strategy.WDeg
 import com.github.rloic.xorconstraint.BasePropagator
 import org.chocosolver.solver.Model
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin
 import org.chocosolver.solver.variables.BoolVar
-import java.util.concurrent.Executors
 
 val midoriBenchmarks = mapOf(
     "Midori-128-3-3" to MidoriBenchmark(3, 3),
@@ -84,16 +82,16 @@ fun main() {
 
     for ((name, benchmark) in midoriBenchmarks) {
         //workers.submit {
-            benchMidori(name, midori(benchmark))
+        benchMidori(name, midori(benchmark))
         //}
     }
-/*
+
     for ((name, benchmark) in aesBenchmarks) {
         //workers.submit {
-            benchAES(name, aes(benchmark), benchmark.objStep)
+        benchAES(name, aes(benchmark), benchmark.objStep)
         //}
     }
-*/
+
 }
 
 data class StrategyResult(
@@ -128,55 +126,61 @@ fun aes(bench: AESBenchmark): Components {
     return Components(aes.m, aes.sBoxes, aes.propagator)
 }
 
-fun benchMidori(name: String, components: Components) {
+fun benchMidori(exp: String, components: Components) {
     val (model, sBoxes) = components
     val solver = model.solver
     solver.setSearch(
-        WDeg(sBoxes, 0L, IntDomainMin(), components.model, components.propagator)
+        WDeg(sBoxes, 0L, IntDomainMin(), components.model)
     )
     while (solver.solve()) {
     }
-    val result =
+    val currentResult =
         "Current" to StrategyResult(solver.measures.timeCount.toDouble(), solver.measures.nodeCount.toInt())
 
-    val baseResult = "Base" to BASE_MIDORI[name]
-    val bestResult = "Best" to BEST_MIDORI[name]
+    val baseResult = "Base" to BASE_MIDORI.getValue(exp)
+    val bestResult = "Best" to BEST_MIDORI.getValue(exp)
 
     println("*******************************")
-    println(name)
+    println(exp)
     println(
         listOf(
-            result,
+            currentResult,
             baseResult,
             bestResult
-        ).sortedBy { it.second!!.nodes }
-            .joinToString("\n") { "${it.first} [${it.second!!.nodes} nodes]" }
+        ).sortedBy { it.second.nodes }
+            .joinToString("\n") { (name, result) ->
+                "$name [${result.nodes} nodes (${ratio(result.nodes, baseResult.second.nodes)}%)]"
+            }
     )
 }
 
-fun benchAES(name: String, components: Components, objStep: Int) {
+fun benchAES(exp: String, components: Components, objStep: Int) {
     val (model, sBoxes) = components
     val solver = model.solver
     solver.plugMonitor(EnumFilter(model, sBoxes, objStep))
     solver.setSearch(
-        WDeg(sBoxes, 0L, IntDomainMin(), components.model, components.propagator)
+        WDeg(sBoxes, 0L, IntDomainMin(), components.model)
     )
     while (solver.solve()) {
     }
-    val result =
+    val currentResult =
         "Current" to StrategyResult(solver.measures.timeCount.toDouble(), solver.measures.nodeCount.toInt())
 
-    val baseResult = "Base" to BASE_AES[name]
-    val bestResult = "Best" to BEST_AES[name]
+    val baseResult = "Base" to BASE_AES.getValue(exp)
+    val bestResult = "Best" to BEST_AES.getValue(exp)
 
     println("*******************************")
-    println(name)
+    println(exp)
     println(
         listOf(
-            result,
+            currentResult,
             baseResult,
             bestResult
-        ).sortedBy { it.second!!.nodes }
-            .joinToString("\n") { "${it.first} [${it.second!!.nodes} nodes]" }
+        ).sortedBy { it.second.nodes }
+            .joinToString("\n") { (name, result) ->
+                "$name [${result.nodes} nodes (${ratio(result.nodes, baseResult.second.nodes)}%)]"
+            }
     )
 }
+
+fun ratio(a: Int, b: Int) = (((a.toDouble() / b) - 1) * 10000).toInt() / 100.0

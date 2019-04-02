@@ -1,12 +1,9 @@
 package com.github.rloic.paper.dancinglinks.impl;
 
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
-import com.github.rloic.paper.dancinglinks.actions.Affectation;
 import com.github.rloic.paper.dancinglinks.cell.*;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.function.Predicate;
 
 public class DancingLinksMatrix implements IDancingLinksMatrix {
@@ -31,13 +28,13 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    private final int nbEquations;
    private final int nbVariables;
 
-   private List<Affectation> decisions = new ArrayList<>();
-
    private int numberOfUndefinedVariables;
    private int[] numberOfEquationsOf;
 
    private static final int NO_PIVOT = -1;
    private static final int NO_BASE = -1;
+
+   private int[] nei;
 
    public DancingLinksMatrix(
          int[][] equations,
@@ -47,6 +44,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       this.nbVariables = nbVariables;
       this.numberOfUndefinedVariables = nbVariables;
       this.numberOfEquationsOf = new int[nbVariables];
+      this.nei = new int[nbVariables];
       valueOf = new byte[nbVariables];
       root = new Root();
       variablesOf = new Row[nbEquations];
@@ -81,6 +79,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
          Arrays.sort(equations[i]);
          for (int variable : equations[i]) {
             numberOfEquationsOf[variable] += 1;
+            nei[variable] += 1;
          }
          for (int variable : equations[i]) {
             Cell lastEquationOfVariable = equationsOf[variable].top();
@@ -232,6 +231,8 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    public void xor(int target, int pivot) {
       Cell cellT = variablesOf[target].right();
       Cell cellP = variablesOf[pivot].right();
+
+      int targetBase = baseOf[pivot];
 
       while (cellT instanceof Data && cellP instanceof Data) {
          Data dataT = (Data) cellT;
@@ -386,7 +387,6 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public void set(int variable, boolean value) {
-      decisions.add(new Affectation(variable, value));
       numberOfUndefinedVariables -= 1;
       valueOf[variable] = value ? TRUE : FALSE;
       int incNbTrue = value ? 1 : 0;
@@ -398,7 +398,6 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public void unSet(int variable) {
-      decisions.remove(decisions.size() - 1);
       numberOfUndefinedVariables += 1;
       int decNbTrue = valueOf[variable] == TRUE ? 1 : 0;
       for (Data it : equationsOf(variable)) {
@@ -581,7 +580,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    }
 
    @Override
-   public List<Affectation> getDecisions() {
-      return decisions;
+   public int nei(int variable) {
+      return nei[variable];
    }
 }

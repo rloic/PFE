@@ -3,10 +3,7 @@ package com.github.rloic.strategy;
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.cell.Data;
 import com.github.rloic.xorconstraint.BasePropagator;
-import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TIntArrayList;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
 import org.chocosolver.memory.IStateInt;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
@@ -21,16 +18,12 @@ import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.Variable;
 import org.chocosolver.util.objects.IntMap;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Random;
 
 
 public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradiction {
 
    private IntValueSelector valueSelector;
-   private BasePropagator propagator;
-   private IDancingLinksMatrix matrix;
    private int[] scores;
    private IStateInt last;
    private Random random;
@@ -46,8 +39,6 @@ public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradict
    ) {
       super(variables);
       this.valueSelector = valueSelector;
-      this.propagator = propagator;
-      this.matrix = propagator.matrix;
       this.scores = new int[variables.length];
       this.last = model.getEnvironment().makeInt(vars.length - 1);
       this.random = new Random(seed);
@@ -55,6 +46,12 @@ public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradict
       this.indexOf = new IntMap(10, -1);
       for (int i = 0; i < variables.length; i++) {
          indexOf.put(variables[i].getId(), i);
+      }
+      for (Variable var : variables) {
+         int varI = indexOf.get(var.getId());
+         if (varI != -1) {
+            scores[varI] += var.getNbProps();
+         }
       }
    }
 
@@ -83,23 +80,17 @@ public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradict
    public void onContradiction(ContradictionException cex) {
       if (cex.c instanceof Propagator) {
          Propagator propagator = (Propagator) cex.c;
-         if (propagator == this.propagator && !cex.s.equals("already instantiated")) {
-            Integer idx = this.propagator.indexOf.get(cex.v);
-            if (idx != null) {
-               for(Data eq : matrix.equationsOf(idx)) {
-                  for(Data v : matrix.variablesOf(eq.equation)) {
-                     int vi = indexOf(propagator.getVar(v.variable));
-                     if (vi != -1) {
-                        scores[vi] += 1;
-                     }
-                  }
-               }
+         if (propagator instanceof BasePropagator) {
+            int varI = indexOf(cex.v);
+            if (varI != -1) {
             }
          } else {
-            for (Variable var : propagator.getVars()) {
-               int varIndex = indexOf(var);
-               if (varIndex != -1) {
-                  scores[varIndex] += 1;
+            if (cex.v != null) {
+               for (Variable var : propagator.getVars()) {
+                  int varIndex = indexOf(var);
+                  if (varIndex != -1) {
+                     scores[varIndex] += 1;
+                  }
                }
             }
          }
