@@ -79,7 +79,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
          Arrays.sort(equations[i]);
          for (int variable : equations[i]) {
             numberOfEquationsOf[variable] += 1;
-            nei[variable] += 1;
+            nei[variable] += equations[i].length - 1;
          }
          for (int variable : equations[i]) {
             Cell lastEquationOfVariable = equationsOf[variable].top();

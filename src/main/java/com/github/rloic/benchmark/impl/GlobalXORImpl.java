@@ -24,9 +24,9 @@ public class GlobalXORImpl extends Implementation {
       Solver solver = gXor.m.getSolver();
       EnumFilter enumFilter = new EnumFilter(gXor.m, gXor.sBoxes, experiment.objStep1);
       solver.plugMonitor(enumFilter);
-      solver.setSearch(
+      /*solver.setSearch(
             new WDeg(gXor.sBoxes, 0L, IntVar::getLB, gXor.m)
-      );
+      );*/
       return run( solver, gXor.sBoxes);
    }
 }

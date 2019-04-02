@@ -39,7 +39,7 @@ const val TIMEOUT = 1
 val UNIT = TimeUnit.HOURS
 
 fun searchStrategy(solver: Solver, sBoxes: Array<BoolVar>, assignedVars: Array<BoolVar>, model: Model, basePropagator: BasePropagator?) {
-
+/*
     if (basePropagator != null) {
         solver.setSearch(
             WDeg(sBoxes, 0L, IntDomainMin(), model)//,
@@ -51,7 +51,7 @@ fun searchStrategy(solver: Solver, sBoxes: Array<BoolVar>, assignedVars: Array<B
             //CustomDomOverWDeg(assignedVars, 0L, IntDomainMin())
         )
     }
-
+*/
 
 }
 

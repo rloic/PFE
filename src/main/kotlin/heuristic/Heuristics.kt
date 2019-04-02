@@ -23,7 +23,8 @@ fun main() {
         "Sequential" to { _, vars, selector, _ -> Sequential(vars, selector) },
         "Random" to { prop, vars, selector, seed -> Rnd(vars, seed, selector) },
         "Deg" to { prop, vars, selector, _ -> Deg(vars, selector, prop) },
-        "DDeg" to { prop, vars, selector, _ -> DDeg(vars, selector, prop) }
+        "DDeg" to { prop, vars, selector, _ -> DDeg(vars, selector, prop) },
+        "DomOverWeg" to { _, vars, _, _ -> Search.intVarSearch(*vars) }
     )
 
 
