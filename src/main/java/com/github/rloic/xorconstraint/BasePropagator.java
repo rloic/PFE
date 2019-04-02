@@ -104,19 +104,19 @@ public class BasePropagator extends Propagator<BoolVar> {
       if (backTrack()) doBackTrack();
       if (goDeeper()) createSteps();
 
+      Affectation chocoDecision = new Affectation(idxVarInProp, isTrue(vars[idxVarInProp]));
       if (!matrix.isUndefined(idxVarInProp)) {
          if (
                (matrix.isTrue(idxVarInProp) && isFalse(vars[idxVarInProp]))
                      || (matrix.isFalse(idxVarInProp) && isTrue(vars[idxVarInProp]))
          ) {
-            throw new ContradictionException().set(this, vars[idxVarInProp], "");
+            throw new ContradictionException().set(this, vars[idxVarInProp], "Invalid: " + chocoDecision.toString());
          }
          return;
       }
 
       UpdaterList step = commands.peek();
       List<Affectation> inferences = new ArrayList<>();
-      Affectation _affectation = new Affectation(idxVarInProp, isTrue(vars[idxVarInProp]));
       IUpdater updater = onPropagate(idxVarInProp, isTrue(vars[idxVarInProp]));
       UpdaterState state = updater.update(matrix, inferences);
 
@@ -125,10 +125,10 @@ public class BasePropagator extends Propagator<BoolVar> {
             step.addCommitted(updater);
             break;
          case EARLY_FAIL:
-            throw new ContradictionException().set(this, vars[idxVarInProp], "");
+            throw new ContradictionException().set(this, vars[idxVarInProp], "Invalid: " + chocoDecision.toString());
          case LATE_FAIL:
             updater.restore(matrix);
-            throw new ContradictionException().set(this, vars[idxVarInProp], "");
+            throw new ContradictionException().set(this, vars[idxVarInProp], "Invalid: " + chocoDecision.toString());
       }
 
       for (int i = 0; i < inferences.size(); i++) {

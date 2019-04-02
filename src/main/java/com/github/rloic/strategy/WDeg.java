@@ -83,7 +83,7 @@ public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradict
    public void onContradiction(ContradictionException cex) {
       if (cex.c instanceof Propagator) {
          Propagator propagator = (Propagator) cex.c;
-         if (propagator == this.propagator) {
+         if (propagator == this.propagator && !cex.s.equals("already instantiated")) {
             Integer idx = this.propagator.indexOf.get(cex.v);
             if (idx != null) {
                for(Data eq : matrix.equationsOf(idx)) {
