@@ -1,6 +1,12 @@
 package com.github.rloic.strategy;
 
+import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
+import com.github.rloic.paper.dancinglinks.cell.Data;
+import com.github.rloic.xorconstraint.BasePropagator;
+import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import org.chocosolver.memory.IStateInt;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
@@ -12,47 +18,43 @@ import org.chocosolver.solver.search.strategy.decision.Decision;
 import org.chocosolver.solver.search.strategy.selectors.values.IntValueSelector;
 import org.chocosolver.solver.search.strategy.strategy.AbstractStrategy;
 import org.chocosolver.solver.variables.IntVar;
+import org.chocosolver.solver.variables.Variable;
 import org.chocosolver.util.objects.IntMap;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
-import java.util.stream.Stream;
 
 
-public class CustomDomOverWDeg extends AbstractStrategy<IntVar> implements IMonitorContradiction {
-
-   private TIntArrayList bests;
-
-   private Random random;
+public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradiction {
 
    private IntValueSelector valueSelector;
-
+   private BasePropagator propagator;
+   private IDancingLinksMatrix matrix;
+   private int[] scores;
    private IStateInt last;
+   private Random random;
+   private TIntArrayList bests;
+   private final IntMap indexOf;
 
-   private IntMap p2w;
-
-   private double pBefore;
-
-   public CustomDomOverWDeg(
+   public WDeg(
          IntVar[] variables,
          long seed,
-         IntValueSelector valueSelector
+         IntValueSelector valueSelector,
+         Model model,
+         BasePropagator propagator
    ) {
       super(variables);
-      Model model = variables[0].getModel();
-      bests = new TIntArrayList();
       this.valueSelector = valueSelector;
-      random = new Random(seed);
+      this.propagator = propagator;
+      this.matrix = propagator.matrix;
+      this.scores = new int[variables.length];
       this.last = model.getEnvironment().makeInt(vars.length - 1);
-      p2w = new IntMap(10, -1);
-      pBefore = domainsSize();
-      init(Stream.of(model.getCstrs())
-            .flatMap(c -> Stream.of(c.getPropagators()))
-            .toArray(Propagator[]::new));
-   }
-
-   private void init(Propagator[] propagators) {
-      for (Propagator propagator : propagators) {
-         p2w.put(propagator.getId(), 0);
+      this.random = new Random(seed);
+      this.bests = new TIntArrayList();
+      this.indexOf = new IntMap(10, -1);
+      for (int i = 0; i < variables.length; i++) {
+         indexOf.put(variables[i].getId(), i);
       }
    }
 
@@ -73,14 +75,36 @@ public class CustomDomOverWDeg extends AbstractStrategy<IntVar> implements IMoni
       }
    }
 
+   private int indexOf(Variable variable) {
+      return indexOf.get(variable.getId());
+   }
+
    @Override
    public void onContradiction(ContradictionException cex) {
       if (cex.c instanceof Propagator) {
-         Propagator p = (Propagator) cex.c;
-         p2w.putOrAdjust(p.getId(), 1, 1);
+         Propagator propagator = (Propagator) cex.c;
+         if (propagator == this.propagator) {
+            Integer idx = this.propagator.indexOf.get(cex.v);
+            if (idx != null) {
+               for(Data eq : matrix.equationsOf(idx)) {
+                  for(Data v : matrix.variablesOf(eq.equation)) {
+                     int vi = indexOf(propagator.getVar(v.variable));
+                     if (vi != -1) {
+                        scores[vi] += 1;
+                     }
+                  }
+               }
+            }
+         } else {
+            for (Variable var : propagator.getVars()) {
+               int varIndex = indexOf(var);
+               if (varIndex != -1) {
+                  scores[varIndex] += 1;
+               }
+            }
+         }
       }
    }
-
 
    @Override
    public Decision<IntVar> computeDecision(IntVar variable) {
@@ -112,6 +136,8 @@ public class CustomDomOverWDeg extends AbstractStrategy<IntVar> implements IMoni
             IntVar tmp = vars[to];
             vars[to] = vars[idx];
             vars[idx] = tmp;
+            indexOf.put(vars[to].getId(), to);
+            indexOf.put(vars[idx].getId(), idx);
             idx--;
             to--;
          }
@@ -121,34 +147,11 @@ public class CustomDomOverWDeg extends AbstractStrategy<IntVar> implements IMoni
          int currentVar = bests.get(random.nextInt(bests.size()));
          best = vars[currentVar];
       }
-      //System.err.println(1.0 - domainsSize() / pBefore);
-      pBefore = domainsSize();
       return computeDecision(best);
    }
 
    private int weight(IntVar v) {
-      int w = 1;
-      int nbp = v.getNbProps();
-      for (int i = 0; i < nbp; i++) {
-         Propagator prop = v.getPropagator(i);
-         int futVars = prop.arity();
-         assert futVars > -1;
-         if (futVars > 1) {
-            w += p2w.get(prop.getId());
-         }
-      }
-      return w;
-   }
-
-   double domainsSize() {
-      double product = 1.0;
-      for (IntVar var : vars) {
-         if (var.getDomainSize() == 0) {
-            throw new RuntimeException();
-         }
-         product *= var.getDomainSize();
-      }
-      return product;
+      return scores[indexOf(v)];
    }
 
 }

@@ -8,9 +8,12 @@ import com.github.rloic.aes.KeyBits.AES192.AES_192
 import com.github.rloic.aes.KeyBits.AES256.AES_256
 import com.github.rloic.midori.MidoriGlobalFull
 import com.github.rloic.strategy.CustomDomOverWDeg
+import com.github.rloic.strategy.WDeg
+import com.github.rloic.xorconstraint.BasePropagator
 import org.chocosolver.solver.Model
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin
 import org.chocosolver.solver.variables.BoolVar
+import java.util.concurrent.Executors
 
 val midoriBenchmarks = mapOf(
     "Midori-128-3-3" to MidoriBenchmark(3, 3),
@@ -77,14 +80,20 @@ val BEST_AES = mapOf(
 
 fun main() {
 
+    //val workers = Executors.newFixedThreadPool(4)
+
     for ((name, benchmark) in midoriBenchmarks) {
-        benchMidori(name, midori(benchmark))
+        //workers.submit {
+            benchMidori(name, midori(benchmark))
+        //}
     }
-
+/*
     for ((name, benchmark) in aesBenchmarks) {
-        benchAES(name, aes(benchmark), benchmark.objStep)
+        //workers.submit {
+            benchAES(name, aes(benchmark), benchmark.objStep)
+        //}
     }
-
+*/
 }
 
 data class StrategyResult(
@@ -105,24 +114,25 @@ data class AESBenchmark(
 
 data class Components(
     val model: Model,
-    val sBoxes: Array<BoolVar>
+    val sBoxes: Array<BoolVar>,
+    val propagator: BasePropagator
 )
 
 fun midori(bench: MidoriBenchmark): Components {
     val midori = MidoriGlobalFull(bench.rounds, bench.objStep)
-    return Components(midori.m, midori.sBoxes)
+    return Components(midori.m, midori.sBoxes, midori.propagator)
 }
 
 fun aes(bench: AESBenchmark): Components {
     val aes = GlobalXOR(bench.rounds, bench.objStep, bench.key)
-    return Components(aes.m, aes.sBoxes)
+    return Components(aes.m, aes.sBoxes, aes.propagator)
 }
 
 fun benchMidori(name: String, components: Components) {
     val (model, sBoxes) = components
     val solver = model.solver
     solver.setSearch(
-        CustomDomOverWDeg(sBoxes, 0L, IntDomainMin())
+        WDeg(sBoxes, 0L, IntDomainMin(), components.model, components.propagator)
     )
     while (solver.solve()) {
     }
@@ -149,7 +159,7 @@ fun benchAES(name: String, components: Components, objStep: Int) {
     val solver = model.solver
     solver.plugMonitor(EnumFilter(model, sBoxes, objStep))
     solver.setSearch(
-        CustomDomOverWDeg(sBoxes, 0L, IntDomainMin())
+        WDeg(sBoxes, 0L, IntDomainMin(), components.model, components.propagator)
     )
     while (solver.solve()) {
     }

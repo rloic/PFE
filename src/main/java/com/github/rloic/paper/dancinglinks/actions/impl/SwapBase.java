@@ -25,7 +25,8 @@ public class SwapBase extends Updater implements IUpdater {
 
    @Override
    protected boolean postCondition(IDancingLinksMatrix matrix) {
-      return matrix.isBase(newBaseVar) && !matrix.isBase(oldBaseVar);
+      assert  matrix.isBase(newBaseVar) && !matrix.isBase(oldBaseVar);
+      return true;
    }
 
    @Override

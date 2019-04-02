@@ -5,6 +5,7 @@ import com.github.rloic.aes.EnumFilter;
 import com.github.rloic.aes.GlobalXOR;
 import com.github.rloic.benchmark.Experiment;
 import com.github.rloic.benchmark.Implementation;
+import com.github.rloic.strategy.WDeg;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.variables.IntVar;
 
@@ -24,7 +25,7 @@ public class GlobalXORImpl extends Implementation {
       EnumFilter enumFilter = new EnumFilter(gXor.m, gXor.sBoxes, experiment.objStep1);
       solver.plugMonitor(enumFilter);
       solver.setSearch(
-            new CustomDomOverWDeg(gXor.sBoxes, 0L, IntVar::getLB)
+            new WDeg(gXor.sBoxes, 0L, IntVar::getLB, gXor.m, gXor.propagator)
       );
       return run( solver, gXor.sBoxes);
    }

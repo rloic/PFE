@@ -16,6 +16,7 @@ public class MidoriGlobalFull {
    public final Model m;
    public final BoolVar[] sBoxes;
    public final BoolVar[] assignedVar;
+   public final BasePropagator propagator;
 
    private List<BoolVar> xorElements = new ArrayList<>();
    private List<BoolVar[]> xorEquations = new ArrayList<>();
@@ -106,14 +107,14 @@ public class MidoriGlobalFull {
       BoolVar[][] xors = new BoolVar[xorEquations.size()][];
       xorEquations.toArray(xors);
 
-         BasePropagator globalXORProp = new BasePropagator(
-               vars,
-               xors,
-               new FullInferenceEngine(),
-               new FullRulesApplier(),
-               m.getSolver()
-         );
-         m.post(new Constraint("Global XOR", globalXORProp));
+      propagator = new BasePropagator(
+            vars,
+            xors,
+            new FullInferenceEngine(),
+            new FullRulesApplier(),
+            m.getSolver()
+      );
+      m.post(new Constraint("Global XOR", propagator));
 
       assignedVar = new BoolVar[r * 4 * 4];
       cpt = 0;

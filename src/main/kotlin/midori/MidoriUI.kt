@@ -1,10 +1,12 @@
 package midori
 
-import com.github.rloic.strategy.CustomDomOverWDeg
 import com.github.rloic.midori.MidoriAdvanced
 import com.github.rloic.midori.MidoriBasic
 import com.github.rloic.midori.MidoriGlobalFull
 import com.github.rloic.midori.MidoriGlobalPartial
+import com.github.rloic.strategy.CustomDomOverWDeg
+import com.github.rloic.strategy.WDeg
+import com.github.rloic.xorconstraint.BasePropagator
 import org.chocosolver.solver.Model
 import org.chocosolver.solver.Solver
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin
@@ -31,14 +33,24 @@ val algorithms = arrayOf(
     Algorithm("Advanced", ::createAdvanced)
 )
 
-const val TIMEOUT = 5
+const val TIMEOUT = 20
 val UNIT = TimeUnit.MINUTES
 
-fun searchStrategy(solver: Solver, sBoxes: Array<BoolVar>, assignedVars: Array<BoolVar>) {
-    solver.setSearch(
-        CustomDomOverWDeg(sBoxes, 0L, IntDomainMin())//,
-        //CustomDomOverWDeg(assignedVars, 0L, IntDomainMin())
-    )
+fun searchStrategy(solver: Solver, sBoxes: Array<BoolVar>, assignedVars: Array<BoolVar>, model: Model, basePropagator: BasePropagator?) {
+
+    if (basePropagator != null) {
+        solver.setSearch(
+            WDeg(sBoxes, 0L, IntDomainMin(), model, basePropagator)//,
+            //CustomDomOverWDeg(assignedVars, 0L, IntDomainMin())
+        )
+    } else {
+        solver.setSearch(
+            CustomDomOverWDeg(sBoxes, 0L, IntDomainMin())//,
+            //CustomDomOverWDeg(assignedVars, 0L, IntDomainMin())
+        )
+    }
+
+
 }
 
 fun main() {
@@ -118,7 +130,8 @@ fun mkdir(folder: String, init: (File) -> Unit = {}) {
 data class Components(
     val model: Model,
     val sBoxes: Array<BoolVar>,
-    val assignedVar: Array<BoolVar>
+    val assignedVar: Array<BoolVar>,
+    val propagator: BasePropagator? = null
 )
 
 data class Algorithm(
@@ -132,9 +145,9 @@ fun bench(
     objStep: Int,
     model: (Int, Int) -> Components
 ) {
-    val (m, sBoxes, assignedVars) = model(rounds, objStep)
+    val (m, sBoxes, assignedVars, propagator) = model(rounds, objStep)
     val solver = m.solver
-    searchStrategy(solver, sBoxes, assignedVars)
+    searchStrategy(solver, sBoxes, assignedVars, m, propagator)
 
     var cancelled = false
     Timer().schedule(object : TimerTask() {
@@ -169,7 +182,7 @@ fun createGlobalPartial(r: Int, objStep: Int): Components {
 
 fun createGlobalFull(r: Int, objStep: Int): Components {
     val version = MidoriGlobalFull(r, objStep)
-    return Components(version.m, version.sBoxes, version.assignedVar)
+    return Components(version.m, version.sBoxes, version.assignedVar, version.propagator)
 }
 
 fun createAdvanced(r: Int, objStep: Int): Components {

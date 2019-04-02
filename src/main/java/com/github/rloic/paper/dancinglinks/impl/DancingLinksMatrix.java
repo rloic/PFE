@@ -1,12 +1,12 @@
 package com.github.rloic.paper.dancinglinks.impl;
 
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
+import com.github.rloic.paper.dancinglinks.actions.Affectation;
 import com.github.rloic.paper.dancinglinks.cell.*;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntComparator;
-import it.unimi.dsi.fastutil.ints.IntList;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Predicate;
 
 public class DancingLinksMatrix implements IDancingLinksMatrix {
@@ -31,6 +31,8 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    private final int nbEquations;
    private final int nbVariables;
 
+   private List<Affectation> decisions = new ArrayList<>();
+
    private int numberOfUndefinedVariables;
    private int[] numberOfEquationsOf;
 
@@ -46,7 +48,6 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       this.numberOfUndefinedVariables = nbVariables;
       this.numberOfEquationsOf = new int[nbVariables];
       valueOf = new byte[nbVariables];
-
       root = new Root();
       variablesOf = new Row[nbEquations];
       if (equations.length > 0) {
@@ -385,6 +386,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public void set(int variable, boolean value) {
+      decisions.add(new Affectation(variable, value));
       numberOfUndefinedVariables -= 1;
       valueOf[variable] = value ? TRUE : FALSE;
       int incNbTrue = value ? 1 : 0;
@@ -396,6 +398,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public void unSet(int variable) {
+      decisions.remove(decisions.size() - 1);
       numberOfUndefinedVariables += 1;
       int decNbTrue = valueOf[variable] == TRUE ? 1 : 0;
       for (Data it : equationsOf(variable)) {
@@ -575,5 +578,10 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    @Override
    public int numberOfEquationsOf(int variable) {
       return numberOfEquationsOf[variable];
+   }
+
+   @Override
+   public List<Affectation> getDecisions() {
+      return decisions;
    }
 }

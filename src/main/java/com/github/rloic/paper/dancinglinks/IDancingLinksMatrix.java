@@ -1,10 +1,14 @@
 package com.github.rloic.paper.dancinglinks;
 
+import com.github.rloic.paper.dancinglinks.actions.Affectation;
 import com.github.rloic.paper.dancinglinks.cell.Column;
 import com.github.rloic.paper.dancinglinks.cell.Data;
 import com.github.rloic.paper.dancinglinks.cell.Row;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.chocosolver.solver.constraints.nary.nvalue.amnv.differences.D;
+import org.chocosolver.solver.variables.Variable;
+
+import java.util.List;
 
 public interface IDancingLinksMatrix {
 
@@ -87,5 +91,7 @@ public interface IDancingLinksMatrix {
    int numberOfUndefinedVariables();
 
    int numberOfEquationsOf(int variable);
+
+   List<Affectation> getDecisions();
 
 }
