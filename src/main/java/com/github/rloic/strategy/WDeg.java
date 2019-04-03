@@ -1,7 +1,5 @@
 package com.github.rloic.strategy;
 
-import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
-import com.github.rloic.paper.dancinglinks.cell.Data;
 import com.github.rloic.xorconstraint.BasePropagator;
 import gnu.trove.list.array.TIntArrayList;
 import org.chocosolver.memory.IStateInt;
@@ -80,18 +78,10 @@ public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradict
    public void onContradiction(ContradictionException cex) {
       if (cex.c instanceof Propagator) {
          Propagator propagator = (Propagator) cex.c;
-         if (propagator instanceof BasePropagator) {
-            int varI = indexOf(cex.v);
-            if (varI != -1) {
-            }
-         } else {
-            if (cex.v != null) {
-               for (Variable var : propagator.getVars()) {
-                  int varIndex = indexOf(var);
-                  if (varIndex != -1) {
-                     scores[varIndex] += 1;
-                  }
-               }
+         for (Variable var : propagator.getVars()) {
+            int varIndex = indexOf(var);
+            if (varIndex != -1) {
+               scores[varIndex] += 1;
             }
          }
       }

@@ -1,5 +1,6 @@
 package midori
 
+import com.github.rloic.aes.EnumFilter
 import com.github.rloic.midori.MidoriAdvanced
 import com.github.rloic.midori.MidoriBasic
 import com.github.rloic.midori.MidoriGlobalFull
@@ -38,20 +39,27 @@ val algorithms = arrayOf(
 const val TIMEOUT = 1
 val UNIT = TimeUnit.HOURS
 
-fun searchStrategy(solver: Solver, sBoxes: Array<BoolVar>, assignedVars: Array<BoolVar>, model: Model, basePropagator: BasePropagator?) {
-/*
+fun searchStrategy(
+    solver: Solver,
+    sBoxes: Array<BoolVar>,
+    assignedVars: Array<BoolVar>,
+    model: Model,
+    objStep: Int,
+    basePropagator: BasePropagator?
+) {
+
     if (basePropagator != null) {
         solver.setSearch(
-            WDeg(sBoxes, 0L, IntDomainMin(), model)//,
-            //CustomDomOverWDeg(assignedVars, 0L, IntDomainMin())
+            WDeg(sBoxes, 0L, IntDomainMin(), model, basePropagator),
+            WDeg(assignedVars, 0L, IntDomainMin(), model, basePropagator)
         )
     } else {
         solver.setSearch(
-            WDeg(sBoxes, 0L, IntDomainMin(), model)//,
-            //CustomDomOverWDeg(assignedVars, 0L, IntDomainMin())
+            CustomDomOverWDeg(sBoxes, 0L, IntDomainMin()),
+            CustomDomOverWDeg(assignedVars, 0L, IntDomainMin())
         )
     }
-*/
+
 
 }
 
@@ -107,7 +115,7 @@ class TaskButton(
         private val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     }
 
-    private var clickListener: ActionListener = ActionListener{ click() }
+    private var clickListener: ActionListener = ActionListener { click() }
 
     fun click(): Future<*> {
         text = "$title - Waiting for worker"
@@ -157,8 +165,9 @@ fun bench(
 ) {
     val (m, sBoxes, assignedVars, propagator) = model(rounds, objStep)
     val solver = m.solver
-    searchStrategy(solver, sBoxes, assignedVars, m, propagator)
-
+    searchStrategy(solver, sBoxes, assignedVars, m, objStep, propagator)
+    solver.plugMonitor(EnumFilter(m, sBoxes, objStep))
+    
     var cancelled = false
     Timer().schedule(object : TimerTask() {
         override fun run() {
