@@ -4,6 +4,7 @@ import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEng
 import com.github.rloic.paper.dancinglinks.inferenceengine.impl.PartialInferenceEngine;
 import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
 import com.github.rloic.paper.dancinglinks.rulesapplier.impl.PartialRulesApplier;
+import com.github.rloic.wip.PhantomDiffSum;
 import com.github.rloic.xorconstraint.BasePropagator;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
@@ -141,8 +142,6 @@ public class MidoriGlobalPartial {
          }
       }
       xorEquations.add(equation);
-      IntVar[] variables = new IntVar[equation.length];
-      System.arraycopy(equation, 0, variables, 0, equation.length);
-      m.sum(variables, "!=", 1).post();
+      m.post(new Constraint("Phantom Sum", new PhantomDiffSum(1, equation)));
    }
 }

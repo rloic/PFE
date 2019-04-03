@@ -2,6 +2,7 @@ package com.github.rloic.midori;
 
 import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEngine;
 import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
+import com.github.rloic.wip.PhantomDiffSum;
 import com.github.rloic.xorconstraint.BasePropagator;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
@@ -140,5 +141,6 @@ public class MidoriGlobalFull {
          }
       }
       xorEquations.add(equation);
+      m.post(new Constraint("Phantom Sum", new PhantomDiffSum(1, equation)));
    }
 }

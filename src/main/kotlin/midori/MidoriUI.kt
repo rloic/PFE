@@ -10,6 +10,7 @@ import com.github.rloic.strategy.WDeg
 import com.github.rloic.xorconstraint.BasePropagator
 import org.chocosolver.solver.Model
 import org.chocosolver.solver.Solver
+import org.chocosolver.solver.search.strategy.Search
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin
 import org.chocosolver.solver.variables.BoolVar
 import org.chocosolver.util.criteria.Criterion
@@ -36,31 +37,27 @@ val algorithms = arrayOf(
     Algorithm("Advanced", ::createAdvanced)
 )
 
-const val TIMEOUT = 1
+const val TIMEOUT = 4
 val UNIT = TimeUnit.HOURS
 
 fun searchStrategy(
+    model: Model,
     solver: Solver,
     sBoxes: Array<BoolVar>,
     assignedVars: Array<BoolVar>,
-    model: Model,
-    objStep: Int,
-    basePropagator: BasePropagator?
+    useCustomHeuristic: Boolean
 ) {
-
-    if (basePropagator != null) {
+    if (useCustomHeuristic) {
         solver.setSearch(
-            WDeg(sBoxes, 0L, IntDomainMin(), model, basePropagator),
-            WDeg(assignedVars, 0L, IntDomainMin(), model, basePropagator)
+            WDeg(sBoxes, 0L, IntDomainMin(), model, null),
+            WDeg(assignedVars, 0L, IntDomainMin(), model, null)
         )
     } else {
         solver.setSearch(
-            CustomDomOverWDeg(sBoxes, 0L, IntDomainMin()),
-            CustomDomOverWDeg(assignedVars, 0L, IntDomainMin())
+            Search.intVarSearch(*sBoxes),
+            Search.intVarSearch(*assignedVars)
         )
     }
-
-
 }
 
 fun main() {
@@ -149,7 +146,7 @@ data class Components(
     val model: Model,
     val sBoxes: Array<BoolVar>,
     val assignedVar: Array<BoolVar>,
-    val propagator: BasePropagator? = null
+    val useCustomHeuristic: Boolean
 )
 
 data class Algorithm(
@@ -163,11 +160,11 @@ fun bench(
     objStep: Int,
     model: (Int, Int) -> Components
 ) {
-    val (m, sBoxes, assignedVars, propagator) = model(rounds, objStep)
+    val (m, sBoxes, assignedVars, useCustomHeuristic) = model(rounds, objStep)
     val solver = m.solver
-    searchStrategy(solver, sBoxes, assignedVars, m, objStep, propagator)
+    searchStrategy(m, solver, sBoxes, assignedVars, useCustomHeuristic)
     solver.plugMonitor(EnumFilter(m, sBoxes, objStep))
-    
+
     var cancelled = false
     Timer().schedule(object : TimerTask() {
         override fun run() {
@@ -191,22 +188,22 @@ operator fun File.div(file: String) = File(path + File.separator + file)
 
 fun createBasic(r: Int, objStep: Int): Components {
     val version = MidoriBasic(r, objStep)
-    return Components(version.m, version.sBoxes, version.assignedVar)
+    return Components(version.m, version.sBoxes, version.assignedVar, false)
 }
 
 fun createGlobalPartial(r: Int, objStep: Int): Components {
     val version = MidoriGlobalPartial(r, objStep)
-    return Components(version.m, version.sBoxes, version.assignedVar)
+    return Components(version.m, version.sBoxes, version.assignedVar, true)
 }
 
 fun createGlobalFull(r: Int, objStep: Int): Components {
     val version = MidoriGlobalFull(r, objStep)
-    return Components(version.m, version.sBoxes, version.assignedVar, version.propagator)
+    return Components(version.m, version.sBoxes, version.assignedVar, true)
 }
 
 fun createAdvanced(r: Int, objStep: Int): Components {
     val version = MidoriAdvanced(r, objStep)
-    return Components(version.m, version.sBoxes, version.assignedVar)
+    return Components(version.m, version.sBoxes, version.assignedVar, false)
 }
 
 operator fun Int.times(unit: TimeUnit): Long {
