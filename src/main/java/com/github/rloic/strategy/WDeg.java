@@ -2,6 +2,8 @@ package com.github.rloic.strategy;
 
 import com.github.rloic.xorconstraint.BasePropagator;
 import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import org.chocosolver.memory.IStateInt;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
@@ -12,11 +14,14 @@ import org.chocosolver.solver.search.strategy.assignments.DecisionOperatorFactor
 import org.chocosolver.solver.search.strategy.decision.Decision;
 import org.chocosolver.solver.search.strategy.selectors.values.IntValueSelector;
 import org.chocosolver.solver.search.strategy.strategy.AbstractStrategy;
+import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.Variable;
 import org.chocosolver.util.objects.IntMap;
 
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 
 public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradiction {
@@ -78,10 +83,38 @@ public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradict
    public void onContradiction(ContradictionException cex) {
       if (cex.c instanceof Propagator) {
          Propagator propagator = (Propagator) cex.c;
+
+         if (propagator instanceof BasePropagator) {
+            BasePropagator baseP = (BasePropagator) propagator;
+            IntList viewed = new IntArrayList();
+            for (Set<BoolVar> column : baseP.columns) {
+               incrementAllElements(cex, viewed, column);
+            }
+            /*viewed.clear();
+            for (Set<BoolVar> row : baseP.rows) {
+               incrementAllElements(cex, viewed, row);
+            }*/
+            viewed.clear();
+            for (Set<BoolVar> round: baseP.rounds) {
+               incrementAllElements(cex, viewed, round);
+            }
+         }
          for (Variable var : propagator.getVars()) {
             int varIndex = indexOf(var);
             if (varIndex != -1) {
+               scores[varIndex] += 1000;
+            }
+         }
+      }
+   }
+
+   private void incrementAllElements(ContradictionException cex, IntList viewed, Set<BoolVar> cluster) {
+      if (cluster.contains(cex.v)) {
+         for (BoolVar var : cluster) {
+            int varIndex = indexOf(var);
+            if (varIndex != -1 && !viewed.contains(varIndex)) {
                scores[varIndex] += 1;
+               viewed.add(varIndex);
             }
          }
       }

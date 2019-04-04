@@ -29,16 +29,25 @@ public class BasePropagator extends Propagator<BoolVar> {
    private final RulesApplier rulesApplier;
    private long backTrackCount = 0L;
    private long currentDepth = 0L;
+   public final List<Set<BoolVar>> columns;
+   public final List<Set<BoolVar>> rows;
+   public final List<Set<BoolVar>> rounds;
 
    public BasePropagator(
          BoolVar[] vars,
          BoolVar[][] xors,
+         List<Set<BoolVar>> columns,
+         List<Set<BoolVar>> rows,
+         List<Set<BoolVar>> rounds,
          InferenceEngine engine,
          RulesApplier rulesApplier,
          Solver solver
    ) {
       super(vars, PropagatorPriority.CUBIC, true);
       this.commands = new Stack<>();
+      this.columns = columns;
+      this.rows = rows;
+      this.rounds = rounds;
       this.engine = engine;
       this.rulesApplier = rulesApplier;
       this.solver = solver;
