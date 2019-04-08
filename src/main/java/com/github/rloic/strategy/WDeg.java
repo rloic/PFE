@@ -1,9 +1,8 @@
 package com.github.rloic.strategy;
 
-import com.github.rloic.xorconstraint.BasePropagator;
+import com.github.rloic.wip.WeightedConstraint;
 import gnu.trove.list.array.TIntArrayList;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.memory.IStateInt;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
@@ -14,54 +13,65 @@ import org.chocosolver.solver.search.strategy.assignments.DecisionOperatorFactor
 import org.chocosolver.solver.search.strategy.decision.Decision;
 import org.chocosolver.solver.search.strategy.selectors.values.IntValueSelector;
 import org.chocosolver.solver.search.strategy.strategy.AbstractStrategy;
-import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.Variable;
 import org.chocosolver.util.objects.IntMap;
 
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradiction {
 
-   private IntValueSelector valueSelector;
-   private int[] scores;
-   private IStateInt last;
-   private Random random;
+   /**
+    * Temporary. Stores index of variables with the same (best) score
+    */
    private TIntArrayList bests;
-   private final IntMap indexOf;
 
+   /**
+    * Randomness to break ties
+    */
+   private java.util.Random random;
+
+   /**
+    * The way value is selected for a given variable
+    */
+   private IntValueSelector valueSelector;
+
+   /***
+    * Pointer to the last uninstantiated variable
+    */
+   private IStateInt last;
+
+   private final Int2ObjectMap<List<WeightedConstraint>> constraintsOf;
+
+   /**
+    * Creates a DomOverWDeg variable selector
+    *
+    * @param variables     decision variables
+    * @param seed          seed for breaking ties randomly
+    * @param valueSelector a value selector
+    */
    public WDeg(
          IntVar[] variables,
          long seed,
          IntValueSelector valueSelector,
-         Model model,
-         BasePropagator propagator
+         Int2ObjectMap<List<WeightedConstraint>> constraintsOf
    ) {
       super(variables);
+      Model model = variables[0].getModel();
+      bests = new TIntArrayList();
       this.valueSelector = valueSelector;
-      this.scores = new int[variables.length];
+      random = new java.util.Random(seed);
       this.last = model.getEnvironment().makeInt(vars.length - 1);
-      this.random = new Random(seed);
-      this.bests = new TIntArrayList();
-      this.indexOf = new IntMap(10, -1);
-      for (int i = 0; i < variables.length; i++) {
-         indexOf.put(variables[i].getId(), i);
-      }
-      for (Variable var : variables) {
-         int varI = indexOf.get(var.getId());
-         if (varI != -1) {
-            scores[varI] += var.getNbProps();
-         }
-      }
+      this.constraintsOf = constraintsOf;
    }
 
    @Override
    public boolean init() {
       Solver solver = vars[0].getModel().getSolver();
-      if (!solver.getSearchMonitors().contains(this)) {
+      if(!solver.getSearchMonitors().contains(this)) {
          vars[0].getModel().getSolver().plugMonitor(this);
       }
       return true;
@@ -70,55 +80,25 @@ public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradict
    @Override
    public void remove() {
       Solver solver = vars[0].getModel().getSolver();
-      if (solver.getSearchMonitors().contains(this)) {
+      if(solver.getSearchMonitors().contains(this)) {
          vars[0].getModel().getSolver().unplugMonitor(this);
       }
-   }
-
-   private int indexOf(Variable variable) {
-      return indexOf.get(variable.getId());
    }
 
    @Override
    public void onContradiction(ContradictionException cex) {
       if (cex.c instanceof Propagator) {
-         Propagator propagator = (Propagator) cex.c;
-
-         if (propagator instanceof BasePropagator) {
-            BasePropagator baseP = (BasePropagator) propagator;
-            IntList viewed = new IntArrayList();
-            for (Set<BoolVar> column : baseP.columns) {
-               incrementAllElements(cex, viewed, column);
-            }
-            /*viewed.clear();
-            for (Set<BoolVar> row : baseP.rows) {
-               incrementAllElements(cex, viewed, row);
-            }*/
-            viewed.clear();
-            for (Set<BoolVar> round: baseP.rounds) {
-               incrementAllElements(cex, viewed, round);
-            }
-         }
-         for (Variable var : propagator.getVars()) {
-            int varIndex = indexOf(var);
-            if (varIndex != -1) {
-               scores[varIndex] += 1000;
+         if (cex.v != null) {
+            List<WeightedConstraint> constraints = constraintsOf.get(cex.v.getId());
+            for(WeightedConstraint constraint : constraints) {
+               if (constraint.isViolated()) {
+                  constraint.weight += 1;
+               }
             }
          }
       }
    }
 
-   private void incrementAllElements(ContradictionException cex, IntList viewed, Set<BoolVar> cluster) {
-      if (cluster.contains(cex.v)) {
-         for (BoolVar var : cluster) {
-            int varIndex = indexOf(var);
-            if (varIndex != -1 && !viewed.contains(varIndex)) {
-               scores[varIndex] += 1;
-               viewed.add(varIndex);
-            }
-         }
-      }
-   }
 
    @Override
    public Decision<IntVar> computeDecision(IntVar variable) {
@@ -133,16 +113,21 @@ public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradict
    public Decision<IntVar> getDecision() {
       IntVar best = null;
       bests.resetQuick();
-      long maxWeight = 0;
+      long _d1 = Integer.MAX_VALUE;
+      long _d2 = 0;
       int to = last.get();
       for (int idx = 0; idx <= to; idx++) {
-         if (vars[idx].getDomainSize() > 1) {
+         int dsize = vars[idx].getDomainSize();
+         if (dsize > 1) {
             int weight = weight(vars[idx]);
-            if (weight > maxWeight) {
+            long c1 = dsize * _d2;
+            long c2 = _d1 * weight;
+            if (c1 < c2) {
                bests.resetQuick();
                bests.add(idx);
-               maxWeight = weight;
-            } else if (weight == maxWeight) {
+               _d1 = dsize;
+               _d2 = weight;
+            } else if (c1 == c2) {
                bests.add(idx);
             }
          } else {
@@ -150,8 +135,6 @@ public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradict
             IntVar tmp = vars[to];
             vars[to] = vars[idx];
             vars[idx] = tmp;
-            indexOf.put(vars[to].getId(), to);
-            indexOf.put(vars[idx].getId(), idx);
             idx--;
             to--;
          }
@@ -165,7 +148,14 @@ public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradict
    }
 
    private int weight(IntVar v) {
-      return scores[indexOf(v)];
+      int w = 1;
+      List<WeightedConstraint> constraints = constraintsOf.get(v.getId());
+      if (constraints == null || constraints.isEmpty()) return w;
+      for (WeightedConstraint constraint : constraints) {
+         if (constraint.arity() > 1) {
+            w += constraint.weight;
+         }
+      }
+      return w;
    }
-
 }

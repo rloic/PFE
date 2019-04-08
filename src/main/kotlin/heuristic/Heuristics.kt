@@ -1,29 +1,35 @@
 package heuristic
 
 import com.github.rloic.aes.EnumFilter
+import com.github.rloic.midori.MidoriAdvanced
 import com.github.rloic.midori.MidoriGlobalFull
 import com.github.rloic.strategy.*
+import com.github.rloic.wip.WeightedConstraint
 import com.github.rloic.xorconstraint.BasePropagator
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap
 import org.chocosolver.solver.search.strategy.Search
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin
 import org.chocosolver.solver.search.strategy.selectors.values.IntValueSelector
 import org.chocosolver.solver.search.strategy.strategy.AbstractStrategy
+import org.chocosolver.solver.variables.BoolVar
 import org.chocosolver.solver.variables.IntVar
+import org.chocosolver.solver.variables.Variable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-typealias StrategyBuilder = (BasePropagator, Array<out IntVar>, IntValueSelector, Long) -> AbstractStrategy<IntVar>
+typealias StrategyBuilder = (BasePropagator?, Array<out IntVar>, IntValueSelector, Long, Int2ObjectMap<List<WeightedConstraint>>) -> AbstractStrategy<IntVar>
 
 fun main() {
 
     val strategies = mapOf<String, StrategyBuilder>(
-        "Sequential" to { _, vars, selector, _ -> Sequential(vars, selector) },
+        /*"Sequential" to { _, vars, selector, _ -> Sequential(vars, selector) },
         "Random" to { _, vars, selector, seed -> Rnd(vars, seed, selector) },
         "Deg" to { prop, vars, selector, _ -> Deg(vars, selector, prop) },
-        "DDeg" to { prop, vars, selector, _ -> DDeg(vars, selector, prop) },
-        "DomOverWeg" to { _, vars, _, _ -> Search.intVarSearch(*vars) },
-        "BrokenWDeg" to { prop, vars, selector, seed -> WDeg(vars, seed, selector, vars[0].model, prop) }
+        "DDeg" to { prop, vars, selector, _ -> DDeg(vars, selector, prop) },*/
+        //"DomOverWeg" to { _, vars, _, _, _ -> Search.intVarSearch(*vars) },
+        "CustomWDeg" to { prop, vars, selector, seed, constraintsOf -> WDeg(vars, seed, selector, constraintsOf) }/*,
+        "Custom" to { prop, vars, selector, seed -> CustomDomOverWDeg(vars, seed, selector) }*/
     )
 
 
@@ -43,7 +49,7 @@ fun launch(
     worker.execute {
         try {
             val midoriGlobal = MidoriGlobalFull(rounds, rounds)
-            val propagator = midoriGlobal.propagator
+            val propagator = null
             val sBoxes = midoriGlobal.sBoxes
             val assignedVar = midoriGlobal.assignedVar
 
@@ -51,8 +57,8 @@ fun launch(
             val solver = m.solver
             solver.plugMonitor(EnumFilter(m, sBoxes, rounds))
             solver.setSearch(
-                strategy(propagator, sBoxes, IntDomainMin(), 0L),
-                strategy(propagator, assignedVar, IntDomainMin(), 0L)
+                strategy(propagator, sBoxes, IntDomainMin(), 0L, midoriGlobal.constraintsOf),
+                strategy(propagator, assignedVar, IntDomainMin(), 0L, midoriGlobal.constraintsOf)
             )
 
             var result = """

@@ -34,8 +34,6 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    private static final int NO_PIVOT = -1;
    private static final int NO_BASE = -1;
 
-   private int[] nei;
-
    public DancingLinksMatrix(
          int[][] equations,
          int nbVariables
@@ -44,11 +42,10 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       this.nbVariables = nbVariables;
       this.numberOfUndefinedVariables = nbVariables;
       this.numberOfEquationsOf = new int[nbVariables];
-      this.nei = new int[nbVariables];
       valueOf = new byte[nbVariables];
       root = new Root();
       variablesOf = new Row[nbEquations];
-      if (equations.length > 0) {
+      if (nbEquations > 0) {
          variablesOf[0] = new Row(root);
          for (int equation = 1; equation < nbEquations; equation++) {
             variablesOf[equation] = new Row(variablesOf[equation - 1]);
@@ -77,14 +74,12 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       for (int i = 0; i < equations.length; i++) {
          nbUnknowns[i] = equations[i].length;
          Arrays.sort(equations[i]);
-         for (int variable : equations[i]) {
+         int[] equation = equations[i];
+         for (int variable : equation) {
             numberOfEquationsOf[variable] += 1;
-            nei[variable] += equations[i].length - 1;
-         }
-         for (int variable : equations[i]) {
+
             Cell lastEquationOfVariable = equationsOf[variable].top();
             Cell lastVariableOfEquation = variablesOf[i].left();
-
             if (
                   lastVariableOfEquation instanceof Row
                         && lastEquationOfVariable instanceof Column
@@ -130,21 +125,9 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    }
 
    @Override
-   public boolean isFalse(int equation, int variable) {
-      return valueOf[variable] == FALSE
-            && get(equation, variable).isActive();
-   }
-
-   @Override
    public boolean isFalse(int variable) {
       return valueOf[variable] == FALSE;
    }
-
-   @Override
-   public boolean isNone(int equation, int variable) {
-      return !get(equation, variable).isActive();
-   }
-
 
    @Override
    public void setBase(int pivot, int variable) {
@@ -231,8 +214,6 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    public void xor(int target, int pivot) {
       Cell cellT = variablesOf[target].right();
       Cell cellP = variablesOf[pivot].right();
-
-      int targetBase = baseOf[pivot];
 
       while (cellT instanceof Data && cellP instanceof Data) {
          Data dataT = (Data) cellT;
@@ -404,7 +385,6 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
          nbUnknowns[it.equation] += 1;
          nbTrues[it.equation] -= decNbTrue;
       }
-
       valueOf[variable] = UNDEFINED;
    }
 
@@ -415,17 +395,6 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public int eligibleBase(int pivot) {
-      for (Data it : variablesOf[pivot]) {
-         byte value = valueOf[it.variable];
-         if ((value == TRUE || value == UNDEFINED) && !isBase[it.variable]) {
-            return it.variable;
-         }
-      }
-      return -1;
-   }
-
-   @Override
-   public int minEligibleBase(int pivot) {
       int bestNbXor = Integer.MAX_VALUE;
       int eligibleBase = -1;
       for (Data it : variablesOf[pivot]) {
@@ -523,50 +492,8 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    }
 
    @Override
-   public boolean subsetOf(int subset, int superset) {
-      Cell subsetCell = variablesOf[subset].right();
-      Cell supersetCell = variablesOf[superset].right();
-
-      while (subsetCell instanceof Data && supersetCell instanceof Data) {
-         Data subsetVar = (Data) subsetCell;
-         Data supersetVar = (Data) supersetCell;
-
-         if (isBase[subsetVar.variable] || isBase[supersetVar.variable]) {
-            if (isBase[subsetVar.variable]) {
-               subsetCell = subsetCell.right();
-            }
-            if (isBase[supersetVar.variable]) {
-               supersetCell = supersetCell.right();
-            }
-         } else {
-            while (subsetVar.variable > supersetVar.variable) {
-               supersetCell = supersetCell.right();
-               if (supersetCell instanceof Data) {
-                  supersetVar = (Data) supersetCell;
-               } else {
-                  return false;
-               }
-            }
-            if (subsetVar.variable != supersetVar.variable) {
-               break;
-            }
-
-            subsetCell = subsetCell.right();
-            supersetCell = supersetCell.right();
-         }
-      }
-
-      return subsetCell instanceof Row;
-   }
-
-   @Override
    public int firstOffBase(int pivot) {
-      for (Data it : variablesOf[pivot]) {
-         if (!isBase[it.variable]) {
-            return it.variable;
-         }
-      }
-      return -1;
+      return eligibleBase(pivot);
    }
 
    @Override
@@ -579,8 +506,4 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       return numberOfEquationsOf[variable];
    }
 
-   @Override
-   public int nei(int variable) {
-      return nei[variable];
-   }
 }

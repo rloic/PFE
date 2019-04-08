@@ -129,9 +129,6 @@ fun aes(bench: AESBenchmark): Components {
 fun benchMidori(exp: String, components: Components) {
     val (model, sBoxes) = components
     val solver = model.solver
-    solver.setSearch(
-        WDeg(sBoxes, 0L, IntDomainMin(), components.model, components.propagator)
-    )
     while (solver.solve()) {
     }
     val currentResult =
@@ -158,9 +155,6 @@ fun benchAES(exp: String, components: Components, objStep: Int) {
     val (model, sBoxes) = components
     val solver = model.solver
     solver.plugMonitor(EnumFilter(model, sBoxes, objStep))
-    solver.setSearch(
-        WDeg(sBoxes, 0L, IntDomainMin(), components.model, components.propagator)
-    )
     while (solver.solve()) {
     }
     val currentResult =

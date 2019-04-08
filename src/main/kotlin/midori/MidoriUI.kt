@@ -7,7 +7,9 @@ import com.github.rloic.midori.MidoriGlobalFull
 import com.github.rloic.midori.MidoriGlobalPartial
 import com.github.rloic.strategy.CustomDomOverWDeg
 import com.github.rloic.strategy.WDeg
+import com.github.rloic.wip.WeightedConstraint
 import com.github.rloic.xorconstraint.BasePropagator
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap
 import org.chocosolver.solver.Model
 import org.chocosolver.solver.Solver
 import org.chocosolver.solver.search.strategy.Search
@@ -45,12 +47,12 @@ fun searchStrategy(
     solver: Solver,
     sBoxes: Array<BoolVar>,
     assignedVars: Array<BoolVar>,
-    useCustomHeuristic: Boolean
+    constraintsOf: Int2ObjectMap<List<WeightedConstraint>>?
 ) {
-    if (useCustomHeuristic) {
+    if (constraintsOf != null) {
         solver.setSearch(
-            WDeg(sBoxes, 0L, IntDomainMin(), model, null),
-            WDeg(assignedVars, 0L, IntDomainMin(), model, null)
+            WDeg(sBoxes, 0L, IntDomainMin(), constraintsOf),
+            WDeg(assignedVars, 0L, IntDomainMin(), constraintsOf)
         )
     } else {
         solver.setSearch(
@@ -146,7 +148,7 @@ data class Components(
     val model: Model,
     val sBoxes: Array<BoolVar>,
     val assignedVar: Array<BoolVar>,
-    val useCustomHeuristic: Boolean
+    val useCustomHeuristic: Int2ObjectMap<List<WeightedConstraint>>?
 )
 
 data class Algorithm(
@@ -160,9 +162,9 @@ fun bench(
     objStep: Int,
     model: (Int, Int) -> Components
 ) {
-    val (m, sBoxes, assignedVars, useCustomHeuristic) = model(rounds, objStep)
+    val (m, sBoxes, assignedVars, constraintsOf) = model(rounds, objStep)
     val solver = m.solver
-    searchStrategy(m, solver, sBoxes, assignedVars, useCustomHeuristic)
+    searchStrategy(m, solver, sBoxes, assignedVars, constraintsOf)
     solver.plugMonitor(EnumFilter(m, sBoxes, objStep))
 
     var cancelled = false
@@ -188,22 +190,22 @@ operator fun File.div(file: String) = File(path + File.separator + file)
 
 fun createBasic(r: Int, objStep: Int): Components {
     val version = MidoriBasic(r, objStep)
-    return Components(version.m, version.sBoxes, version.assignedVar, false)
+    return Components(version.m, version.sBoxes, version.assignedVar, null)
 }
 
 fun createGlobalPartial(r: Int, objStep: Int): Components {
     val version = MidoriGlobalPartial(r, objStep)
-    return Components(version.m, version.sBoxes, version.assignedVar, true)
+    return Components(version.m, version.sBoxes, version.assignedVar, version.constraintsOf)
 }
 
 fun createGlobalFull(r: Int, objStep: Int): Components {
     val version = MidoriGlobalFull(r, objStep)
-    return Components(version.m, version.sBoxes, version.assignedVar, true)
+    return Components(version.m, version.sBoxes, version.assignedVar, version.constraintsOf)
 }
 
 fun createAdvanced(r: Int, objStep: Int): Components {
     val version = MidoriAdvanced(r, objStep)
-    return Components(version.m, version.sBoxes, version.assignedVar, false)
+    return Components(version.m, version.sBoxes, version.assignedVar, null)
 }
 
 operator fun Int.times(unit: TimeUnit): Long {

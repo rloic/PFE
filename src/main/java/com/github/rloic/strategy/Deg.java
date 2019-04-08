@@ -43,8 +43,8 @@ public class Deg extends AbstractStrategy<IntVar> {
          Integer idxA = indexOf.get(lhs);
          Integer idxB = indexOf.get(rhs);
 
-         int neiOfA = (idxA != null) ? matrix.nei(idxA) : 0;
-         int neiOfB = (idxB != null) ? matrix.nei(idxB) : 0;
+         int neiOfA = 0;
+         int neiOfB = 0;
          return Integer.compare(neiOfB, neiOfA);
       });
 

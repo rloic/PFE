@@ -13,11 +13,7 @@ public interface IDancingLinksMatrix {
 
    boolean isTrue(int variable);
 
-   boolean isFalse(int equation, int variable);
-
    boolean isFalse(int variable);
-
-   boolean isNone(int equation, int variable);
 
    void xor(int target, int pivot);
 
@@ -59,8 +55,6 @@ public interface IDancingLinksMatrix {
 
    int eligibleBase(int pivot);
 
-   int minEligibleBase(int pivot);
-
    int firstUnknown(int equation);
 
    int nbEquations();
@@ -79,14 +73,10 @@ public interface IDancingLinksMatrix {
 
    Iterable<Row> activeEquations();
 
-   int firstOffBase(int pivot);
-
-   boolean subsetOf(int pivot, int equation);
-
    int numberOfUndefinedVariables();
 
    int numberOfEquationsOf(int variable);
 
-   int nei(int variable);
+   int firstOffBase(int pivot);
 
 }

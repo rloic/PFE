@@ -62,7 +62,7 @@ public class FullRulesApplier implements RulesApplier {
          int baseVar = m.baseVariableOf(pivot);
          if (baseVar != -1 && m.isTrue(baseVar)) {
             UpdaterList sameVar = new UpdaterList("InferBasesEqualities");
-            int firstOffBase = m.minEligibleBase(pivot);
+            int firstOffBase = m.firstOffBase(pivot);
             for (Data eqCell : m.equationsOf(firstOffBase)) {
                int baseVariableOfEquation = m.baseVariableOf(eqCell.equation);
                if (
@@ -72,7 +72,7 @@ public class FullRulesApplier implements RulesApplier {
                            && m.nbTrues(eqCell.equation) == m.nbTrues(pivot) - 1
                            && m.sameOffBaseVariables(eqCell.equation, pivot)
                ) {
-                  sameVar.add(new InferAffectation(baseVariableOfEquation, true));
+                  sameVar.add(assignation(baseVariableOfEquation, true));
                }
             }
             return sameVar.isNotEmpty() ? sameVar : Nothing.INSTANCE;
@@ -120,7 +120,7 @@ public class FullRulesApplier implements RulesApplier {
             int pivot = row.equation;
             int base = m.baseVariableOf(pivot);
             if (base != -1) {
-               int firstOffBase = m.minEligibleBase(pivot);
+               int firstOffBase = m.firstOffBase(pivot);
                if(firstOffBase != -1) {
                   if (m.isTrue(base)) {
                      for (Data targetO : m.equationsOf(firstOffBase)) {
