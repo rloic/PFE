@@ -42,7 +42,7 @@ public abstract class MidoriGlobal {
       sBoxes = new BoolVar[r * 4 * 4];
       variablesToAssign = new BoolVar[(2 * r - 1) * 4 * 4];
 
-      // Init ΔX (and SBoxes)
+      // Init ΔX
       for (int i = 0; i < r; i++) {
          for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
@@ -51,7 +51,7 @@ public abstract class MidoriGlobal {
          }
       }
 
-      // Init ΔZ, ΔK and createVariableToAssign
+      // Init ΔZ
       for (int i = 0; i < r - 1; i++) {
          for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
@@ -61,6 +61,7 @@ public abstract class MidoriGlobal {
          }
       }
 
+      // Init ΔK
       for (int j = 0; j < 4; j++) {
          for (int k = 0; k < 4; k++) {
             ΔK[j][k] = createVariableToAssign("ΔK[" + j + "][" + k + "]");

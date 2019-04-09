@@ -4,7 +4,6 @@ import com.github.rloic.wip.WeightedConstraint;
 import com.github.rloic.xorconstraint.BasePropagator;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.solver.Model;
-import org.chocosolver.solver.variables.BoolVar;
 
 import java.util.List;
 
