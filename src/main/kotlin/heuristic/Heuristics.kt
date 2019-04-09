@@ -1,22 +1,17 @@
 package heuristic
 
 import com.github.rloic.aes.EnumFilter
-import com.github.rloic.midori.MidoriAdvanced
 import com.github.rloic.midori.MidoriGlobalFull
 import com.github.rloic.strategy.*
 import com.github.rloic.wip.WeightedConstraint
 import com.github.rloic.xorconstraint.BasePropagator
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap
-import org.chocosolver.solver.search.strategy.Search
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin
 import org.chocosolver.solver.search.strategy.selectors.values.IntValueSelector
 import org.chocosolver.solver.search.strategy.strategy.AbstractStrategy
-import org.chocosolver.solver.variables.BoolVar
 import org.chocosolver.solver.variables.IntVar
-import org.chocosolver.solver.variables.Variable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 typealias StrategyBuilder = (BasePropagator?, Array<out IntVar>, IntValueSelector, Long, Int2ObjectMap<List<WeightedConstraint>>) -> AbstractStrategy<IntVar>
 
@@ -51,7 +46,7 @@ fun launch(
             val midoriGlobal = MidoriGlobalFull(rounds, rounds)
             val propagator = null
             val sBoxes = midoriGlobal.sBoxes
-            val assignedVar = midoriGlobal.assignedVar
+            val assignedVar = midoriGlobal.variablesToAssign
 
             val m = midoriGlobal.m
             val solver = m.solver

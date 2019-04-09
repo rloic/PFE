@@ -5,10 +5,8 @@ import com.github.rloic.midori.MidoriAdvanced
 import com.github.rloic.midori.MidoriBasic
 import com.github.rloic.midori.MidoriGlobalFull
 import com.github.rloic.midori.MidoriGlobalPartial
-import com.github.rloic.strategy.CustomDomOverWDeg
 import com.github.rloic.strategy.WDeg
 import com.github.rloic.wip.WeightedConstraint
-import com.github.rloic.xorconstraint.BasePropagator
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap
 import org.chocosolver.solver.Model
 import org.chocosolver.solver.Solver
@@ -33,10 +31,10 @@ import javax.swing.JButton
 import javax.swing.JFrame
 
 val algorithms = arrayOf(
-    Algorithm("Basic", ::createBasic),
-    Algorithm("Global[1-3]", ::createGlobalPartial),
-    Algorithm("Global[1-5]", ::createGlobalFull),
-    Algorithm("Advanced", ::createAdvanced)
+    /*Algorithm("Basic", ::createBasic),
+    Algorithm("Global[1-3]", ::createGlobalPartial),*/
+    Algorithm("Global[1-5]", ::createGlobalFull)/*,
+    Algorithm("Advanced", ::createAdvanced)*/
 )
 
 const val TIMEOUT = 4
@@ -195,12 +193,12 @@ fun createBasic(r: Int, objStep: Int): Components {
 
 fun createGlobalPartial(r: Int, objStep: Int): Components {
     val version = MidoriGlobalPartial(r, objStep)
-    return Components(version.m, version.sBoxes, version.assignedVar, version.constraintsOf)
+    return Components(version.m, version.sBoxes, version.variablesToAssign, version.constraintsOf)
 }
 
 fun createGlobalFull(r: Int, objStep: Int): Components {
     val version = MidoriGlobalFull(r, objStep)
-    return Components(version.m, version.sBoxes, version.assignedVar, version.constraintsOf)
+    return Components(version.m, version.sBoxes, version.variablesToAssign, version.constraintsOf)
 }
 
 fun createAdvanced(r: Int, objStep: Int): Components {
