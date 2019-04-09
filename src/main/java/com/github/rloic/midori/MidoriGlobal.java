@@ -25,6 +25,11 @@ public abstract class MidoriGlobal {
    private int sBoxesInc = 0;
    private int variablesToAssignedInc = 0;
 
+   public final BoolVar[][][] ΔX;
+   public final BoolVar[][][] ΔZ;
+   public final BoolVar[][] ΔK;
+   public final BoolVar[][][] ΔY;
+
    abstract protected String getModelName();
 
    abstract protected InferenceEngine getInferenceEngine();
@@ -34,10 +39,10 @@ public abstract class MidoriGlobal {
    MidoriGlobal(int r, int objStep1) {
       em = new ExtendedModel(getModelName());
 
-      BoolVar[][][] ΔX = new BoolVar[r][4][4];
-      BoolVar[][][] ΔZ = new BoolVar[r - 1][4][4];
-      BoolVar[][] ΔK = new BoolVar[4][4];
-      BoolVar[][][] ΔY = new BoolVar[r - 1][4][4];
+      ΔX = new BoolVar[r][4][4];
+      ΔZ = new BoolVar[r - 1][4][4];
+      ΔK = new BoolVar[4][4];
+      ΔY = new BoolVar[r - 1][4][4];
 
       sBoxes = new BoolVar[r * 4 * 4];
       variablesToAssign = new BoolVar[(2 * r - 1) * 4 * 4];

@@ -1,6 +1,7 @@
 package com.github.rloic.common;
 
 import com.github.rloic.common.abstraction.MathSet;
+import com.github.rloic.midori.ByteXOR;
 import com.github.rloic.paper.dancinglinks.inferenceengine.InferenceEngine;
 import com.github.rloic.paper.dancinglinks.rulesapplier.RulesApplier;
 import com.github.rloic.util.Logger;
@@ -10,7 +11,9 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
+import org.chocosolver.solver.constraints.extension.Tuples;
 import org.chocosolver.solver.variables.BoolVar;
+import org.chocosolver.solver.variables.IntVar;
 
 import java.util.*;
 
@@ -24,6 +27,10 @@ public class ExtendedModel {
 
    public ExtendedModel(String name) {
       this.delegate = new Model(name);
+   }
+
+   public Model getModel() {
+      return delegate;
    }
 
    public BoolVar boolVar(String name) {
@@ -44,6 +51,10 @@ public class ExtendedModel {
       globalXorEquations.add(equation);
    }
 
+   public void realisationXor(IntVar... equation) {
+      delegate.post(new Constraint("Realisation XOR", new ByteXOR(equation)));
+   }
+
    public void equals(BoolVar lhs, BoolVar rhs) {
       BoolVar[] vars = new BoolVar[]{lhs, rhs};
       WeightedConstraint equalityConstraint = new WeightedConstraint(vars, this::oneDifferent);
@@ -57,36 +68,70 @@ public class ExtendedModel {
       delegate.sum(sum, operator, value).post();
    }
 
+   public void sum(IntVar[] sum, String operator, IntVar value) {
+      delegate.sum(sum, operator, value).post();
+   }
+
+   public void arithm(IntVar varA, String operator, IntVar varB) {
+      delegate.arithm(varA, operator, varB).post();
+   }
+
+   public void table(IntVar[] vars, Tuples tuples, String strategy) {
+      delegate.table(vars, tuples, strategy).post();
+   }
+
+   public void table(IntVar[] vars, Tuples tuples) {
+      delegate.table(vars, tuples).post();
+   }
+
+   public IntVar intVar(String name, int lb, int ub) {
+      return delegate.intVar(name, lb, ub);
+   }
+
+   public IntVar intVar(int lb, int ub) {
+      return delegate.intVar(lb, ub);
+   }
+
+   public IntVar constant(String name, int value) {
+      return delegate.intVar(name, value);
+   }
+
    public DeconstructedModel build(InferenceEngine inferenceEngine, RulesApplier rulesApplier) {
+      if (globalXorElements.size() != 0) {
+         BoolVar[] vars = new BoolVar[globalXorElements.size()];
+         globalXorElements.toArray(vars);
 
-      BoolVar[] vars = new BoolVar[globalXorElements.size()];
-      globalXorElements.toArray(vars);
+         BoolVar[][] xors = new BoolVar[globalXorEquations.size()][];
+         globalXorEquations.toArray(xors);
 
-      BoolVar[][] xors = new BoolVar[globalXorEquations.size()][];
-      globalXorEquations.toArray(xors);
+         BasePropagator propagator = new BasePropagator(
+               vars,
+               xors,
+               inferenceEngine,
+               rulesApplier,
+               delegate.getSolver()
+         );
+         delegate.post(new Constraint("Global XOR", propagator));
 
-      BasePropagator propagator = new BasePropagator(
-            vars,
-            xors,
-            inferenceEngine,
-            rulesApplier,
-            delegate.getSolver()
-      );
-      delegate.post(new Constraint("Global XOR", propagator));
-
-      return new DeconstructedModel(
-            delegate,
-            propagator,
-            constraintsOf
-      );
-
+         return new DeconstructedModel(
+               delegate,
+               propagator,
+               constraintsOf
+         );
+      } else {
+         return new DeconstructedModel(
+               delegate,
+               null,
+               constraintsOf
+         );
+      }
    }
 
    public DeconstructedModel buildWithWeightedConstraintsGeneration(
          InferenceEngine inferenceEngine,
          RulesApplier rulesApplier
    ) {
-      DeconstructedModel model = build(inferenceEngine,rulesApplier);
+      DeconstructedModel model = build(inferenceEngine, rulesApplier);
 
       MathSet<Set<BoolVar>> initialEquations = new MathSet<>();
       globalXorEquations.forEach(it ->
@@ -123,7 +168,7 @@ public class ExtendedModel {
 
    private Set<BoolVar> merge(Set<BoolVar> lhs, Set<BoolVar> rhs) {
       Set<BoolVar> result = new HashSet<>();
-      for(BoolVar var : lhs) {
+      for (BoolVar var : lhs) {
          if (!rhs.contains(var)) {
             result.add(var);
          }
@@ -159,7 +204,7 @@ public class ExtendedModel {
    private boolean oneDifferent(BoolVar[] vars) {
       int value = vars[0].getValue();
       for (int i = 1; i < vars.length; i++) {
-         if (vars[i].getValue() == value) {
+         if (vars[i].getValue() != value) {
             return true;
          }
       }

@@ -18,7 +18,6 @@ import java.awt.Dimension
 import java.awt.event.ActionListener
 import java.io.File
 import java.io.FileWriter
-import java.lang.RuntimeException
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -52,6 +51,7 @@ fun searchStrategy(
             WDeg(sBoxes, 0L, IntDomainMin(), constraintsOf),
             WDeg(assignedVars, 0L, IntDomainMin(), constraintsOf)
         )
+        solver.setSearch(Search.lastConflict(solver.getSearch<BoolVar>()));
     } else {
         solver.setSearch(
             Search.intVarSearch(*sBoxes),
