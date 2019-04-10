@@ -14,6 +14,7 @@ import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.extension.Tuples;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
+import org.chocosolver.solver.variables.Variable;
 
 import java.util.*;
 
@@ -39,8 +40,32 @@ public class ExtendedModel {
       return var;
    }
 
+   public BoolVar[] boolVar(String name, int len) {
+      BoolVar[] vars = new BoolVar[len];
+      for (int i = 0; i < len; i++) {
+         vars[i] = boolVar(name + "[" + i + "]");
+      }
+      return vars;
+   }
+
+   public BoolVar[][] boolVar(String name, int dimA, int dimB) {
+      BoolVar[][] vars = new BoolVar[dimA][dimB];
+      for (int i = 0; i < dimA; i++) {
+         vars[i] = boolVar(name + "[" + i + "]", dimB);
+      }
+      return vars;
+   }
+
+   public BoolVar[][][] boolVar(String name, int dimA, int dimB, int dimC) {
+      BoolVar[][][] vars = new BoolVar[dimA][dimB][dimC];
+      for (int i = 0; i < dimA; i++) {
+         vars[i] = boolVar(name + "[" + i + "]", dimB, dimC);
+      }
+      return vars;
+   }
+
    public void abstractXor(BoolVar... equation) {
-      WeightedConstraint xorConstraint = new WeightedConstraint(equation, this::sumEqualsOne);
+      WeightedConstraint xorConstraint = new WeightedConstraint<>(equation, this::sumEqualsOne);
       for (BoolVar var : equation) {
          constraintsOf.get(var.getId()).add(xorConstraint);
 
@@ -51,25 +76,52 @@ public class ExtendedModel {
       globalXorEquations.add(equation);
    }
 
-   public void realisationXor(IntVar... equation) {
+   public void byteXor(IntVar... equation) {
       delegate.post(new Constraint("Realisation XOR", new ByteXOR(equation)));
    }
 
    public void equals(BoolVar lhs, BoolVar rhs) {
       BoolVar[] vars = new BoolVar[]{lhs, rhs};
-      WeightedConstraint equalityConstraint = new WeightedConstraint(vars, this::oneDifferent);
+      WeightedConstraint equalityConstraint = new WeightedConstraint<>(vars, this::oneDifferent);
       for (BoolVar var : vars) {
          constraintsOf.get(var.getId()).add(equalityConstraint);
       }
       delegate.arithm(lhs, "=", rhs).post();
    }
 
+   private WeightedConstraint<Variable> post(Constraint constraint, Variable[] variables) {
+      constraint.post();
+      WeightedConstraint<Variable> wConstraint = WeightedConstraint.wrap(constraint);
+      for(Variable v : variables) {
+         constraintsOf.get(v.getId()).add(wConstraint);
+      }
+      return wConstraint;
+   }
+
+   private void post(Constraint constraint, Variable[] variables, Variable... other) {
+      constraint.post();
+      WeightedConstraint<Variable> wConstraint = WeightedConstraint.wrap(constraint);
+      for(Variable v : variables) {
+         constraintsOf.get(v.getId()).add(wConstraint);
+      }
+      for (Variable v: other) {
+         constraintsOf.get(v.getId()).add(wConstraint);
+      }
+   }
+
    public void sum(BoolVar[] sum, String operator, int value) {
-      delegate.sum(sum, operator, value).post();
+      Constraint cSum  = delegate.sum(sum, operator, value);
+      post(cSum, sum);
    }
 
    public void sum(IntVar[] sum, String operator, IntVar value) {
-      delegate.sum(sum, operator, value).post();
+      Constraint cSum  = delegate.sum(sum, operator, value);
+      post(cSum, sum);
+   }
+
+   public void sum(BoolVar[] sum, String operator, IntVar value) {
+      Constraint cSum  = delegate.sum(sum, operator, value);
+      post(cSum, sum, value);
    }
 
    public void arithm(IntVar varA, String operator, IntVar varB) {
@@ -85,15 +137,27 @@ public class ExtendedModel {
    }
 
    public IntVar intVar(String name, int lb, int ub) {
-      return delegate.intVar(name, lb, ub);
+      IntVar var = delegate.intVar(name, lb, ub);
+      constraintsOf.put(var.getId(), new ArrayList<>());
+      return var;
+   }
+
+   public IntVar intVar(int[] domain) {
+      IntVar var = delegate.intVar(domain);
+      constraintsOf.put(var.getId(), new ArrayList<>());
+      return var;
    }
 
    public IntVar intVar(int lb, int ub) {
-      return delegate.intVar(lb, ub);
+      IntVar var = delegate.intVar(lb, ub);
+      constraintsOf.put(var.getId(), new ArrayList<>());
+      return var;
    }
 
    public IntVar constant(String name, int value) {
-      return delegate.intVar(name, value);
+      IntVar var = delegate.intVar(name, value);
+      constraintsOf.put(var.getId(), new ArrayList<>());
+      return var;
    }
 
    public DeconstructedModel build(InferenceEngine inferenceEngine, RulesApplier rulesApplier) {
@@ -140,7 +204,7 @@ public class ExtendedModel {
 
       MathSet<Set<BoolVar>> generatedEquations = combineXor(initialEquations, initialEquations);
       for (Set<BoolVar> equation : generatedEquations) {
-         WeightedConstraint xorConstraint = new WeightedConstraint(arrayOf(equation), this::sumEqualsOne);
+         WeightedConstraint xorConstraint = new WeightedConstraint<>(arrayOf(equation), this::sumEqualsOne);
 
          for (BoolVar var : equation) {
             constraintsOf.get(var.getId()).add(xorConstraint);
@@ -162,7 +226,7 @@ public class ExtendedModel {
             }
          }
       }
-      Logger.debug("    [CombinedXOR] Number of new XOR = " + newEquationsSet.size());
+      Logger.debug("    [CombinedXOR] Number wrap new XOR = " + newEquationsSet.size());
       return newEquationsSet.union(combineXor(newEquationsSet, newEquationsSet.union(rhs)));
    }
 

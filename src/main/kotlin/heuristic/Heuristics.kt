@@ -10,10 +10,11 @@ import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin
 import org.chocosolver.solver.search.strategy.selectors.values.IntValueSelector
 import org.chocosolver.solver.search.strategy.strategy.AbstractStrategy
 import org.chocosolver.solver.variables.IntVar
+import org.chocosolver.solver.variables.Variable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-typealias StrategyBuilder = (BasePropagator?, Array<out IntVar>, IntValueSelector, Long, Int2ObjectMap<List<WeightedConstraint>>) -> AbstractStrategy<IntVar>
+typealias StrategyBuilder = (BasePropagator?, Array<out IntVar>, IntValueSelector, Long, Int2ObjectMap<List<WeightedConstraint<out Variable>>>) -> AbstractStrategy<IntVar>
 
 fun main() {
 

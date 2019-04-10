@@ -13,6 +13,7 @@ import org.chocosolver.solver.Solver
 import org.chocosolver.solver.search.strategy.Search
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin
 import org.chocosolver.solver.variables.BoolVar
+import org.chocosolver.solver.variables.Variable
 import org.chocosolver.util.criteria.Criterion
 import java.awt.Dimension
 import java.awt.event.ActionListener
@@ -44,20 +45,9 @@ fun searchStrategy(
     solver: Solver,
     sBoxes: Array<BoolVar>,
     assignedVars: Array<BoolVar>,
-    constraintsOf: Int2ObjectMap<List<WeightedConstraint>>?
+    constraintsOf: Int2ObjectMap<List<WeightedConstraint<out Variable>>>?
 ) {
-    if (constraintsOf != null) {
-        solver.setSearch(
-            WDeg(sBoxes, 0L, IntDomainMin(), constraintsOf),
-            WDeg(assignedVars, 0L, IntDomainMin(), constraintsOf)
-        )
-        solver.setSearch(Search.lastConflict(solver.getSearch<BoolVar>()));
-    } else {
-        solver.setSearch(
-            Search.intVarSearch(*sBoxes),
-            Search.intVarSearch(*assignedVars)
-        )
-    }
+
 }
 
 fun main() {
@@ -146,7 +136,7 @@ data class Components(
     val model: Model,
     val sBoxes: Array<BoolVar>,
     val assignedVar: Array<BoolVar>,
-    val useCustomHeuristic: Int2ObjectMap<List<WeightedConstraint>>?
+    val useCustomHeuristic: Int2ObjectMap<List<WeightedConstraint<out Variable>>>?
 )
 
 data class Algorithm(

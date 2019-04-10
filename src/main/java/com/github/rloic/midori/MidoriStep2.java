@@ -17,6 +17,16 @@ public class MidoriStep2 {
    public final Model m;
    public final IntVar objective;
 
+   private final int r;
+   private final IntVar[][] δPlainText;
+   private final IntVar[][] δWK;
+   private final IntVar[][][] δX;
+   private final IntVar[][][] δSX;
+   private final IntVar[][][] δY;
+   private final IntVar[][][] δZ;
+   private final IntVar[][][] δK;
+   private final IntVar[][] δCipherText;
+
    public MidoriStep2(
          int version,
          int r,
@@ -30,17 +40,18 @@ public class MidoriStep2 {
       this.em = new ExtendedModel("MidoriStep2");
       this.m = em.getModel();
       this.version = version;
+      this.r = r;
       MAX_VALUE = (version == 64) ? 15 : 255;
       final int INITIAL_KEY_MATRICES = (version == 64) ? 2 : 1;
 
-      IntVar[][] δPlainText = new IntVar[4][4];
-      IntVar[][] δWK = new IntVar[4][4];
-      IntVar[][][] δX = new IntVar[r][4][4];
-      IntVar[][][] δSX = new IntVar[r][4][4];
-      IntVar[][][] δY = new IntVar[r - 1][4][4];
-      IntVar[][][] δZ = new IntVar[r - 1][4][4];
-      IntVar[][][] δK = new IntVar[INITIAL_KEY_MATRICES][4][4];
-      IntVar[][] δCipherText = new IntVar[4][4];
+      δPlainText = new IntVar[4][4];
+      δWK = new IntVar[4][4];
+      δX = new IntVar[r][4][4];
+      δSX = new IntVar[r][4][4];
+      δY = new IntVar[r - 1][4][4];
+      δZ = new IntVar[r - 1][4][4];
+      δK = new IntVar[INITIAL_KEY_MATRICES][4][4];
+      δCipherText = new IntVar[4][4];
 
       IntVar[][][] probabilities = new IntVar[r][4][4];
       IntVar[] flattenedProbabilities = new IntVar[r * 4 * 4];
@@ -79,19 +90,19 @@ public class MidoriStep2 {
 
             if (version == 64) {
                δWK[j][k] = byteVar("δWK[" + j + "][" + k + "]");
-               em.realisationXor(δK[0][j][k], δK[1][j][k], δWK[j][k]);
+               em.byteXor(δK[0][j][k], δK[1][j][k], δWK[j][k]);
             } else { // version == 128
                δWK[j][k] = δK[0][j][k];
             }
 
-            δCipherText[j][k] = byteVar("δCipherText" + j + "][" + k + "]");
+            δCipherText[j][k] = byteVar("δCipherText[" + j + "][" + k + "]");
          }
       }
 
       // δX[0] = δPlainText xor δWK
       ark(δX[0], δPlainText, δWK);
-      for (int i = 0; i < r - 2; i++) {
-         // δSX[i] = Sbox(δX[i])
+      for (int i = 0; i < r - 1; i++) {
+         // δSX[i] = Sbox(δX[i]) with a probability wrap p[i]
          sBox(δSX[i], δX[i], probabilities[i]);
          // δY[i] = shuffleCell(δSX[i])
          shuffleCell(δY[i], δSX[i]);
@@ -104,7 +115,7 @@ public class MidoriStep2 {
             ark(δX[i + 1], δZ[i], δK[0]);
          }
       }
-      // δX[r-1] = SBox(δSX[r-1])
+      // δX[r-1] = SBox(δSX[r-1]) with a probability wrap p[i]
       sBox(δX[r - 1], δSX[r - 1], probabilities[r - 1]);
       // δCipherText = δSX[r - 1] xor δWK
       ark(δCipherText, δSX[r - 1], δWK);
@@ -156,10 +167,10 @@ public class MidoriStep2 {
    // δZ_{i} = mixColumns(δY_{i})
    private void mixColumns(IntVar[][] δZ, IntVar[][] δY) {
       for (int k = 0; k < 4; k++) {
-         em.realisationXor(δY[0][k], δY[1][k], δY[2][k], δZ[3][k]);
-         em.realisationXor(δY[1][k], δY[2][k], δY[3][k], δZ[0][k]);
-         em.realisationXor(δY[2][k], δY[3][k], δY[0][k], δZ[1][k]);
-         em.realisationXor(δY[3][k], δY[0][k], δY[1][k], δZ[2][k]);
+         em.byteXor(δY[0][k], δY[1][k], δY[2][k], δZ[3][k]);
+         em.byteXor(δY[1][k], δY[2][k], δY[3][k], δZ[0][k]);
+         em.byteXor(δY[2][k], δY[3][k], δY[0][k], δZ[1][k]);
+         em.byteXor(δY[3][k], δY[0][k], δY[1][k], δZ[2][k]);
       }
    }
 
@@ -167,7 +178,7 @@ public class MidoriStep2 {
    private void ark(IntVar[][] δX1, IntVar[][] δZ, IntVar[][] δWK) {
       for (int j = 0; j < 4; j++) {
          for (int k = 0; k < 4; k++) {
-            em.realisationXor(δX1[j][k], δZ[j][k], δWK[j][k]);
+            em.byteXor(δX1[j][k], δZ[j][k], δWK[j][k]);
          }
       }
    }
@@ -269,5 +280,78 @@ public class MidoriStep2 {
       assert n >= 0;
       return 31 - Integer.numberOfLeadingZeros(n);
    }
+
+   private void print(IntVar[][] vars, int j) {
+      for (int k = 0; k < 4; k++) {
+         System.out.print(String.format("% 3d", vars[j][k].getValue()));
+         System.out.print(" ");
+      }
+      System.out.print("      ");
+   }
+
+   private void print(IntVar[][] vars, int j, String join) {
+      for (int k = 0; k < 4; k++) {
+         System.out.print(String.format("% 3d", vars[j][k].getValue()));
+         System.out.print(" ");
+      }
+      if (j == 1) {
+         System.out.print(join);
+      } else {
+         System.out.print("      ");
+
+      }
+   }
+
+   public void print() {
+      System.out.println("Probability: 2^-" + objective.getValue());
+
+      for (int j = 0; j < 4; j++) {
+         print(δWK, j);
+
+         for (int i = 0; i < r - 1; i++) {
+            for (int inc = 0; inc < 4; inc++) {
+               for (int k = 0; k < 4; k++) {
+                  System.out.print("    ");
+               }
+               System.out.print("      ");
+            }
+            for (int k = 0; k < 4; k++) {
+               if (version == 64) {
+                  System.out.print(String.format("% 3d", δK[i % 2][j][k].getValue()));
+               } else { // version == 128
+                  System.out.print(String.format("% 3d", δK[0][j][k].getValue()));
+               }
+               System.out.print(" ");
+            }
+            System.out.print("  ");
+         }
+         System.out.println();
+      }
+
+      System.out.println();
+
+      for (int j = 0; j < 4; j++) {
+         print(δPlainText, j, "-ARK->");
+
+         for (int i = 0; i < r - 1; i++) {
+            print(δX[i], j, "-SB ->");
+            print(δSX[i], j, "-SC ->");
+            print(δY[i], j, "-MC ->");
+            print(δZ[i], j, "-ARK->");
+            for (int k = 0; k < 4; k++) {
+               System.out.print("    ");
+            }
+            System.out.print("  ");
+         }
+
+         print(δX[r-1], j, "-SB ->");
+         print(δSX[r-1], j, "-ARK->");
+         print(δCipherText, j);
+
+         System.out.println();
+      }
+
+   }
+
 
 }
