@@ -13,6 +13,7 @@ import org.chocosolver.solver.Solver
 import org.chocosolver.solver.search.strategy.Search
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin
 import org.chocosolver.solver.variables.BoolVar
+import org.chocosolver.solver.variables.IntVar
 import org.chocosolver.solver.variables.Variable
 import org.chocosolver.util.criteria.Criterion
 import java.awt.Dimension
@@ -47,7 +48,18 @@ fun searchStrategy(
     assignedVars: Array<BoolVar>,
     constraintsOf: Int2ObjectMap<List<WeightedConstraint<out Variable>>>?
 ) {
-
+    if (constraintsOf != null) {
+        solver.setSearch(
+            WDeg(sBoxes, 0L, IntDomainMin(), constraintsOf),
+            WDeg(assignedVars, 0L, IntDomainMin(), constraintsOf)
+        )
+    } else {
+        solver.setSearch(
+            Search.intVarSearch(*sBoxes),
+            Search.intVarSearch(*assignedVars)
+        )
+    }
+    solver.setSearch(Search.lastConflict(solver.getSearch<IntVar>()))
 }
 
 fun main() {
