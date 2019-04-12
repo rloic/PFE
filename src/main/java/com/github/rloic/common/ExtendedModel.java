@@ -89,6 +89,18 @@ public class ExtendedModel {
       delegate.arithm(lhs, "=", rhs).post();
    }
 
+   public void equals(BoolVar... vars) {
+
+      for(int i = 0; i < vars.length; i++) {
+         for (int j = i + 1; j < vars.length; j++) {
+            WeightedConstraint equalityConstraint = new WeightedConstraint<>(new BoolVar[]{vars[i], vars[j]}, this::oneDifferent);
+            constraintsOf.get(vars[i].getId()).add(equalityConstraint);
+            constraintsOf.get(vars[j].getId()).add(equalityConstraint);
+            delegate.arithm(vars[i], "=", vars[j]).post();
+         }
+      }
+   }
+
    private WeightedConstraint<Variable> post(Constraint constraint, Variable[] variables) {
       constraint.post();
       WeightedConstraint<Variable> wConstraint = WeightedConstraint.wrap(constraint);

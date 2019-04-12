@@ -1,6 +1,5 @@
 package com.github.rloic.aes;
 
-import com.github.rloic.aes.KeyBits;
 import com.github.rloic.common.DeconstructedModel;
 import com.github.rloic.common.ExtendedModel;
 import com.github.rloic.common.collections.BytePosition;
@@ -12,15 +11,16 @@ import com.github.rloic.xorconstraint.BasePropagator;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.variables.BoolVar;
+import org.chocosolver.solver.variables.Variable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.github.rloic.aes.KeyBits.AES128.AES_128;
 import static com.github.rloic.aes.KeyBits.AES192.AES_192;
 import static com.github.rloic.aes.KeyBits.AES256.AES_256;
-import static com.github.rloic.common.collections.ArrayExtensions.arrayOf;
-import static com.github.rloic.common.collections.ArrayExtensions.intArrayOf;
 
 @SuppressWarnings("NonAsciiCharacters")
 public class AESGlobalMC {
@@ -36,6 +36,11 @@ public class AESGlobalMC {
    public final BoolVar[] sBoxes;
    public final BoolVar[] varsToAssign;
 
+   public final BoolVar[][][] ΔX;
+   public final BoolVar[][][] ΔY;
+   public final BoolVar[][][] ΔZ;
+   public final BoolVar[][][] ΔK;
+
    public AESGlobalMC(
          int r,
          int objStep1,
@@ -45,12 +50,10 @@ public class AESGlobalMC {
       this.r = r;
       this.keyBits = keyBits;
 
-      BoolVar[][][] ΔX = em.boolVar("ΔX", r, 4, 4);
-      BoolVar[][][] ΔY = em.boolVar("ΔY/ΔSX", r, 4, 4);
-      BoolVar[][][] Δ2Y = em.boolVar("Δ2Y/Δ2SX", r - 1, 4, 4);
-      BoolVar[][][] Δ3Y = em.boolVar("Δ3Y/Δ3SX", r - 1, 4, 4);
-      BoolVar[][][] ΔZ = new BoolVar[r][4][4];
-      BoolVar[][][] ΔK = em.boolVar("ΔK", r, 4, 5);
+      ΔX = em.boolVar("ΔX", r, 4, 4);
+      ΔY = em.boolVar("ΔY/ΔSX", r, 4, 4);
+      ΔZ = new BoolVar[r][4][4];
+      ΔK = em.boolVar("ΔK", r, 4, 5);
 
       // ΔY = SR(SBox(ΔX)) \approx SR(ΔX)
       for (int i = 0; i < r; i++) {
@@ -106,26 +109,6 @@ public class AESGlobalMC {
          }
       }
 
-      BoolVar[][][] diff_Y_2Y = em.boolVar("diff_Y_2Y", r - 1, 4, 4);
-      BoolVar[][][] diff_2Y_3Y = em.boolVar("diff_2Y_3Y", r - 1, 4, 4);
-      BoolVar[][][] diff_Y_3Y = em.boolVar("diffY_3Y", r - 1, 4, 4);
-
-      // MixColumn
-      for (int i = 0; i < r - 1; i++) {
-         for(int j = 0; j < 4; j++) {
-            for (int k = 0; k < 4; k++) {
-               em.abstractXor(diff_Y_2Y[i][j][k], ΔY[i][j][k], Δ2Y[i][j][k]);
-               em.abstractXor(diff_2Y_3Y[i][j][k], Δ2Y[i][j][k], Δ3Y[i][j][k]);
-               em.abstractXor(diff_Y_3Y[i][j][k], ΔY[i][j][k], Δ3Y[i][j][k]);
-
-               em.abstractXor(ΔZ[i][0][k], Δ2Y[i][0][k], Δ3Y[i][1][k], ΔY[i][2][k], ΔY[i][3][k]);
-               em.abstractXor(ΔZ[i][1][k], ΔY[i][0][k], Δ2Y[i][1][k], Δ3Y[i][2][k], ΔY[i][3][k]);
-               em.abstractXor(ΔZ[i][2][k], ΔY[i][0][k], ΔY[i][1][k], Δ2Y[i][2][k], Δ3Y[i][3][k]);
-               em.abstractXor(ΔZ[i][3][k], Δ3Y[i][0][k], ΔY[i][1][k], ΔY[i][2][k], Δ2Y[i][3][k]);
-            }
-         }
-      }
-
       // KeySchedule
       for (int i = 1; i < r; i++) {
          for (int j = 0; j < 4; j++) {
@@ -144,26 +127,45 @@ public class AESGlobalMC {
          }
       }
 
-      BoolVar[][][][][] DY2 = new BoolVar[4][r - 1][4][r - 1][4];
-      BoolVar[][][][][] DZ2 = new BoolVar[4][r - 1][4][r - 1][4];
+      BoolVar[][][] Δ2Y = em.boolVar("Δ2Y/Diff_1_3", r - 1, 4, 4);
+      BoolVar[][][] Δ3Y = em.boolVar("Δ3Y/Diff_1_2", r - 1, 4, 4);
 
-      // MDS Constraint
+      for (int i = 0; i <= r - 2; i++) {
+         for (int k = 0; k <= 3; k++) {
+            for (int j = 0; j <= 3; j++) {
+               em.abstractXor(ΔY[i][j][k], Δ2Y[i][j][k], Δ3Y[i][j][k]);
+               em.equals(ΔY[i][j][k], Δ2Y[i][j][k], Δ3Y[i][j][k]);
+            }
+
+            em.abstractXor(ΔZ[i][0][k], Δ2Y[i][0][k], Δ3Y[i][1][k], ΔY[i][2][k], ΔY[i][3][k]);
+            em.abstractXor(ΔZ[i][1][k], ΔY[i][0][k], Δ2Y[i][1][k], Δ3Y[i][2][k], ΔY[i][3][k]);
+            em.abstractXor(ΔZ[i][2][k], ΔY[i][0][k], ΔY[i][1][k], Δ2Y[i][2][k], Δ3Y[i][3][k]);
+            em.abstractXor(ΔZ[i][3][k], Δ3Y[i][0][k], ΔY[i][1][k], ΔY[i][2][k], Δ2Y[i][3][k]);
+         }
+      }
+
+      BoolVar[][][][][][] DY1 = new BoolVar[r - 1][4][4][r - 1][4][4];
+      BoolVar[][][][][][] DY2 = new BoolVar[r - 1][4][4][r - 1][4][4];
+      BoolVar[][][][][][] DY3 = new BoolVar[r - 1][4][4][r - 1][4][4];
+
       for (int i1 = 0; i1 < r - 1; i1++) {
          for (int k1 = 0; k1 < 4; k1++) {
             for (int i2 = i1; i2 < r - 1; i2++) {
                int firstk2 = 0;
                if (i2 == i1) firstk2 = k1 + 1;
                for (int k2 = firstk2; k2 < 4; k2++) {
-                  for (int j = 0; j < 4; j++) {
-                     DY2[j][i1][k1][i2][k2] = em.boolVar("diffY[" + j + "][" + i1 + "][" + k1 + "][" + i2 + "][" + k2 + "]");
-                     em.abstractXor(ΔY[i1][j][k1], ΔY[i2][j][k2], DY2[j][i1][k1][i2][k2]);
-                     DZ2[j][i1][k1][i2][k2] = em.boolVar("diffZ[" + j + "][" + i1 + "][" + k1 + "][" + i2 + "][" + k2 + "]");
-                     em.abstractXor(ΔZ[i1][j][k1], ΔZ[i2][j][k2], DZ2[j][i1][k1][i2][k2]);
+                  for (int j1 = 0; j1 < 4; j1++) {
+                     int firstJ2 = 0;
+                     if (k1 == k2 && i1 == i2) firstJ2 = j1 + 1;
+                     for (int j2 = firstJ2; j2 < 4; j2++) {
+                        DY1[i1][j1][k1][i2][j2][k2] = makeDiffOf(ΔY[i1][j1][k1], ΔY[i2][j2][k2]);
+                        DY2[i1][j1][k1][i2][j2][k2] = makeDiffOf(Δ2Y[i1][j1][k1], Δ2Y[i2][j2][k2]);
+                        DY3[i1][j1][k1][i2][j2][k2] = makeDiffOf(Δ3Y[i1][j1][k1], Δ3Y[i2][j2][k2]);
+                        em.equals(DY1[i1][j1][k1][i2][j2][k2], DY2[i1][j1][k1][i2][j2][k2], DY3[i1][j1][k1][i2][j2][k2]);
+                        em.abstractXor(DY1[i1][j1][k1][i2][j2][k2], DY2[i1][j1][k1][i2][j2][k2], DY3[i1][j1][k1][i2][j2][k2]);
+                        em.abstractXor(ΔY[i1][j1][k1], ΔY[i2][j2][k2], DY2[i1][j1][k1][i2][j2][k2]);
+                     }
                   }
-                  em.sum(arrayOf(
-                        DY2[0][i1][k1][i2][k2], DY2[1][i1][k1][i2][k2], DY2[2][i1][k1][i2][k2], DY2[3][i1][k1][i2][k2],
-                        DZ2[0][i1][k1][i2][k2], DZ2[1][i1][k1][i2][k2], DZ2[2][i1][k1][i2][k2], DZ2[3][i1][k1][i2][k2]),
-                        "=", em.intVar(intArrayOf(0, 5, 6, 7, 8)));
                }
             }
          }
@@ -190,6 +192,15 @@ public class AESGlobalMC {
       this.constraintsOf = dm.constraintsOf;
       this.propagator = dm.propagator;
 
+   }
+
+   private BoolVar makeDiffOf(BoolVar... vars) {
+      BoolVar res = em.boolVar("TMP = " + Arrays.stream(vars).map(Variable::getName).collect(Collectors.joining()));
+      BoolVar[] equation = new BoolVar[vars.length + 1];
+      System.arraycopy(vars, 0, equation, 0, vars.length);
+      equation[equation.length - 1] = res;
+      em.abstractXor(equation);
+      return res;
    }
 
    private int getNbCol(int r) {

@@ -60,5 +60,15 @@ public class WeightedConstraint<V extends Variable> {
 
    }
 
+   public static List<WeightedConstraint<Variable>> wrapAsMany(Constraint constraint) {
+
+      List<WeightedConstraint<Variable>> weightedConstraints = new ArrayList<>();
+      for(Propagator propagator : constraint.getPropagators()) {
+         weightedConstraints.add(new WeightedConstraint<>(propagator.getVars(), ignored -> propagator.isEntailed() == ESat.FALSE));
+      }
+      return weightedConstraints;
+
+   }
+
 
 }

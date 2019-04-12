@@ -154,28 +154,14 @@ public class BasePropagator extends Propagator<BoolVar> {
 
    @Override
    public ESat isEntailed() {
-      boolean hasUndefined = false;
-      for (int equation = 0; equation < matrix.nbEquations(); equation++) {
-         int nbTrue = 0;
-         for (Data variableCells : matrix.variablesOf(equation)) {
-            boolean isTrue;
-
-            if (matrix.isUndefined(variableCells.variable)) {
-               hasUndefined = true;
-               isTrue = isTrue(vars[variableCells.variable]);
-            } else {
-               assert isTrue(vars[variableCells.variable]) == (matrix.isTrue(variableCells.variable));
-               isTrue = matrix.isTrue(variableCells.variable);
-            }
-            if (isTrue) {
-               nbTrue += 1;
-            }
-         }
-         if (nbTrue == 1) {
+      for (int variable : matrix.unassignedVars()) {
+         try {
+            propagate(variable, 0);
+         } catch (ContradictionException c) {
             return ESat.FALSE;
          }
       }
-      return hasUndefined ? ESat.UNDEFINED : ESat.TRUE;
+      return ESat.TRUE;
    }
 
    private boolean backTrack() {

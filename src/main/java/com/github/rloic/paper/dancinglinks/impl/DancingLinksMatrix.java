@@ -2,6 +2,8 @@ package com.github.rloic.paper.dancinglinks.impl;
 
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.cell.*;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 
 import java.util.Arrays;
 import java.util.function.Predicate;
@@ -34,6 +36,8 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    private static final int NO_PIVOT = -1;
    private static final int NO_BASE = -1;
 
+   private final IntList unassignedVars;
+
    public DancingLinksMatrix(
          int[][] equations,
          int nbVariables
@@ -53,6 +57,10 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       }
       assert variablesOf[nbEquations - 1].bottom() == root;
 
+      unassignedVars = new IntArrayList(nbVariables);
+      for (int j = 0; j < nbVariables; j++) {
+         unassignedVars.add(j);
+      }
       equationsOf = new Column[nbVariables];
       if (nbVariables > 0) {
          equationsOf[0] = new Column(root);
@@ -368,6 +376,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public void set(int variable, boolean value) {
+      unassignedVars.rem(variable);
       numberOfUndefinedVariables -= 1;
       valueOf[variable] = value ? TRUE : FALSE;
       int incNbTrue = value ? 1 : 0;
@@ -379,6 +388,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public void unSet(int variable) {
+      unassignedVars.add(variable);
       numberOfUndefinedVariables += 1;
       int decNbTrue = valueOf[variable] == TRUE ? 1 : 0;
       for (Data it : equationsOf(variable)) {
@@ -506,4 +516,8 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       return numberOfEquationsOf[variable];
    }
 
+   @Override
+   public IntList unassignedVars() {
+      return unassignedVars;
+   }
 }

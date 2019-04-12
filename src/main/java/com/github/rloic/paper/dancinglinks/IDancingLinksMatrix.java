@@ -79,4 +79,6 @@ public interface IDancingLinksMatrix {
 
    int firstOffBase(int pivot);
 
+   IntList unassignedVars();
+
 }

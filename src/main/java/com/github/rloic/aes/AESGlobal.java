@@ -35,6 +35,11 @@ public class AESGlobal {
    public final BoolVar[] sBoxes;
    public final BoolVar[] varsToAssign;
 
+   public final BoolVar[][][] ΔX;
+   public final BoolVar[][][] ΔY;
+   public final BoolVar[][][] ΔZ;
+   public final BoolVar[][][] ΔK;
+
    public AESGlobal(
          int r,
          int objStep1,
@@ -44,12 +49,12 @@ public class AESGlobal {
       this.r = r;
       this.keyBits = keyBits;
 
-      BoolVar[][][] ΔX = em.boolVar("ΔX", r, 4, 4);
-      BoolVar[][][] ΔY = em.boolVar("ΔY/ΔSX", r, 4, 4);
-      BoolVar[][][] ΔZ = new BoolVar[r][4][4];
-      BoolVar[][][] ΔK = em.boolVar("ΔK", r, 4, 5);
+      ΔX = em.boolVar("ΔX", r, 4, 4);
+      ΔY = em.boolVar("ΔY/ΔSX", r, 4, 4);
+      ΔZ = new BoolVar[r][4][4];
+      ΔK = em.boolVar("ΔK", r, 4, 5);
 
-      // ΔY = SR(SBox(ΔX)) \approx SR(ΔX)
+      // ΔY = SR(SBox(ΔX)) = SR(ΔX)
       for (int i = 0; i < r; i++) {
          for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
@@ -153,7 +158,8 @@ public class AESGlobal {
                   em.sum(arrayOf(
                         DY2[0][i1][k1][i2][k2], DY2[1][i1][k1][i2][k2], DY2[2][i1][k1][i2][k2], DY2[3][i1][k1][i2][k2],
                         DZ2[0][i1][k1][i2][k2], DZ2[1][i1][k1][i2][k2], DZ2[2][i1][k1][i2][k2], DZ2[3][i1][k1][i2][k2]),
-                        "=", em.intVar(intArrayOf(0, 5, 6, 7, 8)));
+                        "=", em.intVar(intArrayOf(0, 5, 6, 7, 8))
+                  );
                }
             }
          }
