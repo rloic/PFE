@@ -23,7 +23,7 @@ public class Nothing extends UpdaterList implements IUpdater {
    }
 
    @Override
-   public UpdaterState update(IDancingLinksMatrix matrix, List<Affectation> inferences) { return UpdaterState.DONE; }
+   public UpdaterState update(IDancingLinksMatrix matrix, List<Propagation> inferences) { return UpdaterState.DONE; }
 
    @Override
    public void restore(IDancingLinksMatrix matrix) {}

@@ -8,7 +8,7 @@ import java.util.function.Supplier;
 
 public interface IUpdater {
 
-   UpdaterState update(IDancingLinksMatrix matrix, List<Affectation> inferences);
+   UpdaterState update(IDancingLinksMatrix matrix, List<Propagation> inferences);
 
    void restore(IDancingLinksMatrix matrix);
 
@@ -18,7 +18,7 @@ public interface IUpdater {
          private IUpdater next = null;
 
          @Override
-         public UpdaterState update(IDancingLinksMatrix matrix, List<Affectation> inferences) {
+         public UpdaterState update(IDancingLinksMatrix matrix, List<Propagation> inferences) {
             UpdaterState state = self.update(matrix, inferences);
             if (state != UpdaterState.DONE) {
                return UpdaterState.LATE_FAIL;
@@ -51,7 +51,7 @@ public interface IUpdater {
          private IUpdater next = null;
 
          @Override
-         public UpdaterState update(IDancingLinksMatrix matrix, List<Affectation> inferences) {
+         public UpdaterState update(IDancingLinksMatrix matrix, List<Propagation> inferences) {
             UpdaterState state = self.update(matrix, inferences);
             if (state != UpdaterState.DONE) {
                return UpdaterState.LATE_FAIL;
@@ -84,7 +84,7 @@ public interface IUpdater {
          private IUpdater next = null;
 
          @Override
-         public UpdaterState update(IDancingLinksMatrix matrix, List<Affectation> inferences) {
+         public UpdaterState update(IDancingLinksMatrix matrix, List<Propagation> inferences) {
             UpdaterState state = self.update(matrix, inferences);
             if (state != UpdaterState.DONE) {
                return UpdaterState.LATE_FAIL;

@@ -3,6 +3,7 @@ package com.github.rloic.paper.dancinglinks.actions.impl;
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.actions.Affectation;
 import com.github.rloic.paper.dancinglinks.actions.IUpdater;
+import com.github.rloic.paper.dancinglinks.actions.Propagation;
 import com.github.rloic.paper.dancinglinks.actions.Updater;
 
 import java.util.List;
@@ -18,8 +19,8 @@ public class InferAffectation extends Updater implements IUpdater {
    }
 
    @Override
-   protected void onUpdate(IDancingLinksMatrix matrix, List<Affectation> inferences) {
-      inferences.add(new Affectation(variable, value));
+   protected void onUpdate(IDancingLinksMatrix matrix, List<Propagation> inferences) {
+      inferences.add(new Propagation(variable, value));
    }
 
    @Override

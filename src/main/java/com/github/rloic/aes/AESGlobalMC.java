@@ -10,6 +10,7 @@ import com.github.rloic.wip.WeightedConstraint;
 import com.github.rloic.xorconstraint.BasePropagator;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.solver.Model;
+import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.Variable;
 
@@ -127,8 +128,8 @@ public class AESGlobalMC {
          }
       }
 
-      BoolVar[][][] Δ2Y = em.boolVar("Δ2Y/Diff_1_3", r - 1, 4, 4);
-      BoolVar[][][] Δ3Y = em.boolVar("Δ3Y/Diff_1_2", r - 1, 4, 4);
+      BoolVar[][][] Δ2Y = em.boolVar("Δ2Y/diff_δY_δ3Y", r - 1, 4, 4);
+      BoolVar[][][] Δ3Y = em.boolVar("Δ3Y/diff_δY_δ2Y", r - 1, 4, 4);
 
       for (int i = 0; i <= r - 2; i++) {
          for (int k = 0; k <= 3; k++) {
@@ -144,26 +145,24 @@ public class AESGlobalMC {
          }
       }
 
-      BoolVar[][][][][][] DY1 = new BoolVar[r - 1][4][4][r - 1][4][4];
-      BoolVar[][][][][][] DY2 = new BoolVar[r - 1][4][4][r - 1][4][4];
-      BoolVar[][][][][][] DY3 = new BoolVar[r - 1][4][4][r - 1][4][4];
+      BoolVar[][][][][][] diffδYδY = new BoolVar[r - 1][4][4][r - 1][4][4];
+      BoolVar[][][][][][] diffδ2Yδ2Y = new BoolVar[r - 1][4][4][r - 1][4][4];
+      BoolVar[][][][][][] diffδ3Yδ3Y = new BoolVar[r - 1][4][4][r - 1][4][4];
 
       for (int i1 = 0; i1 < r - 1; i1++) {
          for (int k1 = 0; k1 < 4; k1++) {
-            for (int i2 = i1; i2 < r - 1; i2++) {
-               int firstk2 = 0;
-               if (i2 == i1) firstk2 = k1 + 1;
-               for (int k2 = firstk2; k2 < 4; k2++) {
+            for (int i2 = 0; i2 < r - 1; i2++) {
+               for (int k2 = 0; k2 < 4; k2++) {
                   for (int j1 = 0; j1 < 4; j1++) {
-                     int firstJ2 = 0;
-                     if (k1 == k2 && i1 == i2) firstJ2 = j1 + 1;
-                     for (int j2 = firstJ2; j2 < 4; j2++) {
-                        DY1[i1][j1][k1][i2][j2][k2] = makeDiffOf(ΔY[i1][j1][k1], ΔY[i2][j2][k2]);
-                        DY2[i1][j1][k1][i2][j2][k2] = makeDiffOf(Δ2Y[i1][j1][k1], Δ2Y[i2][j2][k2]);
-                        DY3[i1][j1][k1][i2][j2][k2] = makeDiffOf(Δ3Y[i1][j1][k1], Δ3Y[i2][j2][k2]);
-                        em.equals(DY1[i1][j1][k1][i2][j2][k2], DY2[i1][j1][k1][i2][j2][k2], DY3[i1][j1][k1][i2][j2][k2]);
-                        em.abstractXor(DY1[i1][j1][k1][i2][j2][k2], DY2[i1][j1][k1][i2][j2][k2], DY3[i1][j1][k1][i2][j2][k2]);
-                        em.abstractXor(ΔY[i1][j1][k1], ΔY[i2][j2][k2], DY2[i1][j1][k1][i2][j2][k2]);
+                     for (int j2 = 0; j2 < 4; j2++) {
+                        if (i1 != i2 || j1 != j2 || k1 != k2) {
+                           diffδYδY[i1][j1][k1][i2][j2][k2] = makeDiffOf(ΔY[i1][j1][k1], ΔY[i2][j2][k2]);
+                           diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2] = makeDiffOf(Δ2Y[i1][j1][k1], Δ2Y[i2][j2][k2]);
+                           diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2] = makeDiffOf(Δ3Y[i1][j1][k1], Δ3Y[i2][j2][k2]);
+
+                           em.equals(diffδYδY[i1][j1][k1][i2][j2][k2], diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2], diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2]);
+                           em.abstractXor(diffδYδY[i1][j1][k1][i2][j2][k2], diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2], diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2]);
+                        }
                      }
                   }
                }
@@ -189,9 +188,520 @@ public class AESGlobalMC {
       );
 
       this.m = dm.model;
+
+      BoolVar[][][][][][] diffδYδ2Y = new BoolVar[r - 1][4][4][r - 1][4][4];
+      BoolVar[][][][][][] diffδYδ3Y = new BoolVar[r - 1][4][4][r - 1][4][4];
+      BoolVar[][][][][][] diffδ2Yδ3Y = new BoolVar[r - 1][4][4][r - 1][4][4];
+
+      for (int i1 = 0; i1 < r - 1; i1++) {
+         for (int k1 = 0; k1 < 4; k1++) {
+            for (int i2 = 0; i2 < r - 1; i2++) {
+               for (int k2 = 0; k2 < 4; k2++) {
+                  for (int j1 = 0; j1 < 4; j1++) {
+                     for (int j2 = 0; j2 < 4; j2++) {
+                        if (i1 != i2 || j1 != j2 || k1 != k2) {
+                           diffδYδ2Y[i1][j1][k1][i2][j2][k2] = em.boolVar("diff_δY_δ2Y[" + i1 + "][" + j1 + "][" + k1 + "][" + i2 + "][" + j2 + "][" + k2 + "]");
+                           diffδYδ3Y[i1][j1][k1][i2][j2][k2] = em.boolVar("diff_δY_δ3Y[" + i1 + "][" + j1 + "][" + k1 + "][" + i2 + "][" + j2 + "][" + k2 + "]");
+                           diffδ2Yδ3Y[i1][j1][k1][i2][j2][k2] = em.boolVar("diff_δ2Y_δ3Y[" + i1 + "][" + j1 + "][" + k1 + "][" + i2 + "][" + j2 + "][" + k2 + "]");
+                        }
+                     }
+                  }
+               }
+            }
+         }
+      }
+
+      final int EQUAL = 0;
+      final int DIFFERENT = 1;
+
+      for (int i1 = 0; i1 < r - 1; i1++) {
+         for (int k1 = 0; k1 < 4; k1++) {
+            for (int i2 = 0; i2 < r - 1; i2++) {
+               for (int k2 = 0; k2 < 4; k2++) {
+                  for (int j1 = 0; j1 < 4; j1++) {
+                     for (int j2 = 0; j2 < 4; j2++) {
+                        if (i1 != i2 || j1 != j2 || k1 != k2) {
+                           // ( δY == δY' => δY != δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδY[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ2Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δY == δY' => δ2Y != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδY[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ2Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δY == δY' => δY != δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδY[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δY == δY' => δ3Y != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδY[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ3Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δY == δY' => δ2Y != δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδY[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ2Yδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+                           // ( δY == δY' => δ3Y != δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδY[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ2Yδ3Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δY == δY' => δY == δY') true
+                           // Always true
+
+                           // ( δY == δY' => δ2Y == δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδY[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 equal(diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+
+                           // ( δY == δY' => δ3Y == δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδY[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 equal(diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+
+                           // ( δY == δ2Y' => δY != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδY[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δY == δ2Y' => δY != δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+
+                           // ( δY == δ2Y' => δ3Y != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ3Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δY == δ2Y' => δ2Y != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ2Y[i2][j2][k2][i1][j1][k1])
+                           );
+                           // checked
+
+                           // ( δY == δ2Y' => δ2Y != δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δY == δ2Y' => δ2Y != δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ2Yδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+                           // ( δY == δ2Y' => δ3Y != δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ2Yδ3Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δY == δ2Y' => δ3Y != δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δY == δ3Y' => δY != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδY[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δY == δ3Y' => δY != δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ2Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δY == δ3Y' => δ2Y != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ2Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δY == δ3Y' => δ2Y != δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δY == δ3Y' => δ2Y != δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ2Yδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δY == δ3Y' => δ3Y != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ3Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δY == δ3Y' => δ3Y != δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ2Yδ3Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δY == δ3Y' => δ3Y != δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δY == δ3Y' => δY == δ3Y') true
+                           // Always true
+
+                           // ( δ2Y == δY' => δY != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδYδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ2Y == δ2Y' => δY != δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ2Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ2Y == δ2Y' => δY != δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ2Y == δ2Y' => δ2Y != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ2Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δ2Y == δ2Y' => δ2Y != δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ2Yδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ2Y == δ2Y' => δ3Y != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ3Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δ2Y == δ2Y' => δ3Y != δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ2Yδ3Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δ2Y == δ2Y' => δY == δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδY[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ2Y == δ2Y' => δ2Y == δ2Y') true
+                           // Aways true
+
+                           // ( δ2Y == δ2Y' => δ3Y == δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδY[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ2Y == δ3Y' => δY != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδY[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ2Y == δ3Y' => δY != δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ2Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ2Y == δ3Y' => δY != δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ2Y == δ3Y' => δ2Y != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ2Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δ2Y == δ3Y' => δ2Y != δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ2Y == δ3Y' => δ3Y != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ3Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δ2Y == δ3Y' => δ3Y != δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ2Yδ3Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δ2Y == δ3Y' => δ3Y != δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ2Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ2Y == δ3Y' => δ2Y == δ3Y') true
+                           // Always true
+
+                           // ( δ3Y == δ3Y' => δY != δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ2Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ3Y == δ3Y' => δY != δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ3Y == δ3Y' => δ2Y != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ2Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δ3Y == δ3Y' => δ2Y != δ3Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ2Yδ3Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ3Y == δ3Y' => δ3Y != δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ3Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δ3Y == δ3Y' => δ3Y != δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδ3Y[i2][j2][k2][i1][j1][k1])
+                           );
+
+                           // ( δ3Y == δ3Y' => δY == δY') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδYδY[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ3Y == δ3Y' => δ2Y == δ2Y') true
+                           m.ifThen(
+                                 m.and(
+                                       ΔY[i1][j1][k1],
+                                       areEqual(diffδ3Yδ3Y[i1][j1][k1][i2][j2][k2])
+                                 ),
+                                 different(diffδ2Yδ2Y[i1][j1][k1][i2][j2][k2])
+                           );
+
+                           // ( δ3Y == δ3Y' => δ3Y == δ3Y') true
+                           // Always true
+
+                        }
+                     }
+                  }
+               }
+            }
+         }
+      }
+
       this.constraintsOf = dm.constraintsOf;
       this.propagator = dm.propagator;
 
+   }
+
+   private Constraint equal(BoolVar diff) {
+      return m.arithm(diff, "=", 0);
+   }
+
+   private BoolVar areEqual(BoolVar diff) {
+      return equal(diff).reify();
+   }
+
+   private Constraint different(BoolVar diff) {
+      return m.arithm(diff, "=", 1);
    }
 
    private BoolVar makeDiffOf(BoolVar... vars) {

@@ -1,8 +1,8 @@
 package com.github.rloic.paper.dancinglinks.actions.impl;
 
-import com.github.rloic.paper.dancinglinks.actions.Affectation;
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.actions.IUpdater;
+import com.github.rloic.paper.dancinglinks.actions.Propagation;
 import com.github.rloic.paper.dancinglinks.actions.Updater;
 
 import java.util.List;
@@ -28,7 +28,7 @@ public class XOR extends Updater implements IUpdater {
    }
 
    @Override
-   protected void onUpdate(IDancingLinksMatrix matrix, List<Affectation> inferences) {
+   protected void onUpdate(IDancingLinksMatrix matrix, List<Propagation> inferences) {
       matrix.xor(target, pivot);
    }
 

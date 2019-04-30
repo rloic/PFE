@@ -12,8 +12,12 @@ import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
+import org.chocosolver.solver.learn.ExplanationForSignedClause;
+import org.chocosolver.solver.learn.Implications;
 import org.chocosolver.solver.variables.BoolVar;
+import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.ESat;
+import org.chocosolver.util.objects.ValueSortedMap;
 
 import java.util.*;
 
@@ -68,14 +72,14 @@ public class BasePropagator extends Propagator<BoolVar> {
    @Override
    public void propagate(int evtmask) {
       FullRulesApplier.gauss(matrix);
-      List<Affectation> inferences = new ArrayList<>();
+      List<Propagation> inferences = new ArrayList<>();
       for (Row equation : matrix.activeEquations()) {
          inferences.addAll(engine.infer(matrix, equation.index));
       }
 
       IUpdater updater;
       for (int i = 0; i < inferences.size(); i++) {
-         Affectation inference = inferences.get(i);
+         Propagation inference = inferences.get(i);
          int variable = inference.variable;
          boolean value = inference.value;
 
@@ -104,7 +108,7 @@ public class BasePropagator extends Propagator<BoolVar> {
       if (backTrack()) doBackTrack();
       if (goDeeper()) createSteps();
 
-      Affectation chocoDecision = new Affectation(idxVarInProp, isTrue(vars[idxVarInProp]));
+      Affectation chocoDecision = new Decision(idxVarInProp, isTrue(vars[idxVarInProp]));
       if (!matrix.isUndefined(idxVarInProp)) {
          if (
                (matrix.isTrue(idxVarInProp) && isFalse(vars[idxVarInProp]))
@@ -116,7 +120,7 @@ public class BasePropagator extends Propagator<BoolVar> {
       }
 
       UpdaterList step = commands.peek();
-      List<Affectation> inferences = new ArrayList<>();
+      List<Propagation> inferences = new ArrayList<>();
       IUpdater updater = onPropagate(idxVarInProp, isTrue(vars[idxVarInProp]));
       UpdaterState state = updater.update(matrix, inferences);
 
@@ -132,7 +136,7 @@ public class BasePropagator extends Propagator<BoolVar> {
       }
 
       for (int i = 0; i < inferences.size(); i++) {
-         Affectation inference = inferences.get(i);
+         Propagation inference = inferences.get(i);
          int variable = inference.variable;
          boolean value = inference.value;
 
@@ -282,5 +286,8 @@ public class BasePropagator extends Propagator<BoolVar> {
       return true;
    }
 
-
+   @Override
+   public void explain(ExplanationForSignedClause explanation, ValueSortedMap<IntVar> front, Implications ig, int p) {
+      super.explain(explanation, front, ig, p);
+   }
 }

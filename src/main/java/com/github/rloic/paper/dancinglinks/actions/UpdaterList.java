@@ -46,7 +46,7 @@ public class UpdaterList extends Updater implements IUpdater {
    }
 
    @Override
-   protected void onUpdate(IDancingLinksMatrix matrix, List<Affectation> inferences) {
+   protected void onUpdate(IDancingLinksMatrix matrix, List<Propagation> inferences) {
       for (int i = 0; i < updaters.size(); i++) {
          UpdaterState state = updaters.get(i).update(matrix, inferences);
          switch (state) {

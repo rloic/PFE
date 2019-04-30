@@ -19,7 +19,7 @@ public class ConditionalUpdater implements IUpdater {
    }
 
    @Override
-   public UpdaterState update(IDancingLinksMatrix matrix, List<Affectation> inferences) {
+   public UpdaterState update(IDancingLinksMatrix matrix, List<Propagation> inferences) {
       if(predicate.test(matrix)) {
          leftBranch = true;
          return left.update(matrix, inferences);

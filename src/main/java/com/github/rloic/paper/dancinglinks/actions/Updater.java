@@ -14,10 +14,10 @@ public abstract class Updater implements IUpdater {
       return true;
    }
 
-   protected abstract void onUpdate(IDancingLinksMatrix matrix, List<Affectation> inferences);
+   protected abstract void onUpdate(IDancingLinksMatrix matrix, List<Propagation> inferences);
 
    @Override
-   public UpdaterState update(IDancingLinksMatrix matrix, List<Affectation> inferences) {
+   public UpdaterState update(IDancingLinksMatrix matrix, List<Propagation> inferences) {
       if (!preCondition(matrix)) {
          return UpdaterState.EARLY_FAIL;
       }
