@@ -7,6 +7,9 @@ import com.github.rloic.paper.dancinglinks.actions.Updater;
 
 import java.util.List;
 
+/**
+ * Remove a variable from the matrix
+ */
 public class RemoveVariable extends Updater implements IUpdater {
 
    private final int variable;

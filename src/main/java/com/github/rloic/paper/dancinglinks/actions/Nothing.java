@@ -4,8 +4,11 @@ import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 
 import java.util.List;
 
+/**
+ * The nothing updater.
+ * Performs nothing when applied on a matrix
+ */
 public class Nothing extends UpdaterList implements IUpdater {
-
    public static final Nothing INSTANCE = new Nothing();
 
    private Nothing() {
@@ -13,7 +16,7 @@ public class Nothing extends UpdaterList implements IUpdater {
    }
 
    @Override
-   public void add(IUpdater updater) {
+   public void addUncommitted(IUpdater updater) {
       throw new RuntimeException();
    }
 
@@ -23,7 +26,7 @@ public class Nothing extends UpdaterList implements IUpdater {
    }
 
    @Override
-   public UpdaterState update(IDancingLinksMatrix matrix, List<Propagation> inferences) { return UpdaterState.DONE; }
+   protected void onUpdate(IDancingLinksMatrix matrix, List<Propagation> inferences) {}
 
    @Override
    public void restore(IDancingLinksMatrix matrix) {}

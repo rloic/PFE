@@ -1,14 +1,16 @@
 package com.github.rloic.paper.dancinglinks.actions.impl;
 
-import com.github.rloic.paper.dancinglinks.actions.Affectation;
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
-import com.github.rloic.paper.dancinglinks.actions.Propagation;
-import com.github.rloic.paper.dancinglinks.inferenceengine.InferenceEngine;
 import com.github.rloic.paper.dancinglinks.actions.IUpdater;
+import com.github.rloic.paper.dancinglinks.actions.Propagation;
 import com.github.rloic.paper.dancinglinks.actions.Updater;
+import com.github.rloic.paper.dancinglinks.inferenceengine.InferenceEngine;
 
 import java.util.List;
 
+/**
+ * Does not update the matrix but add all the inferences that could be made for the equation *equation*
+ */
 public class InferFromEquation extends Updater implements IUpdater {
 
    private final int equation;

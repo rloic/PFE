@@ -1,5 +1,9 @@
 package com.github.rloic.common.collections;
 
+/**
+ * The position of a byte in a midori / AES encryption
+ * where is i is the round of the byte, j is its row and k its column
+ */
 public class BytePosition {
 
     public final int i;

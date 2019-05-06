@@ -8,6 +8,10 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.Arrays;
 import java.util.function.Predicate;
 
+/**
+ * XOR equations representation using the DancingLinks structure
+ * Knuth, Donald E. ‘Dancing Links’. ArXiv:Cs/0011047, 14 November 2000. http://arxiv.org/abs/cs/0011047.
+ */
 public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    private static byte UNDEFINED = 0;

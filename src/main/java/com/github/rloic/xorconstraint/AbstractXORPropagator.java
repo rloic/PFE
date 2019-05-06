@@ -8,6 +8,7 @@ import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
 import com.github.rloic.paper.dancinglinks.cell.Row;
 import com.github.rloic.paper.dancinglinks.impl.DancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.cell.Data;
+import it.unimi.dsi.fastutil.ints.IntList;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
@@ -23,18 +24,40 @@ import java.util.*;
 
 import static com.github.rloic.paper.dancinglinks.actions.UpdaterState.DONE;
 
-public class BasePropagator extends Propagator<BoolVar> {
+/**
+ * The propagator for the global constraint abstract XOR
+ * The abstract xor operation is defined by the truth table
+ *
+ * A     B     A absXor B
+ * 0     0     0
+ * 0     1     1
+ * 1     0     1
+ * 1     0     0 or 1
+ *
+ */
+public class AbstractXORPropagator extends Propagator<BoolVar> {
 
+   /* The solver */
    private final Solver solver;
-   private final Stack<UpdaterList> commands;
-   public final IDancingLinksMatrix matrix;
-   public final Map<BoolVar, Integer> indexOf;
-   private final InferenceEngine engine;
-   private final RulesApplier rulesApplier;
-   private long backTrackCount = 0L;
-   private long currentDepth = 0L;
 
-   public BasePropagator(
+   /* The commands applied on the state matrix */
+   private final Stack<UpdaterList> commands;
+
+   /* The matrix that represents the abstract xor system */
+   public final IDancingLinksMatrix matrix;
+
+   /* The variable column of a BoolVar in the matrix */
+   public final Map<BoolVar, Integer> indexOf;
+
+   /* The inference engine (it computes implications) */
+   private final InferenceEngine engine;
+
+   /* The rules applier (it manipulates the matrix) */
+   private final RulesApplier rulesApplier;
+
+   private long backTrackCount = 0L;
+
+   public AbstractXORPropagator(
          BoolVar[] vars,
          BoolVar[][] xors,
          InferenceEngine engine,
@@ -43,6 +66,8 @@ public class BasePropagator extends Propagator<BoolVar> {
    ) {
       super(vars, PropagatorPriority.CUBIC, true);
       this.commands = new Stack<>();
+      commands.push(new UpdaterList());
+
       this.engine = engine;
       this.rulesApplier = rulesApplier;
       this.solver = solver;
@@ -63,7 +88,6 @@ public class BasePropagator extends Propagator<BoolVar> {
       matrix = new DancingLinksMatrix(equations, lastIndex);
    }
 
-
    @Override
    public int arity() {
       return matrix.numberOfUndefinedVariables();
@@ -71,21 +95,21 @@ public class BasePropagator extends Propagator<BoolVar> {
 
    @Override
    public void propagate(int evtmask) {
-      FullRulesApplier.gauss(matrix);
-      List<Propagation> inferences = new ArrayList<>();
+      RulesApplier.gauss(matrix);
+      List<Propagation> propagations = new ArrayList<>();
       for (Row equation : matrix.activeEquations()) {
-         inferences.addAll(engine.infer(matrix, equation.index));
+         propagations.addAll(engine.infer(matrix, equation.index));
       }
 
       IUpdater updater;
-      for (int i = 0; i < inferences.size(); i++) {
-         Propagation inference = inferences.get(i);
+      for (int i = 0; i < propagations.size(); i++) {
+         Propagation inference = propagations.get(i);
          int variable = inference.variable;
          boolean value = inference.value;
 
          if (matrix.isUndefined(variable)) {
-            updater = onPropagate(inference.variable(), inference.value());
-            UpdaterState status = updater.update(matrix, inferences);
+            updater = onPropagate(variable, value);
+            UpdaterState status = updater.update(matrix, propagations);
             assert status == DONE;
          }
          assert (matrix.isTrue(variable) && value) || (matrix.isFalse(variable) && !value);
@@ -93,9 +117,9 @@ public class BasePropagator extends Propagator<BoolVar> {
 
       assert checkState(matrix);
 
-      for (Affectation affectation : inferences) {
+      for (Propagation propagation : propagations) {
          try {
-            affectation.propagate(vars, this);
+            propagation.propagate(vars, this);
          } catch (ContradictionException contradiction) {
             throw new RuntimeException(contradiction);
          }
@@ -105,67 +129,85 @@ public class BasePropagator extends Propagator<BoolVar> {
 
    @Override
    public void propagate(int idxVarInProp, int mask) throws ContradictionException {
+      List<Propagation> propagations = synchronize(idxVarInProp);
+      for(Propagation propagation : propagations) {
+         // Will propagate to inferences through Choco
+         propagation.propagate(vars, this);
+      }
+   }
+
+   private List<Propagation> synchronize(int idxVarInProp) throws ContradictionException {
+      // Rollback matrix state if needed
       if (backTrack()) doBackTrack();
+      // Create a new step (depth level) each time a new decision is make
       if (goDeeper()) createSteps();
 
-      Affectation chocoDecision = new Decision(idxVarInProp, isTrue(vars[idxVarInProp]));
+      Affectation externalAffectation = new Affectation(idxVarInProp, isTrue(vars[idxVarInProp]));
       if (!matrix.isUndefined(idxVarInProp)) {
-         if (
-               (matrix.isTrue(idxVarInProp) && isFalse(vars[idxVarInProp]))
-                     || (matrix.isFalse(idxVarInProp) && isTrue(vars[idxVarInProp]))
-         ) {
-            throw new ContradictionException().set(this, vars[idxVarInProp], "Invalid: " + chocoDecision.toString());
+         if (isIncoherent(idxVarInProp)) {
+            failBecauseOf(idxVarInProp, externalAffectation);
+         } else {
+            return Collections.emptyList();
          }
-         return;
       }
 
+      assert commands.size() == solver.getCurrentDepth() + 1;
       UpdaterList step = commands.peek();
-      List<Propagation> inferences = new ArrayList<>();
+      List<Propagation> propagations = new ArrayList<>();
       IUpdater updater = onPropagate(idxVarInProp, isTrue(vars[idxVarInProp]));
-      UpdaterState state = updater.update(matrix, inferences);
+      UpdaterState state = updater.update(matrix, propagations);
 
       switch (state) {
          case DONE:
             step.addCommitted(updater);
             break;
          case EARLY_FAIL:
-            throw new ContradictionException().set(this, vars[idxVarInProp], "Invalid: " + chocoDecision.toString());
+            failBecauseOf(idxVarInProp, externalAffectation);
          case LATE_FAIL:
             updater.restore(matrix);
-            throw new ContradictionException().set(this, vars[idxVarInProp], "Invalid: " + chocoDecision.toString());
+            failBecauseOf(idxVarInProp, externalAffectation);
       }
 
-      for (int i = 0; i < inferences.size(); i++) {
-         Propagation inference = inferences.get(i);
-         int variable = inference.variable;
-         boolean value = inference.value;
+      for (int i = 0; i < propagations.size(); i++) {
+         int variable = propagations.get(i).variable;
+         boolean value = propagations.get(i).value;
 
          if (matrix.isUndefined(variable)) {
-            updater = onPropagate(inference.variable(), inference.value());
-            UpdaterState status = updater.update(matrix, inferences);
-            assert status == DONE;
+            updater = onPropagate(variable, value);
+            if (updater.update(matrix, propagations) != DONE) {
+               throw new RuntimeException("Incoherent inference for " + updater.toString());
+            }
             step.addCommitted(updater);
+         } else { // the variable is already instantiated by Choco
+            if (isIncoherent(variable)) {
+               failBecauseOf(variable, externalAffectation);
+            }
          }
-         assert (matrix.isTrue(variable) && value) || (matrix.isFalse(variable) && !value);
       }
 
       assert checkState(matrix);
-
-      for (Affectation affectation : inferences) {
-         affectation.propagate(vars, this);
-      }
+      return propagations;
    }
 
    @Override
    public ESat isEntailed() {
-      for (int variable : matrix.unassignedVars()) {
+       IntList unassignedVars = matrix.unassignedVars();
+      for (int variable : unassignedVars) {
          try {
-            propagate(variable, 0);
+            synchronize(variable);
          } catch (ContradictionException c) {
             return ESat.FALSE;
          }
       }
       return ESat.TRUE;
+   }
+
+   private boolean isIncoherent(int variable) {
+      return (matrix.isTrue(variable) && isFalse(vars[variable])) || (matrix.isFalse(variable) && isTrue(vars[variable]));
+   }
+
+   private void failBecauseOf(int variable, Affectation affectation) throws ContradictionException {
+      throw new ContradictionException().set(this, vars[variable], "Invalid: " + affectation.toString());
    }
 
    private boolean backTrack() {
@@ -177,25 +219,17 @@ public class BasePropagator extends Propagator<BoolVar> {
    }
 
    private void doBackTrack() {
-      currentDepth = solver.getCurrentDepth() - 1;
-      while (commands.size() > currentDepth) {
-         if(commands.isEmpty()) {
-            throw new RuntimeException();
-         }
+      while (commands.size() != solver.getCurrentDepth()) {
          commands.pop().restore(matrix);
       }
    }
 
    private boolean goDeeper() {
-      if (currentDepth < solver.getCurrentDepth()) {
-         currentDepth = solver.getCurrentDepth();
-         return true;
-      }
-      return false;
+      return commands.size() < solver.getCurrentDepth() + 1;
    }
 
    private void createSteps() {
-      while (commands.size() < currentDepth - 1) {
+      while (commands.size() < solver.getCurrentDepth()) {
          commands.add(Nothing.INSTANCE);
       }
       commands.add(new UpdaterList());
@@ -286,8 +320,4 @@ public class BasePropagator extends Propagator<BoolVar> {
       return true;
    }
 
-   @Override
-   public void explain(ExplanationForSignedClause explanation, ValueSortedMap<IntVar> front, Implications ig, int p) {
-      super.explain(explanation, front, ig, p);
-   }
 }

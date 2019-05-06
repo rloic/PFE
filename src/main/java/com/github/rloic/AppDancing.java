@@ -1,13 +1,12 @@
 package com.github.rloic;
 
-import com.github.rloic.aes.EnumFilter;
+import com.github.rloic.filter.EnumFilter;
 import com.github.rloic.aes.GlobalXOR;
 import com.github.rloic.aes.KeyBits;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.variables.BoolVar;
 
-import static com.github.rloic.aes.KeyBits.AES128.AES_128;
 import static com.github.rloic.aes.KeyBits.AES256.AES_256;
 
 public class AppDancing {

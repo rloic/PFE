@@ -1,7 +1,7 @@
 package com.github.rloic.strategy;
 
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
-import com.github.rloic.xorconstraint.BasePropagator;
+import com.github.rloic.xorconstraint.AbstractXORPropagator;
 import org.chocosolver.solver.search.strategy.assignments.DecisionOperatorFactory;
 import org.chocosolver.solver.search.strategy.decision.Decision;
 import org.chocosolver.solver.search.strategy.selectors.values.IntValueSelector;
@@ -10,7 +10,6 @@ import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,7 +23,7 @@ public class Deg extends AbstractStrategy<IntVar> {
    public Deg(
          IntVar[] variables,
          IntValueSelector valueSelector,
-         BasePropagator propagator
+         AbstractXORPropagator propagator
    ) {
       super(variables);
       this.valueSelector = valueSelector;

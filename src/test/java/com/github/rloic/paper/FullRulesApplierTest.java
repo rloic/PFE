@@ -2,19 +2,19 @@ package com.github.rloic.paper;
 
 import com.github.rloic.util.Logger;
 import com.github.rloic.util.Pair;
-import com.github.rloic.xorconstraint.GlobalXorPropagator;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
-import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.github.rloic.util.Logger.TraceLogger.TRACE;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FullRulesApplierTest {
 

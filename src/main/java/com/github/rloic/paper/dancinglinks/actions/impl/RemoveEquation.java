@@ -7,6 +7,10 @@ import com.github.rloic.paper.dancinglinks.actions.Updater;
 
 import java.util.List;
 
+/**
+ * Remove the equation from the matrix
+ * preCondition:
+ */
 public class RemoveEquation extends Updater implements IUpdater {
 
    private final int equation;
@@ -17,8 +21,8 @@ public class RemoveEquation extends Updater implements IUpdater {
 
    @Override
    protected boolean preCondition(IDancingLinksMatrix matrix) {
-      assert matrix.isEmpty(equation) || matrix.nbUnknowns(equation) == 0;
-      return true;
+      return matrix.isEmpty(equation) || matrix.nbUnknowns(equation) == 0;
+      // return true;
    }
 
    @Override

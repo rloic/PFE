@@ -1,7 +1,6 @@
 package com.github.rloic.benchmark.impl;
 
-import com.github.rloic.aes.AdvancedModelPaper;
-import com.github.rloic.aes.EnumFilter;
+import com.github.rloic.filter.EnumFilter;
 import com.github.rloic.benchmark.Experiment;
 import com.github.rloic.benchmark.Implementation;
 import com.github.rloic.wip.AdvancedModelPaperWithGlobalXOR;

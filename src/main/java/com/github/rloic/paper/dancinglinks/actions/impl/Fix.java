@@ -8,6 +8,9 @@ import com.github.rloic.paper.dancinglinks.cell.Data;
 
 import java.util.List;
 
+/**
+ * Transform M into M' such as M' = M[variable / value]
+ */
 public class Fix extends Updater implements IUpdater {
 
    private final int variable;

@@ -1,5 +1,7 @@
 package com.github.rloic.midori;
 
+import com.github.rloic.xorconstraint.ByteXORPropagator;
+import com.github.rloic.xorconstraint.SBoxPropagator;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Constraint;
@@ -88,40 +90,40 @@ public class MidoriChecker {
 
       for (int i = 0; i < 3 - 1; i++) {
          DY[i][0][0] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][0][0], DY[i][0][0])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][0][0], DY[i][0][0])));
          DY[i][1][0] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][2][2], DY[i][1][0])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][2][2], DY[i][1][0])));
          DY[i][2][0] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][1][1], DY[i][2][0])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][1][1], DY[i][2][0])));
          DY[i][3][0] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][3][3], DY[i][3][0])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][3][3], DY[i][3][0])));
 
          DY[i][0][1] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][2][3], DY[i][0][1])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][2][3], DY[i][0][1])));
          DY[i][1][1] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][0][1], DY[i][1][1])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][0][1], DY[i][1][1])));
          DY[i][2][1] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][3][2], DY[i][2][1])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][3][2], DY[i][2][1])));
          DY[i][3][1] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][1][0], DY[i][3][1])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][1][0], DY[i][3][1])));
 
          DY[i][0][2] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][1][2], DY[i][0][2])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][1][2], DY[i][0][2])));
          DY[i][1][2] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][3][0], DY[i][1][2])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][3][0], DY[i][1][2])));
          DY[i][2][2] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][0][3], DY[i][2][2])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][0][3], DY[i][2][2])));
          DY[i][3][2] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][2][1], DY[i][3][2])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][2][1], DY[i][3][2])));
 
          DY[i][0][3] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][3][1], DY[i][0][3])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][3][1], DY[i][0][3])));
          DY[i][1][3] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][1][3], DY[i][1][3])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][1][3], DY[i][1][3])));
          DY[i][2][3] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][2][0], DY[i][2][3])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][2][0], DY[i][2][3])));
          DY[i][3][3] = m.intVar(0, 255);
-         m.post(new Constraint("SBox", new SBox(DX[i][0][2], DY[i][3][3])));
+         m.post(new Constraint("SBoxPropagator", new SBoxPropagator(DX[i][0][2], DY[i][3][3])));
       }
 
       for (int i = 0; i < 3 - 1; i++) {
@@ -152,7 +154,7 @@ public class MidoriChecker {
    }
 
    private static void xor(Model m, IntVar... variables) {
-      m.post(new Constraint("XOR Byte", new ByteXOR(variables)));
+      m.post(new Constraint("XOR Byte", new ByteXORPropagator(variables)));
    }
 
    private static void println(IntVar... variables) {

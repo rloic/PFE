@@ -4,6 +4,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
 
+/**
+ * A column header in the DancingLinks structure
+ */
 public class Column extends Header {
 
    public final int index;

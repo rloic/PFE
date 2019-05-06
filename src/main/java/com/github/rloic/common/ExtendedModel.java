@@ -1,12 +1,12 @@
 package com.github.rloic.common;
 
 import com.github.rloic.common.abstraction.MathSet;
-import com.github.rloic.midori.ByteXOR;
+import com.github.rloic.xorconstraint.ByteXORPropagator;
 import com.github.rloic.paper.dancinglinks.inferenceengine.InferenceEngine;
 import com.github.rloic.paper.dancinglinks.rulesapplier.RulesApplier;
 import com.github.rloic.util.Logger;
 import com.github.rloic.wip.WeightedConstraint;
-import com.github.rloic.xorconstraint.BasePropagator;
+import com.github.rloic.xorconstraint.AbstractXORPropagator;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.solver.Model;
@@ -18,12 +18,18 @@ import org.chocosolver.solver.variables.Variable;
 
 import java.util.*;
 
+/**
+ * Extended model designed for AbstractXOR problems with utility methods
+ */
 public class ExtendedModel {
 
+   /* The true model */
    private Model delegate;
+
+   /* Weighted constraint for custom WDeg */
    private final Int2ObjectMap<List<WeightedConstraint>> constraintsOf = new Int2ObjectArrayMap<>();
 
-   private final List<BoolVar> globalXorElements = new ArrayList<>();
+   private final List<BoolVar> globalXorVariables = new ArrayList<>();
    private final List<BoolVar[]> globalXorEquations = new ArrayList<>();
 
    public ExtendedModel(String name) {
@@ -69,15 +75,15 @@ public class ExtendedModel {
       for (BoolVar var : equation) {
          constraintsOf.get(var.getId()).add(xorConstraint);
 
-         if (!globalXorElements.contains(var)) {
-            globalXorElements.add(var);
+         if (!globalXorVariables.contains(var)) {
+            globalXorVariables.add(var);
          }
       }
       globalXorEquations.add(equation);
    }
 
    public void byteXor(IntVar... equation) {
-      delegate.post(new Constraint("Realisation XOR", new ByteXOR(equation)));
+      delegate.post(new Constraint("Realisation XOR", new ByteXORPropagator(equation)));
    }
 
    public void equals(BoolVar lhs, BoolVar rhs) {
@@ -90,7 +96,6 @@ public class ExtendedModel {
    }
 
    public void equals(BoolVar... vars) {
-
       for(int i = 0; i < vars.length; i++) {
          for (int j = i + 1; j < vars.length; j++) {
             WeightedConstraint equalityConstraint = new WeightedConstraint<>(new BoolVar[]{vars[i], vars[j]}, this::oneDifferent);
@@ -111,13 +116,11 @@ public class ExtendedModel {
    }
 
    private void post(Constraint constraint, Variable[] variables, Variable... other) {
-      constraint.post();
-      WeightedConstraint<Variable> wConstraint = WeightedConstraint.wrap(constraint);
-      for(Variable v : variables) {
-         constraintsOf.get(v.getId()).add(wConstraint);
-      }
+      WeightedConstraint<Variable> wConstraint = post(constraint, variables);
       for (Variable v: other) {
-         constraintsOf.get(v.getId()).add(wConstraint);
+         if (constraintsOf.containsKey(v.getId())) {
+            constraintsOf.get(v.getId()).add(wConstraint);
+         }
       }
    }
 
@@ -127,6 +130,11 @@ public class ExtendedModel {
    }
 
    public void sum(IntVar[] sum, String operator, IntVar value) {
+      Constraint cSum  = delegate.sum(sum, operator, value);
+      post(cSum, sum, value);
+   }
+
+   public void sum(IntVar[] sum, String operator, int value) {
       Constraint cSum  = delegate.sum(sum, operator, value);
       post(cSum, sum);
    }
@@ -173,14 +181,14 @@ public class ExtendedModel {
    }
 
    public DeconstructedModel build(InferenceEngine inferenceEngine, RulesApplier rulesApplier) {
-      if (globalXorElements.size() != 0) {
-         BoolVar[] vars = new BoolVar[globalXorElements.size()];
-         globalXorElements.toArray(vars);
+      if (globalXorVariables.size() != 0) {
+         BoolVar[] vars = new BoolVar[globalXorVariables.size()];
+         globalXorVariables.toArray(vars);
 
          BoolVar[][] xors = new BoolVar[globalXorEquations.size()][];
          globalXorEquations.toArray(xors);
 
-         BasePropagator propagator = new BasePropagator(
+         AbstractXORPropagator propagator = new AbstractXORPropagator(
                vars,
                xors,
                inferenceEngine,

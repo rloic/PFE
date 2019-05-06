@@ -1,9 +1,13 @@
-package com.github.rloic.aes;
+package com.github.rloic.filter;
 
+import org.chocosolver.sat.PropNogoods;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.search.loop.monitors.IMonitorSolution;
 import org.chocosolver.solver.variables.BoolVar;
 
+/**
+ * Force results to have different SBoxes
+ */
 public class EnumFilter implements IMonitorSolution {
 
     private final Model m;

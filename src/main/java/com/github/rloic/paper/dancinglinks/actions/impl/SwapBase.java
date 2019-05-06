@@ -7,6 +7,9 @@ import com.github.rloic.paper.dancinglinks.actions.Updater;
 
 import java.util.List;
 
+/**
+ * Change the base variable from oldBaseVar to newBaseVar
+ */
 public class SwapBase extends Updater implements IUpdater {
 
    private final int oldBaseVar;

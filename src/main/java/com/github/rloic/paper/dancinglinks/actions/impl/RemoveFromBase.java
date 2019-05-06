@@ -8,6 +8,9 @@ import com.github.rloic.paper.dancinglinks.actions.Updater;
 
 import java.util.List;
 
+/**
+ * Remove a variable from the list of bases of the matrix
+ */
 public class RemoveFromBase extends Updater implements IUpdater {
 
    private final int base;

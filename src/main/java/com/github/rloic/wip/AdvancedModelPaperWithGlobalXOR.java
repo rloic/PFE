@@ -8,7 +8,7 @@ import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEng
 import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
 import com.github.rloic.util.Logger;
 import com.github.rloic.util.Pair;
-import com.github.rloic.xorconstraint.BasePropagator;
+import com.github.rloic.xorconstraint.AbstractXORPropagator;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
@@ -71,7 +71,7 @@ public class AdvancedModelPaperWithGlobalXOR {
         m.post(
               new Constraint(
                     "GlobalXor",
-                    new BasePropagator(vars, eqs, new FullInferenceEngine(), new FullRulesApplier(), m.getSolver())
+                    new AbstractXORPropagator(vars, eqs, new FullInferenceEngine(), new FullRulesApplier(), m.getSolver())
               )
         );
 

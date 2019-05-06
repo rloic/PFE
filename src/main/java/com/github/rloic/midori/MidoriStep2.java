@@ -115,7 +115,7 @@ public class MidoriStep2 {
             ark(δX[i + 1], δZ[i], δK[0]);
          }
       }
-      // δX[r-1] = SBox(δSX[r-1]) with a probability wrap p[i]
+      // δX[r-1] = SBoxPropagator(δSX[r-1]) with a probability wrap p[i]
       sBox(δX[r - 1], δSX[r - 1], probabilities[r - 1]);
       // δCipherText = δSX[r - 1] xor δWK
       ark(δCipherText, δSX[r - 1], δWK);

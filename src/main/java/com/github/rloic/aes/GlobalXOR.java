@@ -7,14 +7,12 @@ import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEng
 import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
 import com.github.rloic.util.Logger;
 import com.github.rloic.util.Pair;
-import com.github.rloic.xorconstraint.BasePropagator;
+import com.github.rloic.xorconstraint.AbstractXORPropagator;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
-import org.chocosolver.solver.variables.IntVar;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.github.rloic.aes.KeyBits.AES128.AES_128;
 import static com.github.rloic.aes.KeyBits.AES192.AES_192;
@@ -34,7 +32,7 @@ public class GlobalXOR {
    private final List<BoolVar> variables = new ArrayList<>();
    private final List<BoolVar[]> equations = new ArrayList<>();
 
-   public final BasePropagator propagator;
+   public final AbstractXORPropagator propagator;
 
    public GlobalXOR(
          int r,
@@ -130,7 +128,7 @@ public class GlobalXOR {
       BoolVar[][] eqs = new BoolVar[equations.size()][];
       equations.toArray(eqs);
 
-      this.propagator = new BasePropagator(
+      this.propagator = new AbstractXORPropagator(
             vars,
             eqs,
             new FullInferenceEngine(),

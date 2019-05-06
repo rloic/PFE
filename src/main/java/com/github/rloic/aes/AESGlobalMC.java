@@ -7,7 +7,7 @@ import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEng
 import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
 import com.github.rloic.util.Pair;
 import com.github.rloic.wip.WeightedConstraint;
-import com.github.rloic.xorconstraint.BasePropagator;
+import com.github.rloic.xorconstraint.AbstractXORPropagator;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
@@ -31,7 +31,7 @@ public class AESGlobalMC {
    private final KeyBits keyBits;
 
    public final Model m;
-   public final BasePropagator propagator;
+   public final AbstractXORPropagator propagator;
    public final Int2ObjectMap<List<WeightedConstraint>> constraintsOf;
 
    public final BoolVar[] sBoxes;
@@ -56,7 +56,7 @@ public class AESGlobalMC {
       ΔZ = new BoolVar[r][4][4];
       ΔK = em.boolVar("ΔK", r, 4, 5);
 
-      // ΔY = SR(SBox(ΔX)) \approx SR(ΔX)
+      // ΔY = SR(SBoxPropagator(ΔX)) \approx SR(ΔX)
       for (int i = 0; i < r; i++) {
          for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {

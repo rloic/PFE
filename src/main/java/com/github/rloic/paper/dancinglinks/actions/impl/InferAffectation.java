@@ -8,6 +8,9 @@ import com.github.rloic.paper.dancinglinks.actions.Updater;
 
 import java.util.List;
 
+/**
+ * Does not update the matrix, but add a new propagation variable <- value to the inferences list
+ */
 public class InferAffectation extends Updater implements IUpdater {
 
    private final int variable;

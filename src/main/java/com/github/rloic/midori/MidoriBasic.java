@@ -1,13 +1,8 @@
 package com.github.rloic.midori;
 
-import com.github.rloic.xorconstraint.BasePropagator;
 import org.chocosolver.solver.Model;
-import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class MidoriBasic {
 

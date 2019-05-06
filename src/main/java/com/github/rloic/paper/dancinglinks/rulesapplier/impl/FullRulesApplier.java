@@ -10,8 +10,6 @@ import com.github.rloic.paper.dancinglinks.inferenceengine.InferenceEngine;
 import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEngine;
 import com.github.rloic.paper.dancinglinks.rulesapplier.RulesApplier;
 import it.unimi.dsi.fastutil.Function;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
 
 public class FullRulesApplier implements RulesApplier {
 
@@ -72,7 +70,7 @@ public class FullRulesApplier implements RulesApplier {
                            && m.nbTrues(eqCell.equation) == m.nbTrues(pivot) - 1
                            && m.sameOffBaseVariables(eqCell.equation, pivot)
                ) {
-                  sameVar.add(assignation(baseVariableOfEquation, true));
+                  sameVar.addUncommitted(assignation(baseVariableOfEquation, true));
                }
             }
             return sameVar.isNotEmpty() ? sameVar : Nothing.INSTANCE;
@@ -89,7 +87,7 @@ public class FullRulesApplier implements RulesApplier {
    final IUpdater inferForAllEquationsOf(IDancingLinksMatrix matrix, int variable) {
       UpdaterList updaterList = new UpdaterList("inferForAllEquations");
       for (Data it : matrix.equationsOf(variable)) {
-         updaterList.add(infer(it.equation));
+         updaterList.addUncommitted(infer(it.equation));
       }
       return updaterList.isNotEmpty() ? updaterList : Nothing.INSTANCE;
    }
@@ -98,8 +96,8 @@ public class FullRulesApplier implements RulesApplier {
       UpdaterList updaterList = new UpdaterList("xorAndInferForAllEquations");
       for (Data it : matrix.equationsOf(variable)) {
          if (it.equation != pivot) {
-            updaterList.add(xor(it.equation, pivot));
-            updaterList.add(infer(it.equation));
+            updaterList.addUncommitted(xor(it.equation, pivot));
+            updaterList.addUncommitted(infer(it.equation));
          }
       }
       return updaterList.isNotEmpty() ? updaterList : Nothing.INSTANCE;
@@ -133,7 +131,7 @@ public class FullRulesApplier implements RulesApplier {
                                     && m.nbTrues(target) == m.nbTrues(pivot) - 1
                                     && m.sameOffBaseVariables(target, pivot)
                         ) {
-                           updaters.add(assignation(targetBaseVar, true));
+                           updaters.addUncommitted(assignation(targetBaseVar, true));
                         }
                      }
                   } else {
@@ -147,7 +145,7 @@ public class FullRulesApplier implements RulesApplier {
                                     && m.nbTrues(target) == m.nbTrues(pivot) + 1
                                     && m.sameOffBaseVariables(target, pivot)
                         ) {
-                           updaters.add(assignation(base, true));
+                           updaters.addUncommitted(assignation(base, true));
                            break;
                         }
                      }
@@ -183,48 +181,6 @@ public class FullRulesApplier implements RulesApplier {
       return new XOR(target, pivot);
    }
 
-   public static void gauss(IDancingLinksMatrix m) {
-      boolean[] isPivot = new boolean[m.nbEquations()];
-      boolean[] hadAOne = new boolean[m.nbEquations()];
-      IntList conflicts = new IntArrayList();
 
-      for (int variable = 0; variable < m.nbVariables(); variable++) {
-         conflicts.clear();
-         for (Data it : m.equationsOf(variable)) {
-            if (!isPivot[it.equation] && !hadAOne[it.equation] && !m.isBase(variable)) {
-               m.setBase(it.equation, variable);
-               isPivot[it.equation] = true;
-            } else {
-               conflicts.add(it.equation);
-            }
-         }
-
-         if (m.isBase(variable)) {
-            int pivot = m.pivotOf(variable);
-            for (int target : conflicts) {
-               m.xor(target, pivot);
-               if (!isPivot[target]) {
-                  hadAOne[target] = hasAOne(m, target, variable);
-               }
-            }
-         }
-      }
-
-      for (int equation = 0; equation < m.nbEquations(); equation++) {
-         if (m.nbUnknowns(equation) == 0) {
-            m.removeEquation(equation);
-         }
-      }
-
-   }
-
-   private static boolean hasAOne(IDancingLinksMatrix m, int equation, int column) {
-      for (Data cell : m.variablesOf(equation)) {
-         if ((m.isTrue(cell.equation, cell.variable) || m.isUnknown(cell.equation, cell.variable)) && cell.variable < column) {
-            return true;
-         }
-      }
-      return false;
-   }
 
 }

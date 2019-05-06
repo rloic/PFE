@@ -1,5 +1,6 @@
 package com.github.rloic.aes;
 
+import com.github.rloic.filter.EnumFilter;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.variables.BoolVar;
 import org.junit.jupiter.api.Assertions;

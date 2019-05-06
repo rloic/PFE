@@ -1,7 +1,7 @@
 package com.github.rloic.strategy;
 
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
-import com.github.rloic.xorconstraint.BasePropagator;
+import com.github.rloic.xorconstraint.AbstractXORPropagator;
 import org.chocosolver.solver.search.strategy.assignments.DecisionOperatorFactory;
 import org.chocosolver.solver.search.strategy.decision.Decision;
 import org.chocosolver.solver.search.strategy.selectors.values.IntValueSelector;
@@ -21,7 +21,7 @@ public class DDeg extends AbstractStrategy<IntVar> {
    public DDeg(
          IntVar[] variables,
          IntValueSelector valueSelector,
-         BasePropagator propagator
+         AbstractXORPropagator propagator
    ) {
       super(variables);
       this.valueSelector = valueSelector;

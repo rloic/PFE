@@ -13,14 +13,28 @@ public class MidoriAdvanced {
    public final BoolVar[] sBoxes;
    public final BoolVar[] assignedVar;
 
+   public final IntVar[] nbActives;
+
    public MidoriAdvanced(
          int r,
          int objStep1
    ) {
       this.m = new Model("Midori Advanced");
 
-      BoolVar[][][] ΔX = new BoolVar[r][][];
-      for (int i = 0; i < r; i++) ΔX[i] = m.boolVarMatrix(4, 4);
+      nbActives = m.intVarArray(r, 0, objStep1);
+
+      BoolVar[][][] ΔX = new BoolVar[r][4][4];
+      for (int i = 0; i < r; i++) {
+         IntVar[] currentRound = new IntVar[16];
+         int cpt = 0;
+         for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+               ΔX[i][j][k] = m.boolVar();
+               currentRound[cpt++] = ΔX[i][j][k];
+            }
+         }
+         m.sum(currentRound, "=", nbActives[i]).post();
+      }
       BoolVar[][][] ΔY = new BoolVar[r - 1][4][4];
       BoolVar[][][] ΔZ = new BoolVar[r - 1][][];
       for (int i = 0; i < r - 1; i++) ΔZ[i] = m.boolVarMatrix(4, 4);
@@ -90,7 +104,8 @@ public class MidoriAdvanced {
             }
          }
       }
-      m.sum(sBoxes, "=", objStep1).post();
+
+      m.sum(nbActives, "=", objStep1).post();
       assignedVar = new BoolVar[r * 4 * 4];
       cpt = 0;
       for (int i = 0; i < r - 1; i++) {

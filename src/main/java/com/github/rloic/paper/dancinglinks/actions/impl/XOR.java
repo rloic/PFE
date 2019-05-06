@@ -7,6 +7,9 @@ import com.github.rloic.paper.dancinglinks.actions.Updater;
 
 import java.util.List;
 
+/**
+ * Transform the matrix M into M' such as M[
+ */
 public class XOR extends Updater implements IUpdater {
 
    private final int target;

@@ -6,6 +6,9 @@ import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * An updater list
+ */
 public class UpdaterList extends Updater implements IUpdater {
 
    private final List<IUpdater> updaters;
@@ -22,10 +25,19 @@ public class UpdaterList extends Updater implements IUpdater {
       this.name = name;
    }
 
-   public void add(IUpdater updater) {
+   /**
+    * Add a new updater to the updater list. The updater must not be committed
+    * @param updater The updater to add
+    */
+   public void addUncommitted(IUpdater updater) {
       updaters.add(updater);
    }
 
+   /**
+    * Add a new updater to the updater list. The updated must be committed and all the previous
+    * updaters from the updater list must be committed too.
+    * @param updater The updater to add
+    */
    public void addCommitted(IUpdater updater) {
       if(lastCommitted != updaters.size() - 1) throw new RuntimeException("Non previous committed updates");
       updaters.add(updater);

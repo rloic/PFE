@@ -1,6 +1,7 @@
 package com.github.rloic;
 
 import com.github.rloic.aes.*;
+import com.github.rloic.filter.EnumFilter;
 import com.github.rloic.util.Logger;
 import org.apache.commons.cli.*;
 import org.chocosolver.solver.Model;

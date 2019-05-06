@@ -1,16 +1,11 @@
 package com.github.rloic.benchmark.impl;
 
 import com.github.rloic.aes.AESGlobal;
-import com.github.rloic.aes.AESGlobalMC;
-import com.github.rloic.strategy.CustomDomOverWDeg;
-import com.github.rloic.aes.EnumFilter;
-import com.github.rloic.aes.GlobalXOR;
+import com.github.rloic.filter.EnumFilter;
 import com.github.rloic.benchmark.Experiment;
 import com.github.rloic.benchmark.Implementation;
-import com.github.rloic.strategy.WDeg;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.search.strategy.Search;
-import org.chocosolver.solver.variables.IntVar;
 
 import java.io.FileWriter;
 

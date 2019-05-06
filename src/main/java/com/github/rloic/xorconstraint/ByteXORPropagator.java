@@ -1,4 +1,4 @@
-package com.github.rloic.midori;
+package com.github.rloic.xorconstraint;
 
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
@@ -6,9 +6,9 @@ import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.ESat;
 
-public class ByteXOR extends Propagator<IntVar> {
+public class ByteXORPropagator extends Propagator<IntVar> {
 
-   public ByteXOR(IntVar... vars) {
+   public ByteXORPropagator(IntVar... vars) {
       super(vars, PropagatorPriority.LINEAR, false);
    }
 

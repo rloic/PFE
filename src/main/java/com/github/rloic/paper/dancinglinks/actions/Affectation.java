@@ -6,6 +6,9 @@ import org.chocosolver.solver.variables.BoolVar;
 
 import java.util.Objects;
 
+/**
+ * An boolean affectation such as vars[variable] <- value
+ */
 public class Affectation {
 
     public final int variable;

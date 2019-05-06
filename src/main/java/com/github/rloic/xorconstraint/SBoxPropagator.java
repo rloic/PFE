@@ -1,4 +1,4 @@
-package com.github.rloic.midori;
+package com.github.rloic.xorconstraint;
 
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -6,7 +6,7 @@ import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.ESat;
 
-public class SBox extends Propagator<IntVar> {
+public class SBoxPropagator extends Propagator<IntVar> {
 
    private static int[] sBox = new int[]{
          0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76
@@ -49,7 +49,7 @@ public class SBox extends Propagator<IntVar> {
    private final IntVar input;
    private final IntVar output;
 
-   public SBox(IntVar input, IntVar output) {
+   public SBoxPropagator(IntVar input, IntVar output) {
       super(input, output);
       this.input = input;
       this.output = output;
