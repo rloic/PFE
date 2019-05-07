@@ -2,6 +2,8 @@ package com.github.rloic.paper.dancinglinks.impl;
 
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.cell.*;
+import com.github.rloic.util.FastSet;
+import com.github.rloic.util.IterableMapper;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
@@ -40,7 +42,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    private static final int NO_PIVOT = -1;
    private static final int NO_BASE = -1;
 
-   private final IntList unassignedVars;
+   private final FastSet unassignedVars;
 
    public DancingLinksMatrix(
          int[][] equations,
@@ -61,7 +63,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       }
       assert variablesOf[nbEquations - 1].bottom() == root;
 
-      unassignedVars = new IntArrayList(nbVariables);
+      unassignedVars = new FastSet(nbVariables);
       for (int j = 0; j < nbVariables; j++) {
          unassignedVars.add(j);
       }
@@ -191,8 +193,8 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    }
 
    @Override
-   public Iterable<Data> equationsOf(int variable) {
-      return equationsOf[variable];
+   public Iterable<Integer> equationsOf(int variable) {
+      return new IterableMapper<>(equationsOf[variable], data -> data.equation);
    }
 
    private Data get(int equation, int variable) {
@@ -302,12 +304,12 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       for (int j = 0; j < equationsOf.length; j++) {
          if (equationsOf[j].isActive()) {
             if (equationsOf[j].isSeed()) {
-               str.append(" [s] ");
+               str.append(" s ");
             } else {
-               str.append(" [*] ");
+               str.append(" * ");
             }
          } else {
-            str.append(" [ ] ");
+            str.append("   ");
          }
       }
       str.append('\n');
@@ -326,7 +328,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
                byte value = valueOf[cells[i][j].variable];
                str.append(debugAndTrim(value, isBase[j]));
             } else {
-               str.append("  _  ");
+               str.append("___");
             }
          }
          str
@@ -340,11 +342,16 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       for(int var = 0; var < nbVariables; var++) {
          int nbEquationOfVariable = numberOfEquationsOf[var];
          if (nbEquationOfVariable < 10) {
-            str.append("  ");
-         } else {
             str.append(' ');
          }
-         str.append(nbEquationOfVariable).append("  ");
+         str.append(nbEquationOfVariable).append(' ');
+      }
+      str.append("\n    ");
+      for(int var = 0; var < nbVariables; var++) {
+         if (var < 10) {
+            str.append(' ');
+         }
+         str.append(var).append(' ');
       }
       return str.toString();
    }
@@ -353,22 +360,22 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       if (base) {
          if (value != UNDEFINED) {
             if (value == TRUE) {
-               return " (1) ";
+               return "(1)";
             } else {
-               return " (0) ";
+               return "(0)";
             }
          } else {
-            return " (x) ";
+            return "(x)";
          }
       } else {
          if (value != UNDEFINED) {
             if (value == TRUE) {
-               return "  1  ";
+               return " 1 ";
             } else {
-               return "  0  ";
+               return " 0 ";
             }
          } else {
-            return "  x  ";
+            return " x ";
          }
       }
    }
@@ -380,13 +387,13 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public void set(int variable, boolean value) {
-      unassignedVars.rem(variable);
+      unassignedVars.remove(variable);
       numberOfUndefinedVariables -= 1;
       valueOf[variable] = value ? TRUE : FALSE;
       int incNbTrue = value ? 1 : 0;
-      for (Data it : equationsOf(variable)) {
-         nbUnknowns[it.equation] -= 1;
-         nbTrues[it.equation] += incNbTrue;
+      for (int equation : equationsOf(variable)) {
+         nbUnknowns[equation] -= 1;
+         nbTrues[equation] += incNbTrue;
       }
    }
 
@@ -395,9 +402,9 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       unassignedVars.add(variable);
       numberOfUndefinedVariables += 1;
       int decNbTrue = valueOf[variable] == TRUE ? 1 : 0;
-      for (Data it : equationsOf(variable)) {
-         nbUnknowns[it.equation] += 1;
-         nbTrues[it.equation] -= decNbTrue;
+      for (int equation : equationsOf(variable)) {
+         nbUnknowns[equation] += 1;
+         nbTrues[equation] -= decNbTrue;
       }
       valueOf[variable] = UNDEFINED;
    }
@@ -444,8 +451,8 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    }
 
    @Override
-   public Iterable<Data> variablesOf(int equation) {
-      return variablesOf[equation];
+   public Iterable<Integer> variablesOf(int equation) {
+      return new IterableMapper<>(variablesOf[equation], data -> data.variable);
    }
 
    @Override
@@ -453,8 +460,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       return sameOffBaseVariables(variablesOf[eq1], variablesOf[eq2]);
    }
 
-   @Override
-   public boolean sameOffBaseVariables(Row eq1, Row eq2) {
+   private boolean sameOffBaseVariables(Row eq1, Row eq2) {
       Cell cVarEq1 = eq1.right();
       Cell cVarEq2 = eq2.right();
 
@@ -496,13 +502,8 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    }
 
    @Override
-   public int baseVariableOf(Row equation) {
-      return baseOf[equation.index];
-   }
-
-   @Override
-   public Iterable<Row> activeEquations() {
-      return root.rows();
+   public Iterable<Integer> activeEquations() {
+      return new IterableMapper<>(root.rows(), row -> row.index);
    }
 
    @Override
@@ -521,7 +522,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    }
 
    @Override
-   public IntList unassignedVars() {
+   public FastSet unassignedVars() {
       return unassignedVars;
    }
 }

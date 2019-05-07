@@ -1,9 +1,6 @@
 package com.github.rloic.paper.dancinglinks;
 
-import com.github.rloic.paper.dancinglinks.cell.Data;
-import com.github.rloic.paper.dancinglinks.cell.Row;
-import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.ints.IntSet;
+import com.github.rloic.util.FastSet;
 
 public interface IDancingLinksMatrix {
 
@@ -136,7 +133,7 @@ public interface IDancingLinksMatrix {
     * @param variable The variable
     * @return An iterable over the equations of the variable
     */
-   Iterable<Data> equationsOf(int variable);
+   Iterable<Integer> equationsOf(int variable);
 
    /**
     * Return the pivot equation of the variable
@@ -196,7 +193,7 @@ public interface IDancingLinksMatrix {
     * @param target The equation
     * @return An iterable of the variables of the equation 'target'
     */
-   Iterable<Data> variablesOf(int target);
+   Iterable<Integer> variablesOf(int target);
 
    /**
     * Return if the equation eq1 and the equation eq2 have the same variables (except for their base)
@@ -207,14 +204,6 @@ public interface IDancingLinksMatrix {
    boolean sameOffBaseVariables(int eq1, int eq2);
 
    /**
-    * Return if the equation eq1 and the equation eq2 have the same variables (except for their base)
-    * @param eq1 An equation
-    * @param eq2 An other equation
-    * @return true if the two equations are the same excepted for their base
-    */
-   boolean sameOffBaseVariables(Row eq1, Row eq2);
-
-   /**
     * Return the base variable of the equation
     * @param equation The equation
     * @return The base variable of the equation if one else -1
@@ -222,17 +211,10 @@ public interface IDancingLinksMatrix {
    int baseVariableOf(int equation);
 
    /**
-    * Return the base variable of the equation
-    * @param equation The equation
-    * @return The base variable of the equation if one else -1
-    */
-   int baseVariableOf(Row equation);
-
-   /**
     * Return an iterator over the active equations of the matrix
     * @return The
     */
-   Iterable<Row> activeEquations();
+   Iterable<Integer> activeEquations();
 
    /**
     * Return the number of variables that are not defined
@@ -258,6 +240,6 @@ public interface IDancingLinksMatrix {
     * Return the unassigned variables of the matrix
     * @return The unassigned variables of the matrix
     */
-   IntList unassignedVars();
+   FastSet unassignedVars();
 
 }

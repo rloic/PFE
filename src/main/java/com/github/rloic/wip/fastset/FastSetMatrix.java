@@ -1,16 +1,12 @@
 package com.github.rloic.wip.fastset;
 
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
-import com.github.rloic.paper.dancinglinks.cell.Data;
-import com.github.rloic.paper.dancinglinks.cell.Row;
 import com.github.rloic.util.FastSet;
-import it.unimi.dsi.fastutil.ints.IntList;
-
-import java.util.Arrays;
 
 public class FastSetMatrix implements IDancingLinksMatrix {
 
     private final int NO_PIVOT = -1;
+    private final int NO_BASE = -1;
     private final int UNDEFINED = 0;
     private final int TRUE = 1;
     private final int FALSE = -1;
@@ -30,6 +26,9 @@ public class FastSetMatrix implements IDancingLinksMatrix {
 
     private final FastSet bases;
     private final int[] pivotOf;
+    private final int[] baseOf;
+
+    private final FastSet unassignedVars;
 
     public FastSetMatrix(
             int[][] equations,
@@ -40,8 +39,14 @@ public class FastSetMatrix implements IDancingLinksMatrix {
 
         valueOf = new int[nbVariables];
 
-        activeVariables = FastSet.full(nbVariables);
-        activeEquations = FastSet.full(nbEquations);
+        activeVariables = new FastSet(nbVariables);
+        for (int variable = 0; variable < nbVariables; variable++) {
+            activeVariables.add(variable);
+        }
+        activeEquations = new FastSet(nbEquations);
+        for (int equation = 0; equation < nbEquations; equation++) {
+            activeEquations.add(equation);
+        }
 
         equationsOf = new FastSet[nbVariables];
         variablesOf = new FastSet[nbEquations];
@@ -49,11 +54,9 @@ public class FastSetMatrix implements IDancingLinksMatrix {
         nbX = new int[nbEquations];
         nbTrue = new int[nbEquations];
 
-        for (int variable : activeVariables) {
-            equationsOf[variable] = new FastSet(nbEquations);
-        }
+        activeVariables.forEach(activeVariable -> equationsOf[activeVariable] = new FastSet(nbEquations));
 
-        for (int equation : activeEquations) {
+        activeEquations.forEach(equation -> {
             variablesOf[equation] = new FastSet(nbVariables);
             int[] initialVariables = equations[equation];
             nbX[equation] = initialVariables.length;
@@ -61,22 +64,29 @@ public class FastSetMatrix implements IDancingLinksMatrix {
                 variablesOf[equation].add(variable);
                 equationsOf[variable].add(equation);
             }
-        }
+        });
 
         bases = new FastSet(nbVariables);
-        pivotOf = new int[nbEquations];
-        Arrays.fill(pivotOf, NO_PIVOT);
-
+        pivotOf = new int[nbVariables];
+        baseOf = new int[nbEquations];
+        unassignedVars = new FastSet(nbVariables);
+        for (int variable = 0; variable < nbVariables; variable++) {
+            unassignedVars.add(variable);
+        }
     }
 
     @Override
     public boolean isUnknown(int equation, int variable) {
-        return variablesOf[equation].contains(variable) && valueOf[variable] == UNDEFINED;
+        return variablesOf[equation].contains(variable)
+                && equationsOf[variable].contains(equation)
+                && isUndefined(variable);
     }
 
     @Override
     public boolean isTrue(int equation, int variable) {
-        return variablesOf[equation].contains(variable) && valueOf[variable] == TRUE;
+        return variablesOf[equation].contains(variable)
+                && equationsOf[variable].contains(equation)
+                && isTrue(variable);
     }
 
     @Override
@@ -91,47 +101,39 @@ public class FastSetMatrix implements IDancingLinksMatrix {
 
     @Override
     public void xor(int target, int pivot) {
-        FastSet xor = new FastSet(nbVariables);
-
-        int nbXOfTarget = 0;
-        int nbTrueOfTarget = 0;
-
-        for (int variable : variablesOf[target]) {
-            if (!variablesOf[pivot].contains(variable)) {
-                xor.add(variable);
-                if (valueOf[variable] == TRUE) {
-                    nbTrueOfTarget += 1;
+        final FastSet targetEquation = variablesOf[target];
+        equationsOf[pivot].forEach(value -> {
+            if (targetEquation.contains(value)) {
+                targetEquation.remove(value);
+                equationsOf[value].remove(target);
+                if (isTrue(value)) {
+                    nbTrue[target] -= 1;
                 } else {
-                    nbXOfTarget += 1;
+                    nbX[target] -= 1;
                 }
             } else {
-                equationsOf[variable].remove(target);
-            }
-        }
-        for (int variable : variablesOf[pivot]) {
-            if (!variablesOf[target].contains(variable)) {
-                xor.add(variable);
-                if (valueOf[variable] == TRUE) {
-                    nbTrueOfTarget += 1;
+                targetEquation.add(value);
+                equationsOf[value].add(target);
+                if (isTrue(value)) {
+                    nbTrue[target] +=1;
                 } else {
-                    nbXOfTarget += 1;
+                    nbX[target] += 1;
                 }
             }
-        }
-
-        variablesOf[target] = xor;
-        nbX[target] = nbXOfTarget;
-        nbTrue[target] = nbTrueOfTarget;
+        });
     }
 
     @Override
     public void setBase(int pivot, int variable) {
         bases.add(variable);
         pivotOf[variable] = pivot;
+        baseOf[pivot] = variable;
     }
 
     @Override
     public void setOffBase(int variable) {
+        baseOf[pivotOf[variable]] = -1;
+        pivotOf[variable] = -1;
         bases.remove(variable);
     }
 
@@ -145,10 +147,10 @@ public class FastSetMatrix implements IDancingLinksMatrix {
 
     @Override
     public void restoreVariable(int variable) {
+        activeVariables.add(variable);
         for (int equation : equationsOf[variable]) {
             variablesOf[equation].add(variable);
         }
-        activeVariables.add(variable);
     }
 
     @Override
@@ -161,10 +163,10 @@ public class FastSetMatrix implements IDancingLinksMatrix {
 
     @Override
     public void restoreEquation(int equation) {
+        activeEquations.add(equation);
         for (int variable : variablesOf[equation]) {
             equationsOf[variable].add(equation);
         }
-        activeEquations.add(equation);
     }
 
     @Override
@@ -179,17 +181,18 @@ public class FastSetMatrix implements IDancingLinksMatrix {
 
     @Override
     public boolean isValid(int equation) {
-        return !isInvalid(equation);
+        return nbTrue[equation] != 1 || nbX[equation] != 0;
     }
 
     @Override
     public boolean isInvalid(int equation) {
-        return nbTrue[equation] == 1 && nbX[equation] == 0;
+        return nbTrue[equation] == 1 && nbX[equation] == 1;
     }
 
     @Override
     public boolean isEmpty(int equation) {
-        return nbX[equation] == 0 && nbTrue[equation] == 0;
+        assert variablesOf[equation].isEmpty() == (nbTrue[equation] == 0 && nbX[equation] == 0);
+        return nbTrue[equation] == 0 && nbX[equation] == 0;
     }
 
     @Override
@@ -203,35 +206,37 @@ public class FastSetMatrix implements IDancingLinksMatrix {
     }
 
     @Override
-    public Iterable<Data> equationsOf(int variable) {
-        return null;
+    public Iterable<Integer> equationsOf(int variable) {
+        return equationsOf[variable];
     }
 
     @Override
     public int pivotOf(int variable) {
-        return pivotOf[variable];
+        return (bases.contains(variable)) ? pivotOf[variable] : -1;
     }
 
     @Override
     public void set(int variable, boolean value) {
         valueOf[variable] = (value) ? TRUE : FALSE;
-        for (int equation : equationsOf[variable]) {
+        equationsOf[variable].forEach(equation -> {
+            nbX[equation] -= 1;
             if (value) {
                 nbTrue[equation] += 1;
             }
-            nbX[equation] -= 1;
-        }
+        });
+        unassignedVars.remove(variable);
     }
 
     @Override
     public void unSet(int variable) {
-        for (int equation : equationsOf[variable]) {
-            if (valueOf[variable] == TRUE) {
+        boolean value = valueOf[variable] == TRUE;
+        equationsOf[variable].forEach(equation -> {
+            nbX[equation] += 1;
+            if (value) {
                 nbTrue[equation] -= 1;
             }
-            nbX[equation] += 1;
-        }
-        valueOf[variable] = UNDEFINED;
+        });
+        unassignedVars.add(variable);
     }
 
     @Override
@@ -241,18 +246,12 @@ public class FastSetMatrix implements IDancingLinksMatrix {
 
     @Override
     public int eligibleBase(int pivot) {
-        for (int variable : variablesOf[pivot]) {
-            if (bases.contains(variable)) return variable;
-        }
-        return -1;
+        return variablesOf[pivot].first(value -> !bases.contains(value) && valueOf[value] != FALSE);
     }
 
     @Override
     public int firstUnknown(int equation) {
-        for (int variable : variablesOf[equation]) {
-            if (isUndefined(variable)) return variable;
-        }
-        return -1;
+        return variablesOf[equation].first(variable -> valueOf[variable] == UNDEFINED);
     }
 
     @Override
@@ -266,8 +265,8 @@ public class FastSetMatrix implements IDancingLinksMatrix {
     }
 
     @Override
-    public Iterable<Data> variablesOf(int target) {
-        return null;
+    public Iterable<Integer> variablesOf(int target) {
+        return variablesOf[target];
     }
 
     @Override
@@ -276,42 +275,64 @@ public class FastSetMatrix implements IDancingLinksMatrix {
     }
 
     @Override
-    public boolean sameOffBaseVariables(Row eq1, Row eq2) {
-        return false;
-    }
-
-    @Override
     public int baseVariableOf(int equation) {
-        return 0;
+        return baseOf[equation];
     }
 
     @Override
-    public int baseVariableOf(Row equation) {
-        return 0;
-    }
-
-    @Override
-    public Iterable<Row> activeEquations() {
-        return null;
+    public Iterable<Integer> activeEquations() {
+        return activeEquations;
     }
 
     @Override
     public int numberOfUndefinedVariables() {
-        return 0;
+        return unassignedVars().size();
     }
 
     @Override
     public int numberOfEquationsOf(int variable) {
-        return 0;
+        return equationsOf[variable].size();
     }
 
     @Override
     public int firstOffBase(int pivot) {
-        return 0;
+        return eligibleBase(pivot);
     }
 
     @Override
-    public IntList unassignedVars() {
-        return null;
+    public FastSet unassignedVars() {
+        return unassignedVars;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+
+        for (int variable = 0; variable < nbVariables; variable++) {
+            for (int equation = 0; equation < nbEquations; equation++) {
+                assert equationsOf[variable].contains(equation) == variablesOf[equation].contains(variable);
+                if (variablesOf[equation].contains(variable)) {
+                    if (isBase(variable)) {
+                        if (isTrue(variable)) {
+                            str.append("T");
+                        } else {
+                            str.append("x");
+                        }
+                    } else {
+                        if (isTrue(variable)) {
+                            str.append("t");
+                        } else {
+                            str.append("x");
+                        }
+                    }
+
+                } else {
+                    str.append("_");
+                }
+            }
+            str.append("\n");
+        }
+
+        return str.toString();
     }
 }

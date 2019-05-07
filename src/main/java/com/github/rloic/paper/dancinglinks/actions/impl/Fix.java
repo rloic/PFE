@@ -29,8 +29,8 @@ public class Fix extends Updater implements IUpdater {
 
    @Override
    protected boolean postCondition(IDancingLinksMatrix matrix) {
-      for(Data it : matrix.equationsOf(variable)) {
-         if(matrix.isInvalid(it.equation)) return false;
+      for(int equation : matrix.equationsOf(variable)) {
+         if(matrix.isInvalid(equation)) return false;
       }
       assert !matrix.isUndefined(variable);
       return true;

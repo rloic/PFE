@@ -2,9 +2,7 @@ package com.github.rloic.paper.dancinglinks.rulesapplier;
 
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.actions.IUpdater;
-import com.github.rloic.paper.dancinglinks.cell.Data;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
+import com.github.rloic.util.FastSet;
 
 public interface RulesApplier {
 
@@ -15,27 +13,28 @@ public interface RulesApplier {
    static void gauss(IDancingLinksMatrix m) {
       boolean[] isPivot = new boolean[m.nbEquations()];
       boolean[] hadAOne = new boolean[m.nbEquations()];
-      IntList conflicts = new IntArrayList();
+      FastSet conflicts = new FastSet(m.nbEquations());
 
       for (int variable = 0; variable < m.nbVariables(); variable++) {
          conflicts.clear();
-         for (Data it : m.equationsOf(variable)) {
-            if (!isPivot[it.equation] && !hadAOne[it.equation] && !m.isBase(variable)) {
-               m.setBase(it.equation, variable);
-               isPivot[it.equation] = true;
+         for (int equation : m.equationsOf(variable)) {
+            if (!isPivot[equation] && !hadAOne[equation] && !m.isBase(variable)) {
+               m.setBase(equation, variable);
+               isPivot[equation] = true;
             } else {
-               conflicts.add(it.equation);
+               conflicts.add(equation);
             }
          }
 
          if (m.isBase(variable)) {
             int pivot = m.pivotOf(variable);
-            for (int target : conflicts) {
+            final int _variable = variable;
+            conflicts.forEach(target -> {
                m.xor(target, pivot);
                if (!isPivot[target]) {
-                  hadAOne[target] = hasAOne(m, target, variable);
+                  hadAOne[target] = hasAOne(m, target, _variable);
                }
-            }
+            });
          }
       }
 
@@ -48,8 +47,10 @@ public interface RulesApplier {
    }
 
    static boolean hasAOne(IDancingLinksMatrix m, int equation, int column) {
-      for (Data cell : m.variablesOf(equation)) {
-         if ((m.isTrue(cell.equation, cell.variable) || m.isUnknown(cell.equation, cell.variable)) && cell.variable < column) {
+      for (int variable : m.variablesOf(equation)) {
+         assert m.isTrue(equation, variable) == m.isTrue(variable);
+         assert m.isUnknown(equation, variable) == m.isUndefined(variable);
+         if ((m.isTrue(equation, variable) || m.isUnknown(equation, variable)) && variable < column) {
             return true;
          }
       }
