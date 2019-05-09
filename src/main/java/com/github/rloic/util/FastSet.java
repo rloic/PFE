@@ -36,33 +36,22 @@ public class FastSet implements IntIterable {
         return index > 0 && index <= size() && elements[index] == element;
     }
 
-    public void add(int element) {
-        if (contains(element)) {
+    public void add(int value) {
+        if (contains(value)) {
             return;
         }
         setSize(size() + 1);
-        elements[size()] = element;
-        indexOf[element] = size();
+        elements[size()] = value;
+        indexOf[value] = size();
     }
 
-    public void remove(int element) {
-        if (!contains(element)) return;
+    public void remove(int value) {
+        if (!contains(value)) return;
         int lastElement = elements[size()];
-        int indexOfElement = indexOf[element];
-        elements[indexOfElement] = lastElement;
-        indexOf[lastElement] = indexOfElement;
-        indexOf[element] = 0;
+        elements[indexOf[value]] = lastElement;
+        indexOf[lastElement] = indexOf[value];
+        indexOf[value] = 0;
         setSize(size() - 1);
-    }
-
-    public void xor(FastSet other) {
-        other.forEach((IntConsumer) value -> {
-            if (contains(value)) {
-                remove(value);
-            } else {
-                add(value);
-            }
-        });
     }
 
     public void clear() {
@@ -118,19 +107,21 @@ public class FastSet implements IntIterable {
     }
 
     public boolean any(IntPredicate predicate) {
-        int i = 1;
-        while (i <= size() && !predicate.test(elements[i])) {
-            i += 1;
+        for (int i = 1; i <= size(); i++) {
+            if (predicate.test(elements[i])) {
+                return true;
+            }
         }
-        return i != size() + 1;
+        return false;
     }
 
     public boolean all(IntPredicate predicate) {
-        int i = 1;
-        while (i <= size() && predicate.test(elements[i])) {
-            i += 1;
+        for(int i = 1; i <= size(); i++) {
+            if (!predicate.test(elements[i])) {
+                return false;
+            }
         }
-        return i == size() + 1;
+        return true;
     }
 
     @Override

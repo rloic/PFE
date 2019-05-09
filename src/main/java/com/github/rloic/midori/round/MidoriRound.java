@@ -18,7 +18,7 @@ public class MidoriRound {
             int r,
             int objStep1
     ) {
-        this.m = new Model("Advanced Model(r=" + r + ", objStep=" + objStep1 + ")");
+        this.m = new Model("Round Advanced Model(r=" + r + ", objStep=" + objStep1 + ")");
 
         BoolVar[][][] ΔX = new BoolVar[r][][];
         for (int i = 0; i < r; i++) ΔX[i] = m.boolVarMatrix(4, 4);

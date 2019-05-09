@@ -1,9 +1,13 @@
 package com.github.rloic.paper;
 
+import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEngine;
+import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
 import com.github.rloic.util.Logger;
 import com.github.rloic.util.Pair;
+import com.github.rloic.xorconstraint.AbstractXORPropagator;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
+import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 import org.junit.jupiter.api.Test;
@@ -138,7 +142,7 @@ class FullRulesApplierTest {
             gXorEquations[i][j] = gXorVars[equations[i][j]];
          }
       }
-//      gXor.post(new Constraint("GlobalXor", new GlobalXorPropagator(gXorVars, gXorEquations, gXor.getSolver())));
+      gXor.post(new Constraint("GlobalXor", new AbstractXORPropagator(gXorVars, gXorEquations, new FullInferenceEngine(), new FullRulesApplier(), gXor.getSolver())));
 
       return new Pair<>(collectSolutions(naive, naiveVars), collectSolutions(gXor, gXorVars));
    }

@@ -144,14 +144,14 @@ public interface IDancingLinksMatrix {
 
    /**
     * Transform the matrix M into a matrix M' such as M' = M[variable / value] (variable <- value)
-    * @param variable The variable
+    * @param variable The variable to assign
     * @param value The value
     */
    void set(int variable, boolean value);
 
    /**
     * Transform the matrix M into a matrix M' such as M' = M[variable \in {true, false}]
-    * @param variable
+    * @param variable The variable to unset
     */
    void unSet(int variable);
 
