@@ -2,23 +2,21 @@ package com.github.rloic.xorconstraint;
 
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.actions.*;
-import com.github.rloic.paper.dancinglinks.cell.Data;
-import com.github.rloic.paper.dancinglinks.cell.Row;
 import com.github.rloic.paper.dancinglinks.impl.DancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.inferenceengine.InferenceEngine;
+import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEngine;
 import com.github.rloic.paper.dancinglinks.rulesapplier.RulesApplier;
-import com.github.rloic.util.FastSet;
-import com.github.rloic.wip.fastset.FastSetMatrix;
-import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.PropagatorPriority;
 import org.chocosolver.solver.exception.ContradictionException;
+import org.chocosolver.solver.search.loop.monitors.IMonitorDownBranch;
+import org.chocosolver.solver.search.loop.monitors.IMonitorUpBranch;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.util.ESat;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 import static com.github.rloic.paper.dancinglinks.actions.UpdaterState.DONE;
 
@@ -32,7 +30,7 @@ import static com.github.rloic.paper.dancinglinks.actions.UpdaterState.DONE;
  * 1     0     1
  * 1     0     0 or 1
  */
-public class AbstractXORPropagator extends Propagator<BoolVar> {
+public class AbstractXORPropagator extends Propagator<BoolVar> implements IMonitorUpBranch, IMonitorDownBranch {
 
     /* The solver */
     private final Solver solver;
@@ -51,8 +49,6 @@ public class AbstractXORPropagator extends Propagator<BoolVar> {
 
     /* The rules applier (it manipulates the matrix) */
     private final RulesApplier rulesApplier;
-
-    private long backTrackCount = 0L;
 
     public AbstractXORPropagator(
             BoolVar[] vars,
@@ -84,6 +80,7 @@ public class AbstractXORPropagator extends Propagator<BoolVar> {
             }
         }
         matrix = new DancingLinksMatrix(equations, lastIndex);
+        solver.plugMonitor(this);
     }
 
     @Override
@@ -94,6 +91,7 @@ public class AbstractXORPropagator extends Propagator<BoolVar> {
     @Override
     public void propagate(int evtmask) {
         RulesApplier.gauss(matrix);
+        assert checkState(matrix);
         List<Propagation> propagations = new ArrayList<>();
         for (int equation : matrix.activeEquations()) {
             propagations.addAll(engine.infer(matrix, equation));
@@ -111,6 +109,18 @@ public class AbstractXORPropagator extends Propagator<BoolVar> {
                 assert status == DONE;
             }
             assert (matrix.isTrue(variable) && value) || (matrix.isFalse(variable) && !value);
+        }
+
+        assert checkState(matrix);
+
+        for (int idxVarInProp = 0; idxVarInProp < vars.length; idxVarInProp++) {
+            if (vars[idxVarInProp].isInstantiated()) {
+                try {
+                    propagations.addAll(synchronize(idxVarInProp));
+                } catch (ContradictionException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }
 
         assert checkState(matrix);
@@ -135,11 +145,6 @@ public class AbstractXORPropagator extends Propagator<BoolVar> {
     }
 
     private List<Propagation> synchronize(int idxVarInProp) throws ContradictionException {
-        // Rollback matrix state if needed
-        if (backTrack()) doBackTrack();
-        // Create a new step (depth level) each time a new decision is make
-        if (goDeeper()) createSteps();
-
         Affectation externalAffectation = new Affectation(idxVarInProp, isTrue(vars[idxVarInProp]));
         if (!matrix.isUndefined(idxVarInProp)) {
             if (isIncoherent(idxVarInProp)) {
@@ -149,7 +154,6 @@ public class AbstractXORPropagator extends Propagator<BoolVar> {
             }
         }
 
-        assert commands.size() == solver.getCurrentDepth() + 1;
         UpdaterList step = commands.peek();
         List<Propagation> propagations = new ArrayList<>();
         IUpdater updater = onPropagate(idxVarInProp, isTrue(vars[idxVarInProp]));
@@ -181,6 +185,13 @@ public class AbstractXORPropagator extends Propagator<BoolVar> {
                     failBecauseOf(variable, externalAffectation);
                 }
             }
+
+            for (int equation : matrix.activeEquations()) {
+                if (matrix.nbUnknowns(equation) == 1) {
+                    propagations.addAll(new FullInferenceEngine().infer(matrix, equation));
+                }
+            }
+
         }
 
         assert checkState(matrix);
@@ -189,15 +200,17 @@ public class AbstractXORPropagator extends Propagator<BoolVar> {
 
     @Override
     public ESat isEntailed() {
-        FastSet unassignedVars = matrix.unassignedVars();
-        boolean failsOnSynchronize = unassignedVars.any(variable -> {
+        IntSet unassignedVars = matrix.unassignedVars();
+
+        boolean failsOnSynchronize = false;
+        for (int variable : unassignedVars) {
             try {
                 synchronize(variable);
             } catch (ContradictionException unused) {
-                return true;
+                failsOnSynchronize = true;
+                break;
             }
-            return false;
-        });
+        }
 
         if (failsOnSynchronize) return ESat.FALSE;
         return ESat.TRUE;
@@ -209,31 +222,6 @@ public class AbstractXORPropagator extends Propagator<BoolVar> {
 
     private void failBecauseOf(int variable, Affectation affectation) throws ContradictionException {
         throw new ContradictionException().set(this, vars[variable], "Invalid: " + affectation.toString());
-    }
-
-    private boolean backTrack() {
-        if (backTrackCount < solver.getBackTrackCount()) {
-            backTrackCount = solver.getBackTrackCount();
-            return true;
-        }
-        return false;
-    }
-
-    private void doBackTrack() {
-        while (commands.size() > solver.getCurrentDepth()) {
-            commands.pop().restore(matrix);
-        }
-    }
-
-    private boolean goDeeper() {
-        return commands.size() < solver.getCurrentDepth() + 1;
-    }
-
-    private void createSteps() {
-        while (commands.size() < solver.getCurrentDepth()) {
-            commands.add(Nothing.INSTANCE);
-        }
-        commands.add(new UpdaterList());
     }
 
     private IUpdater onPropagate(int variable, boolean value) {
@@ -321,4 +309,13 @@ public class AbstractXORPropagator extends Propagator<BoolVar> {
         return true;
     }
 
+    @Override
+    public void beforeDownBranch(boolean left) {
+        commands.add(new UpdaterList());
+    }
+
+    @Override
+    public void beforeUpBranch() {
+        commands.pop().restore(matrix);
+    }
 }

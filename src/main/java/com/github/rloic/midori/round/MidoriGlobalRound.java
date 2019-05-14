@@ -54,7 +54,7 @@ public abstract class MidoriGlobalRound {
 
         nbActives = new IntVar[r];
         for (int i = 0; i < r; i++) {
-            nbActives[i] = em.intVar(0, objStep1);
+            nbActives[i] = em.intVar("nbActives[" + i + "]", 0, objStep1);
             if (i >= 3) {
                 IntVar[] activesUntilRoundI = new IntVar[i];
                 System.arraycopy(nbActives, 0, activesUntilRoundI, 0, i);

@@ -12,6 +12,8 @@ import com.github.rloic.wip.WeightedConstraint;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
+import org.chocosolver.solver.search.loop.monitors.IMonitorDownBranch;
+import org.chocosolver.solver.search.loop.monitors.IMonitorUpBranch;
 import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin;
 import org.chocosolver.solver.variables.BoolVar;
@@ -24,13 +26,13 @@ import java.util.stream.Collectors;
 
 public class MidoriApp {
 
-    private final static int DEFAULT_NB_ROUNDS = 3;
+    private final static int DEFAULT_NB_ROUNDS = 11;
 
     public static void main(String[] args) {
         final int rounds = (args.length == 1) ? parseIntOrDefault(args[0], DEFAULT_NB_ROUNDS) : DEFAULT_NB_ROUNDS;
         final int numberOfActiveSBoxes = rounds;
 
-        MidoriRound activesSBoxesByRounds = new MidoriRound(rounds, numberOfActiveSBoxes);
+        MidoriGlobalRound activesSBoxesByRounds = new MidoriGlobalRoundFull(rounds, numberOfActiveSBoxes);
         runModel(
                 activesSBoxesByRounds.m,
                 activesSBoxesByRounds.nbActives,
@@ -39,32 +41,6 @@ public class MidoriApp {
                 numberOfActiveSBoxes
         );
 
-    }
-
-    private static int parseIntOrDefault(String str, int def) {
-        try {
-            return Integer.parseInt(str);
-        } catch (Exception unused) {
-            return def;
-        }
-    }
-
-    private static void display(BoolVar[] variables) {
-        String output = Arrays.stream(variables)
-                .map(v ->
-                        String.valueOf(v.getValue())
-                )
-                .collect(Collectors.joining(", "));
-        System.out.println(output);
-    }
-
-    private static void display(IntVar[] variables) {
-        String output = Arrays.stream(variables)
-                .map(v ->
-                        String.valueOf(v.getValue())
-                )
-                .collect(Collectors.joining(", "));
-        System.out.println(output);
     }
 
     private static void run(
@@ -93,10 +69,10 @@ public class MidoriApp {
             int r,
             int objStep1
     ) {
-        Solver solver = m.getSolver();
+        final Solver solver = m.getSolver();
         solver.setSearch(
-                Search.intVarSearch(sBoxes),
-                Search.intVarSearch(nbActives)
+                Search.intVarSearch(nbActives),
+                Search.intVarSearch(sBoxes)
         );
         solver.setSearch(
                 Search.lastConflict(solver.getSearch())
@@ -116,6 +92,32 @@ public class MidoriApp {
             );
         }
         solver.printShortStatistics();
+    }
+
+    private static int parseIntOrDefault(String str, int def) {
+        try {
+            return Integer.parseInt(str);
+        } catch (Exception unused) {
+            return def;
+        }
+    }
+
+    private static void display(BoolVar[] variables) {
+        String output = Arrays.stream(variables)
+                .map(v ->
+                        String.valueOf(v.getValue())
+                )
+                .collect(Collectors.joining(", "));
+        System.out.println(output);
+    }
+
+    private static void display(IntVar[] variables) {
+        String output = Arrays.stream(variables)
+                .map(v ->
+                        String.valueOf(v.getValue())
+                )
+                .collect(Collectors.joining(", "));
+        System.out.println(output);
     }
 
 }

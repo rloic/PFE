@@ -1,6 +1,7 @@
 package com.github.rloic.paper.dancinglinks;
 
 import com.github.rloic.util.FastSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 
 public interface IDancingLinksMatrix {
 
@@ -240,6 +241,6 @@ public interface IDancingLinksMatrix {
     * Return the unassigned variables of the matrix
     * @return The unassigned variables of the matrix
     */
-   FastSet unassignedVars();
+   IntSet unassignedVars();
 
 }
