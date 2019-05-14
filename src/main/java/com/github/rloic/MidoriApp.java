@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 public class MidoriApp {
 
-    private final static int DEFAULT_NB_ROUNDS = 11;
+    private final static int DEFAULT_NB_ROUNDS = 3;
 
     public static void main(String[] args) {
         final int rounds = (args.length == 1) ? parseIntOrDefault(args[0], DEFAULT_NB_ROUNDS) : DEFAULT_NB_ROUNDS;
@@ -37,6 +37,7 @@ public class MidoriApp {
                 activesSBoxesByRounds.m,
                 activesSBoxesByRounds.nbActives,
                 activesSBoxesByRounds.sBoxes,
+                activesSBoxesByRounds.constraintsOf,
                 rounds,
                 numberOfActiveSBoxes
         );
@@ -66,14 +67,22 @@ public class MidoriApp {
             Model m,
             IntVar[] nbActives,
             BoolVar[] sBoxes,
+            Int2ObjectMap<List<WeightedConstraint>> constraintsOf,
             int r,
             int objStep1
     ) {
         final Solver solver = m.getSolver();
-        solver.setSearch(
-                Search.intVarSearch(nbActives),
-                Search.intVarSearch(sBoxes)
-        );
+        if (constraintsOf != null) {
+            solver.setSearch(
+                    new WDeg(nbActives, 0L, new IntDomainMin(), constraintsOf),
+                    new WDeg(sBoxes, 0L, new IntDomainMin(), constraintsOf)
+            );
+        } else {
+            solver.setSearch(
+                    Search.intVarSearch(nbActives),
+                    Search.intVarSearch(sBoxes)
+            );
+        }
         solver.setSearch(
                 Search.lastConflict(solver.getSearch())
         );

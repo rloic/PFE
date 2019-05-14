@@ -90,9 +90,11 @@ public class WDeg extends AbstractStrategy<IntVar> implements IMonitorContradict
       if (cex.c instanceof Propagator) {
          if (cex.v != null) {
             List<WeightedConstraint> constraints = constraintsOf.get(cex.v.getId());
-            for(WeightedConstraint constraint : constraints) {
-               if (constraint.isViolated()) {
-                  constraint.weight += 1;
+            if(constraints != null) {
+               for(WeightedConstraint constraint : constraints) {
+                  if (constraint.isViolated()) {
+                     constraint.weight += 1;
+                  }
                }
             }
          }
