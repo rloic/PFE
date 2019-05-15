@@ -29,7 +29,7 @@ public class MidoriApp {
     private final static int DEFAULT_NB_ROUNDS = 3;
 
     public static void main(String[] args) {
-        final int rounds = (args.length == 1) ? parseIntOrDefault(args[0], DEFAULT_NB_ROUNDS) : DEFAULT_NB_ROUNDS;
+        final int rounds = (args.length >= 1) ? parseIntOrDefault(args[0], DEFAULT_NB_ROUNDS) : DEFAULT_NB_ROUNDS;
         final int numberOfActiveSBoxes = rounds;
 
         MidoriGlobalRound activesSBoxesByRounds = new MidoriGlobalRoundFull(rounds, numberOfActiveSBoxes);
@@ -72,9 +72,13 @@ public class MidoriApp {
             int objStep1
     ) {
         final Solver solver = m.getSolver();
+        IntVar[] invNbActives = new IntVar[nbActives.length];
+        for (int i = 0; i < nbActives.length; i++) {
+            invNbActives[nbActives.length - 1 - i] = nbActives[i];
+        }
         if (constraintsOf != null) {
             solver.setSearch(
-                    new WDeg(nbActives, 0L, new IntDomainMin(), constraintsOf),
+                    Search.inputOrderUBSearch(invNbActives),
                     new WDeg(sBoxes, 0L, new IntDomainMin(), constraintsOf)
             );
         } else {
