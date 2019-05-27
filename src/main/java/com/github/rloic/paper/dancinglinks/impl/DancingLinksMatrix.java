@@ -5,7 +5,9 @@ import com.github.rloic.paper.dancinglinks.cell.*;
 import com.github.rloic.util.FastSet;
 import com.github.rloic.util.IterableMapper;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.ints.IntSet;
 
 import java.util.Arrays;
 import java.util.function.Predicate;
@@ -42,7 +44,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    private static final int NO_PIVOT = -1;
    private static final int NO_BASE = -1;
 
-   private final FastSet unassignedVars;
+   private final IntSet unassignedVars;
 
    public DancingLinksMatrix(
          int[][] equations,
@@ -63,7 +65,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
       }
       assert variablesOf[nbEquations - 1].bottom() == root;
 
-      unassignedVars = new FastSet(nbVariables);
+      unassignedVars = new IntArraySet(nbVariables);
       for (int j = 0; j < nbVariables; j++) {
          unassignedVars.add(j);
       }
@@ -522,7 +524,7 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
    }
 
    @Override
-   public FastSet unassignedVars() {
+   public IntSet unassignedVars() {
       return unassignedVars;
    }
 }
