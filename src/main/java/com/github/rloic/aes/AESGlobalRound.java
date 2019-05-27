@@ -136,29 +136,20 @@ public class AESGlobalRound {
          }
       }
 
-      BoolVar[][][][][] DY2 = new BoolVar[4][r - 1][4][r - 1][4];
-      BoolVar[][][][][] DZ2 = new BoolVar[4][r - 1][4][r - 1][4];
+      BoolVar[][][] Δ2Y = em.boolVar("Δ2Y/diff_δY_δ3Y", r - 1, 4, 4);
+      BoolVar[][][] Δ3Y = em.boolVar("Δ3Y/diff_δY_δ2Y", r - 1, 4, 4);
 
-      // MDS Constraint
-      for (int i1 = 0; i1 < r - 1; i1++) {
-         for (int k1 = 0; k1 < 4; k1++) {
-            for (int i2 = i1; i2 < r - 1; i2++) {
-               int firstk2 = 0;
-               if (i2 == i1) firstk2 = k1 + 1;
-               for (int k2 = firstk2; k2 < 4; k2++) {
-                  for (int j = 0; j < 4; j++) {
-                     DY2[j][i1][k1][i2][k2] = em.boolVar("diffY[" + j + "][" + i1 + "][" + k1 + "][" + i2 + "][" + k2 + "]");
-                     em.abstractXor(ΔY[i1][j][k1], ΔY[i2][j][k2], DY2[j][i1][k1][i2][k2]);
-                     DZ2[j][i1][k1][i2][k2] = em.boolVar("diffZ[" + j + "][" + i1 + "][" + k1 + "][" + i2 + "][" + k2 + "]");
-                     em.abstractXor(ΔZ[i1][j][k1], ΔZ[i2][j][k2], DZ2[j][i1][k1][i2][k2]);
-                  }
-                  em.sum(arrayOf(
-                        DY2[0][i1][k1][i2][k2], DY2[1][i1][k1][i2][k2], DY2[2][i1][k1][i2][k2], DY2[3][i1][k1][i2][k2],
-                        DZ2[0][i1][k1][i2][k2], DZ2[1][i1][k1][i2][k2], DZ2[2][i1][k1][i2][k2], DZ2[3][i1][k1][i2][k2]),
-                        "=", em.intVar(intArrayOf(0, 5, 6, 7, 8))
-                  );
-               }
+      for (int i = 0; i <= r - 2; i++) {
+         for (int k = 0; k <= 3; k++) {
+            for (int j = 0; j <= 3; j++) {
+               em.abstractXor(ΔY[i][j][k], Δ2Y[i][j][k], Δ3Y[i][j][k]);
+               em.equals(ΔY[i][j][k], Δ2Y[i][j][k], Δ3Y[i][j][k]);
             }
+
+            em.abstractXor(ΔZ[i][0][k], Δ2Y[i][0][k], Δ3Y[i][1][k], ΔY[i][2][k], ΔY[i][3][k]);
+            em.abstractXor(ΔZ[i][1][k], ΔY[i][0][k], Δ2Y[i][1][k], Δ3Y[i][2][k], ΔY[i][3][k]);
+            em.abstractXor(ΔZ[i][2][k], ΔY[i][0][k], ΔY[i][1][k], Δ2Y[i][2][k], Δ3Y[i][3][k]);
+            em.abstractXor(ΔZ[i][3][k], Δ3Y[i][0][k], ΔY[i][1][k], ΔY[i][2][k], Δ2Y[i][3][k]);
          }
       }
 
