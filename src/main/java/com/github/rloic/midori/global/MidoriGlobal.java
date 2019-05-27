@@ -1,4 +1,4 @@
-package com.github.rloic.midori;
+package com.github.rloic.midori.global;
 
 import com.github.rloic.common.DeconstructedModel;
 import com.github.rloic.common.ExtendedModel;
@@ -37,11 +37,11 @@ public abstract class MidoriGlobal {
 
     abstract protected RulesApplier getRulesApplier();
 
-    MidoriGlobal(int r, int objStep1) {
+    public MidoriGlobal(int r, int objStep1) {
         this(r, objStep1, null);
     }
 
-    MidoriGlobal(int r, int objStep1, IntVar[] nbActives) {
+    public MidoriGlobal(int r, int objStep1, IntVar[] nbActives) {
         em = new ExtendedModel(getModelName());
 
         BoolVar[][][] ΔX = new BoolVar[r][4][4];

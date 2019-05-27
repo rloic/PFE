@@ -1,34 +1,29 @@
-package com.github.rloic.midori;
+package com.github.rloic.midori.global.gac.round;
 
+import com.github.rloic.midori.global.round.MidoriGlobalRound;
 import com.github.rloic.paper.dancinglinks.inferenceengine.InferenceEngine;
 import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEngine;
 import com.github.rloic.paper.dancinglinks.rulesapplier.RulesApplier;
 import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
-import org.chocosolver.solver.variables.IntVar;
 
-/**
- * A Midori model using the globalXor constraint (Arc Consistency)
- */
-final public class MidoriGlobalFull extends MidoriGlobal {
+public class MidoriGlobalRoundFull extends MidoriGlobalRound {
 
-    public MidoriGlobalFull(int r, int objStep1) {
+    public MidoriGlobalRoundFull(int r, int objStep1) {
         super(r, objStep1);
     }
 
-    public MidoriGlobalFull(int r, int objStep1, IntVar[] nbActives) {
-        super(r, objStep1, nbActives);
-    }
-
+    @Override
     protected String getModelName() {
-        return "Midori Global[1-5]";
+        return "Midori Global Round [1-5]";
     }
 
+    @Override
     protected InferenceEngine getInferenceEngine() {
         return new FullInferenceEngine();
     }
 
+    @Override
     protected RulesApplier getRulesApplier() {
         return new FullRulesApplier();
     }
-
 }

@@ -1,4 +1,4 @@
-package com.github.rloic.midori.round;
+package com.github.rloic.midori.global.round;
 
 import com.github.rloic.common.DeconstructedModel;
 import com.github.rloic.common.ExtendedModel;
@@ -39,7 +39,7 @@ public abstract class MidoriGlobalRound {
 
     public final IntVar[] nbActives;
 
-    MidoriGlobalRound(int r, int objStep1) {
+    public MidoriGlobalRound(int r, int objStep1) {
         em = new ExtendedModel(getModelName());
 
         BoolVar[][][] ΔX = new BoolVar[r][4][4];

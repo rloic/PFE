@@ -1,19 +1,19 @@
-package com.github.rloic.wip;
+package com.github.rloic.aes.advanced;
 
 import com.github.rloic.aes.KeyBits;
+import com.github.rloic.util.Logger;
 import com.github.rloic.common.abstraction.MathSet;
 import com.github.rloic.common.abstraction.XOREquation;
 import com.github.rloic.common.collections.BytePosition;
-import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEngine;
-import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
-import com.github.rloic.util.Logger;
 import com.github.rloic.util.Pair;
-import com.github.rloic.xorconstraint.AbstractXORPropagator;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.github.rloic.aes.KeyBits.AES128.AES_128;
@@ -23,17 +23,14 @@ import static com.github.rloic.common.collections.ArrayExtensions.arrayOf;
 import static com.github.rloic.common.collections.ArrayExtensions.intArrayOf;
 
 @SuppressWarnings("NonAsciiCharacters")
-public class AdvancedModelPaperWithGlobalXOR {
+public class AdvancedModelPaper {
 
     public final Model m;
     public final BoolVar[] sBoxes;
     private final int r;
     private final KeyBits KEY_BITS;
 
-    private final Set<BoolVar> globalXorVariables = new HashSet<>();
-    private final List<BoolVar[]> globalXorEquations = new ArrayList<>();
-
-    public AdvancedModelPaperWithGlobalXOR(
+    public AdvancedModelPaper(
             int r,
             int objStep1,
             KeyBits keyBits
@@ -62,19 +59,6 @@ public class AdvancedModelPaperWithGlobalXOR {
         c10c11(diffK, ΔK, xorEql);
         c12(diffY, diffZ);
         c13(diffK, diffZ, ΔX);
-
-        BoolVar[] vars = new BoolVar[globalXorVariables.size()];
-        globalXorVariables.toArray(vars);
-        BoolVar[][] eqs = new BoolVar[globalXorEquations.size()][];
-        globalXorEquations.toArray(eqs);
-
-        m.post(
-              new Constraint(
-                    "GlobalXor",
-                    new AbstractXORPropagator(vars, eqs, new FullInferenceEngine(), new FullRulesApplier(), m.getSolver())
-              )
-        );
-
     }
 
     private BoolVar[][][] buildΔX(int r, int rows, int columns) {
@@ -88,7 +72,7 @@ public class AdvancedModelPaperWithGlobalXOR {
         for (int i = 0; i < r; i++) {
             for (int j = 0; j < rows; j++) {
                 for (int k = 0; k < columns - 1; k++) {
-                    result[i][j][k] = m.boolVar("ΔK[" + i + ", " + j + ", " + k + "]");
+                    result[i][j][k] = m.boolVar();
                 }
             }
         }
@@ -159,7 +143,7 @@ public class AdvancedModelPaperWithGlobalXOR {
             for (int j = 0; j <= 3; j++) {
                 for (int k = 0; k <= 3; k++) {
                     // C'3: XOR(∆Z[i][j][k], ∆K[i+1][j][k], ∆X[i+1][j][k])
-                    appendToGlobalXor(ΔX[i + 1][j][k], ΔZ[i][j][k], ΔK[i + 1][j][k]);
+                    m_xor(ΔZ[i][j][k], ΔK[i + 1][j][k], ΔX[i + 1][j][k]).post();
                 }
             }
         }
@@ -201,7 +185,7 @@ public class AdvancedModelPaperWithGlobalXOR {
         for (int j = 0; j <= 3; j++) {
             for (int k = 0; k <= 3; k++) {
                 for (int i = 0; i <= r - 2; i++) {
-                    ΔZ[i][j][k] = m.boolVar("ΔZ[" + i + ", " + j + ", " + k + "]");
+                    ΔZ[i][j][k] = m.boolVar();
                 }
                 // C6: ∆Z[r−1][j][k] = ∆Y[r−1][j][k]
                 ΔZ[r - 1][j][k] = ΔY[r - 1][j][k];
@@ -221,7 +205,7 @@ public class AdvancedModelPaperWithGlobalXOR {
                         int k2Init = (i1 == i2) ? k1 + 1 : 0;
                         for (int k2 = k2Init; k2 <= 4; k2++) {
                             // C'7: diff(δB1,δB2) = diff(δB2,δB1)
-                            BoolVar diff_δk1_δk2 = m.boolVar("diffK[" + j + "][" + i1 + ", " + k1 + "][" + i2 + ", " + k2 + "]");
+                            BoolVar diff_δk1_δk2 = m.boolVar();
                             diffK[j][i1][k1][i2][k2] = diff_δk1_δk2;
                             diffK[j][i2][k2][i1][k1] = diff_δk1_δk2;
                         }
@@ -243,7 +227,7 @@ public class AdvancedModelPaperWithGlobalXOR {
                         int k2Init = (i1 == i2) ? k1 + 1 : 0;
                         for (int k2 = k2Init; k2 <= 3; k2++) {
                             // C'7: diff(δB1,δB2) = diff(δB2,δB1)
-                            BoolVar diff_δY1_δY2 = m.boolVar("diffY[" + j + "][" + i1 + ", " + k1 + "][" + i2 + ", " + k2 + "]");
+                            BoolVar diff_δY1_δY2 = m.boolVar();
                             diffY[j][i1][k1][i2][k2] = diff_δY1_δY2;
                             diffY[j][i2][k2][i1][k1] = diff_δY1_δY2;
                         }
@@ -277,8 +261,20 @@ public class AdvancedModelPaperWithGlobalXOR {
 
                                 //C'9: diff(δB_{1},δB_{2}) + ∆B_{1} + ∆B_{2} != 1
                                 BoolVar diff_δ1_δ2 = diffOf(diffK, B1, B2);
-                                //m.sum(arrayOf(diff_δ1_δ2, deltaOf(ΔK, B1), deltaOf(ΔK, B2)), "!=", 1).post();
-                                appendToGlobalXor(diff_δ1_δ2, deltaOf(ΔK, B1), deltaOf(ΔK, B2));
+                                m.sum(arrayOf(diff_δ1_δ2, deltaOf(ΔK, B1), deltaOf(ΔK, B2)), "!=", 1).post();
+
+                                for (int i3 = i2; i3 < r - 1; i3++) {
+                                    int k3Init = (i2 == i3) ? k2 + 1 : 0;
+                                    for (int k3 = k3Init; k3 <= 4; k3++) {
+                                        BytePosition B3 = new BytePosition(i3, j, k3);
+                                        if(sameXor(xorEq, B1, B2, B3)) {
+                                            // C'8 diffK: diff(δB1,δB2) + diff(δB2,δB3) + diff(δB1,δB3) != 1
+                                            BoolVar diff_δ2_δ3 = diffOf(diffK, B2, B3);
+                                            BoolVar diff_δ1_δ3 = diffOf(diffK, B1, B3);
+                                            m.sum(arrayOf(diff_δ1_δ2, diff_δ2_δ3, diff_δ1_δ3), "!=", 1).post();
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -302,12 +298,25 @@ public class AdvancedModelPaperWithGlobalXOR {
                         for (int k2 = k2Init; k2 <= 3; k2++) {
                             // C'9 diffY: diff(δB1,δB2) + ∆B1 + ∆B2 != 1
                             BoolVar diff_δY1_δY2 = diffY[j][i1][k1][i2][k2];
-                            //m.sum(arrayOf(diff_δY1_δY2, ΔY[i1][j][k1], ΔY[i2][j][k2]), "!=", 1).post();
-                            appendToGlobalXor(ΔY[i1][j][k1], ΔY[i2][j][k2], diff_δY1_δY2);
+                            m.sum(arrayOf(diff_δY1_δY2, ΔY[i1][j][k1], ΔY[i2][j][k2]), "!=", 1).post();
                             // C'9 diffZ: diff(δB1,δB2) + ∆B1 + ∆B2 != 1
                             BoolVar diff_δZ1_δZ2 = diffZ[j][i1][k1][i2][k2];
-                            //m.sum(arrayOf(diff_δZ1_δZ2, ΔZ[i1][j][k1], ΔZ[i2][j][k2]), "!=", 1).post();
-                            appendToGlobalXor(ΔZ[i1][j][k1], ΔZ[i2][j][k2], diff_δZ1_δZ2);
+                            m.sum(arrayOf(diff_δZ1_δZ2, ΔZ[i1][j][k1], ΔZ[i2][j][k2]), "!=", 1).post();
+
+                            for (int i3 = i2; i3 <= r - 2; i3++) {
+                                int k3Init = (i2 == i3) ? k2 + 1 : 0;
+                                for (int k3 = k3Init; k3 <= 3; k3++) {
+                                    // C'8 diffY: diff(δB1,δB2) + diff(δB2,δB3) + diff(δB1,δB3) != 1
+                                    BoolVar diff_δY2_δY3 = diffY[j][i2][k2][i3][k3];
+                                    BoolVar diff_δY1_δY3 = diffY[j][i1][k1][i3][k3];
+                                    m.sum(arrayOf(diff_δY1_δY2, diff_δY2_δY3, diff_δY1_δY3), "!=", 1).post();
+
+                                    // C'8 diffZ: diff(δB1,δB2) + diff(δB2,δB3) + diff(δB1,δB3) != 1
+                                    BoolVar diff_δZ2_δZ3 = diffZ[j][i2][k2][i3][k3];
+                                    BoolVar diff_δZ1_δZ3 = diffZ[j][i1][k1][i3][k3];
+                                    m.sum(arrayOf(diff_δZ1_δZ2, diff_δZ2_δZ3, diff_δZ1_δZ3), "!=", 1).post();
+                                }
+                            }
                         }
                     }
                 }
@@ -409,12 +418,15 @@ public class AdvancedModelPaperWithGlobalXOR {
                             m.sum(arrayOf(
                                     diffK[j][i1 + 1][k1][i2 + 1][k2], diffZ[j][i1][k1][i2][k2], ΔX[i1 + 1][j][k1], ΔX[i2 + 1][j][k2]
                             ), "!=", 1).post();
-                            appendToGlobalXor(diffK[j][i1 + 1][k1][i2 + 1][k2], diffZ[j][i1][k1][i2][k2], ΔX[i1 + 1][j][k1], ΔX[i2 + 1][j][k2]);
                         }
                     }
                 }
             }
         }
+    }
+
+    private Constraint m_xor(BoolVar A, BoolVar B, BoolVar C) {
+        return m.sum(arrayOf(A, B, C), "!=", 1);
     }
 
     private MathSet<XOREquation> xorEq() {
@@ -491,22 +503,6 @@ public class AdvancedModelPaperWithGlobalXOR {
         }
         Logger.debug("    [CombinedXOR] Number of new XOR = " + newEquationsSet.size());
         return newEquationsSet.union(combineXor(newEquationsSet, newEquationsSet.union(rhs)));
-    }
-
-    private void appendToGlobalXor(BoolVar A, BoolVar B, BoolVar C) {
-        globalXorVariables.add(A);
-        globalXorVariables.add(B);
-        globalXorVariables.add(C);
-
-        globalXorEquations.add(arrayOf(A, B, C));
-    }
-    private void appendToGlobalXor(BoolVar A, BoolVar B, BoolVar C, BoolVar D) {
-        globalXorVariables.add(A);
-        globalXorVariables.add(B);
-        globalXorVariables.add(C);
-        globalXorVariables.add(D);
-
-        globalXorEquations.add(arrayOf(A, B, C, D));
     }
 
     private boolean sameXor(MathSet<XOREquation> xorEq, BytePosition... coordinates) {

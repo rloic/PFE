@@ -2,23 +2,18 @@ package com.github.rloic;
 
 import com.github.rloic.filter.EnumFilter;
 import com.github.rloic.filter.EnumFilterRound;
-import com.github.rloic.midori.MidoriGlobalFull;
-import com.github.rloic.midori.round.MidoriGlobalRound;
-import com.github.rloic.midori.round.MidoriGlobalRoundFull;
-import com.github.rloic.midori.round.MidoriRound;
+import com.github.rloic.midori.global.gac.MidoriGlobalFull;
+import com.github.rloic.midori.global.round.MidoriGlobalRound;
+import com.github.rloic.midori.global.gac.round.MidoriGlobalRoundFull;
 import com.github.rloic.strategy.WDeg;
-import com.github.rloic.util.VoidPredicate;
 import com.github.rloic.wip.WeightedConstraint;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
-import org.chocosolver.solver.search.loop.monitors.IMonitorDownBranch;
-import org.chocosolver.solver.search.loop.monitors.IMonitorUpBranch;
 import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
-import org.chocosolver.util.ESat;
 
 import java.util.Arrays;
 import java.util.List;
@@ -33,7 +28,7 @@ public class MidoriApp {
         final int numberOfActiveSBoxes = rounds;
 
         MidoriGlobalRound activesSBoxesByRounds = new MidoriGlobalRoundFull(rounds, numberOfActiveSBoxes);
-        runModel(
+        int nbSolutions = runModel(
                 activesSBoxesByRounds.m,
                 activesSBoxesByRounds.nbActives,
                 activesSBoxesByRounds.sBoxes,
@@ -41,14 +36,13 @@ public class MidoriApp {
                 rounds,
                 numberOfActiveSBoxes
         );
-
+       System.out.println("NB SOLUTIONS: " + nbSolutions);
     }
 
-    private static void run(
+    private static int run(
             Model model,
             BoolVar[] sBoxes,
             BoolVar[] varsToAssign,
-            Int2ObjectMap<List<WeightedConstraint>> constraintsOf,
             int objStep1
     ) {
         Solver solver = model.getSolver();
@@ -57,13 +51,16 @@ public class MidoriApp {
                 Search.intVarSearch(varsToAssign)
         );
         solver.plugMonitor(new EnumFilter(model, sBoxes, objStep1));
+        int nbSolutions = 0;
         while (solver.solve()) {
             display(sBoxes);
+            nbSolutions += 1;
         }
         solver.printShortStatistics();
+        return nbSolutions;
     }
 
-    private static void runModel(
+    private static int runModel(
             Model m,
             IntVar[] nbActives,
             BoolVar[] sBoxes,
@@ -91,20 +88,21 @@ public class MidoriApp {
                 Search.lastConflict(solver.getSearch())
         );
         solver.plugMonitor(new EnumFilterRound(m, nbActives, objStep1));
+        int nbSolutions = 0;
         while (solver.solve()) {
             display(nbActives);
             solver.printShortStatistics();
 
             MidoriGlobalFull midoriGlobalFull = new MidoriGlobalFull(r, objStep1, nbActives);
-            run(
+            nbSolutions += run(
                     midoriGlobalFull.m,
                     midoriGlobalFull.sBoxes,
                     midoriGlobalFull.variablesToAssign,
-                    midoriGlobalFull.constraintsOf,
                     objStep1
             );
         }
         solver.printShortStatistics();
+        return nbSolutions;
     }
 
     private static int parseIntOrDefault(String str, int def) {

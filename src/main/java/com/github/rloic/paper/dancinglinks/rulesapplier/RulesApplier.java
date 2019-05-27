@@ -2,7 +2,10 @@ package com.github.rloic.paper.dancinglinks.rulesapplier;
 
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.actions.IUpdater;
-import com.github.rloic.util.FastSet;
+import it.unimi.dsi.fastutil.ints.IntArraySet;
+import it.unimi.dsi.fastutil.ints.IntSet;
+
+import java.util.function.IntConsumer;
 
 public interface RulesApplier {
 
@@ -13,7 +16,7 @@ public interface RulesApplier {
    static void gauss(IDancingLinksMatrix m) {
       boolean[] isPivot = new boolean[m.nbEquations()];
       boolean[] hadAOne = new boolean[m.nbEquations()];
-      FastSet conflicts = new FastSet(m.nbEquations());
+      IntSet conflicts = new IntArraySet(m.nbEquations());
 
       for (int variable = 0; variable < m.nbVariables(); variable++) {
          conflicts.clear();
@@ -29,7 +32,7 @@ public interface RulesApplier {
          if (m.isBase(variable)) {
             int pivot = m.pivotOf(variable);
             final int _variable = variable;
-            conflicts.forEach(target -> {
+            conflicts.forEach((IntConsumer) target -> {
                m.xor(target, pivot);
                if (!isPivot[target]) {
                   hadAOne[target] = hasAOne(m, target, _variable);

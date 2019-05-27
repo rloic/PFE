@@ -1,11 +1,10 @@
 package com.github.rloic;
 
-import com.github.rloic.aes.AESGlobal;
-import com.github.rloic.aes.AESGlobalRound;
+import com.github.rloic.aes.abstractxor.AESGlobal;
+import com.github.rloic.aes.abstractxor.stepround.AESGlobalRound;
 import com.github.rloic.aes.KeyBits;
 import com.github.rloic.filter.EnumFilter;
 import com.github.rloic.filter.EnumFilterRound;
-import com.github.rloic.midori.MidoriGlobalFull;
 import com.github.rloic.strategy.WDeg;
 import com.github.rloic.wip.WeightedConstraint;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -49,7 +48,7 @@ public class AESApp {
         System.out.println(key + " " + nbRounds + " " + nbSBoxes);
 
         AESGlobalRound aesGlobalRound = new AESGlobalRound(nbRounds, nbSBoxes, key);
-        runModel(
+        int nbSolutions = runModel(
                 aesGlobalRound.m,
                 aesGlobalRound.nbActives,
                 aesGlobalRound.sBoxes,
@@ -59,13 +58,13 @@ public class AESApp {
                 key
         );
 
+        System.out.println("NB SOLUTIONS: " + nbSolutions);
     }
 
-    private static void run(
+    private static int run(
             Model model,
             BoolVar[] sBoxes,
             BoolVar[] varsToAssign,
-            Int2ObjectMap<List<WeightedConstraint>> constraintsOf,
             int objStep1
     ) {
         Solver solver = model.getSolver();
@@ -73,14 +72,17 @@ public class AESApp {
                 Search.intVarSearch(sBoxes),
                 Search.intVarSearch(varsToAssign)
         );
+        int nbSolutions = 0;
         solver.plugMonitor(new EnumFilter(model, sBoxes, objStep1));
         while (solver.solve()) {
             display(sBoxes);
+            nbSolutions += 1;
         }
         solver.printShortStatistics();
+        return nbSolutions;
     }
 
-    private static void runModel(
+    private static int runModel(
             Model m,
             IntVar[] nbActives,
             BoolVar[] sBoxes,
@@ -110,20 +112,21 @@ public class AESApp {
                 Search.lastConflict(solver.getSearch())
         );
         solver.plugMonitor(new EnumFilterRound(m, nbActives, objStep1));
+        int nbSolutions = 0;
         while (solver.solve()) {
             display(nbActives);
             solver.printShortStatistics();
 
             AESGlobal midoriGlobalFull = new AESGlobal(r, objStep1, keyBits, nbActives);
-            run(
+            nbSolutions += run(
                     midoriGlobalFull.m,
                     midoriGlobalFull.sBoxes,
                     midoriGlobalFull.varsToAssign,
-                    midoriGlobalFull.constraintsOf,
                     objStep1
             );
         }
         solver.printShortStatistics();
+        return nbSolutions;
     }
 
     private static int parseIntOrDefault(String str, int def) {

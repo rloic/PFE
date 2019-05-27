@@ -1,5 +1,6 @@
-package com.github.rloic.midori;
+package com.github.rloic.midori.global.partial;
 
+import com.github.rloic.midori.global.MidoriGlobal;
 import com.github.rloic.paper.dancinglinks.inferenceengine.InferenceEngine;
 import com.github.rloic.paper.dancinglinks.inferenceengine.impl.PartialInferenceEngine;
 import com.github.rloic.paper.dancinglinks.rulesapplier.RulesApplier;

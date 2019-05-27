@@ -1,6 +1,5 @@
 package com.github.rloic.paper.dancinglinks;
 
-import com.github.rloic.util.FastSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 
 public interface IDancingLinksMatrix {

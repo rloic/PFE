@@ -1,5 +1,6 @@
-package com.github.rloic.midori.round;
+package com.github.rloic.midori.global.partial.round;
 
+import com.github.rloic.midori.global.round.MidoriGlobalRound;
 import com.github.rloic.paper.dancinglinks.inferenceengine.InferenceEngine;
 import com.github.rloic.paper.dancinglinks.inferenceengine.impl.PartialInferenceEngine;
 import com.github.rloic.paper.dancinglinks.rulesapplier.RulesApplier;

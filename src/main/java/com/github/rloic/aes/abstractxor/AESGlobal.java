@@ -1,5 +1,6 @@
-package com.github.rloic.aes;
+package com.github.rloic.aes.abstractxor;
 
+import com.github.rloic.aes.KeyBits;
 import com.github.rloic.common.DeconstructedModel;
 import com.github.rloic.common.ExtendedModel;
 import com.github.rloic.common.collections.BytePosition;

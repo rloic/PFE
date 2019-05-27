@@ -1,4 +1,4 @@
-package com.github.rloic.midori;
+package com.github.rloic.midori.basic;
 
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.variables.BoolVar;
