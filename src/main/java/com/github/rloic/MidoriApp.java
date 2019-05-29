@@ -2,10 +2,12 @@ package com.github.rloic;
 
 import com.github.rloic.filter.EnumFilter;
 import com.github.rloic.filter.EnumFilterRound;
+import com.github.rloic.midori.global.MidoriGlobal;
 import com.github.rloic.midori.global.gac.MidoriGlobalFull;
 import com.github.rloic.midori.global.round.MidoriGlobalRound;
 import com.github.rloic.midori.global.gac.round.MidoriGlobalRoundFull;
 import com.github.rloic.strategy.WDeg;
+import com.github.rloic.util.Pair;
 import com.github.rloic.wip.WeightedConstraint;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.solver.Model;
@@ -28,7 +30,7 @@ public class MidoriApp {
         final int numberOfActiveSBoxes = rounds;
 
         MidoriGlobalRound activesSBoxesByRounds = new MidoriGlobalRoundFull(rounds, numberOfActiveSBoxes);
-        int nbSolutions = runModel(
+        Pair<Integer, Long> stats = step0(
                 activesSBoxesByRounds.m,
                 activesSBoxesByRounds.nbActives,
                 activesSBoxesByRounds.sBoxes,
@@ -36,10 +38,60 @@ public class MidoriApp {
                 rounds,
                 numberOfActiveSBoxes
         );
-       System.out.println("NB SOLUTIONS: " + nbSolutions);
+       System.out.println(stats._0 + "," + stats._1);
     }
 
-    private static int run(
+    private static Pair<Integer, Long> step0(
+            Model m,
+            IntVar[] nbActives,
+            BoolVar[] sBoxes,
+            Int2ObjectMap<List<WeightedConstraint>> constraintsOf,
+            int r,
+            int objStep1
+    ) {
+        final Solver solver = m.getSolver();
+        IntVar[] invNbActives = new IntVar[nbActives.length];
+        for (int i = 0; i < nbActives.length; i++) {
+            invNbActives[nbActives.length - 1 - i] = nbActives[i];
+        }
+        if (constraintsOf != null) {
+            solver.setSearch(
+                    Search.minDomLBSearch(invNbActives),
+                    new WDeg(sBoxes, 0L, new IntDomainMin(), constraintsOf)
+            );
+        } else {
+            solver.setSearch(
+                    Search.intVarSearch(nbActives),
+                    Search.intVarSearch(sBoxes)
+            );
+        }
+        solver.setSearch(
+                Search.lastConflict(solver.getSearch())
+        );
+        solver.plugMonitor(new EnumFilterRound(m, nbActives, objStep1));
+        int nbSolutions = 0;
+        long nbNodes = 0L;
+        while (solver.solve()) {
+            display(nbActives);
+            solver.printShortStatistics();
+
+            MidoriGlobal midoriGlobalFull = new MidoriGlobalFull(r, objStep1, nbActives);
+            Pair<Integer, Long> subResult = step1(
+                    midoriGlobalFull.m,
+                    midoriGlobalFull.sBoxes,
+                    midoriGlobalFull.variablesToAssign,
+                    objStep1
+            );
+
+            nbSolutions += subResult._0;
+            nbNodes += subResult._1;
+        }
+        nbNodes += solver.getMeasures().getNodeCount();
+        solver.printShortStatistics();
+        return new Pair<>(nbSolutions, nbNodes);
+    }
+
+    private static Pair<Integer, Long> step1(
             Model model,
             BoolVar[] sBoxes,
             BoolVar[] varsToAssign,
@@ -56,53 +108,7 @@ public class MidoriApp {
             display(sBoxes);
             nbSolutions += 1;
         }
-        solver.printShortStatistics();
-        return nbSolutions;
-    }
-
-    private static int runModel(
-            Model m,
-            IntVar[] nbActives,
-            BoolVar[] sBoxes,
-            Int2ObjectMap<List<WeightedConstraint>> constraintsOf,
-            int r,
-            int objStep1
-    ) {
-        final Solver solver = m.getSolver();
-        IntVar[] invNbActives = new IntVar[nbActives.length];
-        for (int i = 0; i < nbActives.length; i++) {
-            invNbActives[nbActives.length - 1 - i] = nbActives[i];
-        }
-        if (constraintsOf != null) {
-            solver.setSearch(
-                    Search.inputOrderUBSearch(invNbActives),
-                    new WDeg(sBoxes, 0L, new IntDomainMin(), constraintsOf)
-            );
-        } else {
-            solver.setSearch(
-                    Search.intVarSearch(nbActives),
-                    Search.intVarSearch(sBoxes)
-            );
-        }
-        solver.setSearch(
-                Search.lastConflict(solver.getSearch())
-        );
-        solver.plugMonitor(new EnumFilterRound(m, nbActives, objStep1));
-        int nbSolutions = 0;
-        while (solver.solve()) {
-            display(nbActives);
-            solver.printShortStatistics();
-
-            MidoriGlobalFull midoriGlobalFull = new MidoriGlobalFull(r, objStep1, nbActives);
-            nbSolutions += run(
-                    midoriGlobalFull.m,
-                    midoriGlobalFull.sBoxes,
-                    midoriGlobalFull.variablesToAssign,
-                    objStep1
-            );
-        }
-        solver.printShortStatistics();
-        return nbSolutions;
+        return new Pair<>(nbSolutions, solver.getMeasures().getNodeCount());
     }
 
     private static int parseIntOrDefault(String str, int def) {

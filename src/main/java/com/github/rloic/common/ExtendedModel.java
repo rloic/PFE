@@ -148,6 +148,10 @@ public class ExtendedModel {
       delegate.arithm(varA, operator, varB).post();
    }
 
+   public void arithm(BoolVar varA, String operator, BoolVar varB) {
+      delegate.arithm(varA, operator, varB).post();
+   }
+
    public void table(IntVar[] vars, Tuples tuples, String strategy) {
       delegate.table(vars, tuples, strategy).post();
    }
@@ -293,6 +297,65 @@ public class ExtendedModel {
          }
       }
       return false;
+   }
+
+   public void xor(Byte... bytes) {
+      IntVar[] realizations = new IntVar[bytes.length];
+      BoolVar[] abstractions = new BoolVar[bytes.length];
+
+      for (int i = 0; i < bytes.length; i++) {
+         Byte b = bytes[i];
+         realizations[i] = b.realization;
+         abstractions[i] = b.abstraction;
+      }
+
+      byteXor(realizations);
+      abstractXor(abstractions);
+   }
+
+   public void equals(Byte lhs, Byte rhs) {
+      arithm(lhs.realization, "=", rhs.realization);
+      arithm(lhs.abstraction, "=", rhs.abstraction);
+   }
+
+   public Byte byteVar(String name, int max) {
+      return new Byte(name, max);
+   }
+
+   public Byte[] byteVar(String name, int max, int dimA) {
+      Byte[] bytes = new Byte[dimA];
+      for (int i = 0; i < dimA; i++) {
+         bytes[i] = new Byte(name + "[" + i + "]", max);
+      }
+      return bytes;
+   }
+
+   public Byte[][] byteVar(String name, int max, int dimA, int dimB) {
+      Byte[][] bytes = new Byte[dimA][];
+      for (int i = 0; i < dimA; i++) {
+         bytes[i] = byteVar(name, max, dimB);
+      }
+      return bytes;
+   }
+
+   public Byte[][][] byteVar(String name, int max, int dimA, int dimB, int dimC) {
+      Byte[][][] bytes = new Byte[dimA][][];
+      for (int i = 0; i < dimA; i++) {
+         bytes[i] = byteVar(name, max, dimB, dimC);
+      }
+      return bytes;
+   }
+
+
+   public class Byte {
+      public final IntVar realization;
+      public final BoolVar abstraction;
+
+      Byte(String name, int max) {
+         realization = intVar("δ" + name, 0, max);
+         abstraction = boolVar("ΔX" + name);
+         delegate.arithm(realization, "!=", 0).reifyWith(abstraction);
+      }
    }
 
 }

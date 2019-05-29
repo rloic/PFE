@@ -2,8 +2,9 @@ package com.github.rloic.paper.dancinglinks.impl;
 
 import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
 import com.github.rloic.paper.dancinglinks.cell.*;
-import com.github.rloic.util.IterableMapper;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
+import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntSet;
 
 import java.util.Arrays;
@@ -193,7 +194,11 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public Iterable<Integer> equationsOf(int variable) {
-      return new IterableMapper<>(equationsOf[variable], data -> data.equation);
+      IntList equations = new IntArrayList(nbEquations);
+      for (Data data : equationsOf[variable]) {
+         equations.add(data.equation);
+      }
+      return equations;
    }
 
    private Data get(int equation, int variable) {
@@ -451,7 +456,11 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public Iterable<Integer> variablesOf(int equation) {
-      return new IterableMapper<>(variablesOf[equation], data -> data.variable);
+      IntList variables = new IntArrayList(nbVariables);
+      for (Data data : variablesOf[equation]) {
+         variables.add(data.variable);
+      }
+      return variables;
    }
 
    @Override
@@ -502,7 +511,11 @@ public class DancingLinksMatrix implements IDancingLinksMatrix {
 
    @Override
    public Iterable<Integer> activeEquations() {
-      return new IterableMapper<>(root.rows(), row -> row.index);
+      IntList activeEquations = new IntArrayList(nbEquations);
+      for (Row row : root.rows()) {
+         activeEquations.add(row.index);
+      }
+      return activeEquations;
    }
 
    @Override

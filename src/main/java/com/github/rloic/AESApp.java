@@ -6,6 +6,7 @@ import com.github.rloic.aes.KeyBits;
 import com.github.rloic.filter.EnumFilter;
 import com.github.rloic.filter.EnumFilterRound;
 import com.github.rloic.strategy.WDeg;
+import com.github.rloic.util.Pair;
 import com.github.rloic.wip.WeightedConstraint;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.solver.Model;
@@ -48,7 +49,7 @@ public class AESApp {
         System.out.println(key + " " + nbRounds + " " + nbSBoxes);
 
         AESGlobalRound aesGlobalRound = new AESGlobalRound(nbRounds, nbSBoxes, key);
-        int nbSolutions = runModel(
+        Pair<Integer, Long> stats = step0(
                 aesGlobalRound.m,
                 aesGlobalRound.nbActives,
                 aesGlobalRound.sBoxes,
@@ -58,31 +59,10 @@ public class AESApp {
                 key
         );
 
-        System.out.println("NB SOLUTIONS: " + nbSolutions);
+        System.out.println(stats._0 + "," + stats._1);
     }
 
-    private static int run(
-            Model model,
-            BoolVar[] sBoxes,
-            BoolVar[] varsToAssign,
-            int objStep1
-    ) {
-        Solver solver = model.getSolver();
-        solver.setSearch(
-                Search.intVarSearch(sBoxes),
-                Search.intVarSearch(varsToAssign)
-        );
-        int nbSolutions = 0;
-        solver.plugMonitor(new EnumFilter(model, sBoxes, objStep1));
-        while (solver.solve()) {
-            display(sBoxes);
-            nbSolutions += 1;
-        }
-        solver.printShortStatistics();
-        return nbSolutions;
-    }
-
-    private static int runModel(
+    private static Pair<Integer, Long> step0(
             Model m,
             IntVar[] nbActives,
             BoolVar[] sBoxes,
@@ -91,7 +71,6 @@ public class AESApp {
             int objStep1,
             KeyBits keyBits
     ) {
-
         final Solver solver = m.getSolver();
         IntVar[] invNbActives = new IntVar[nbActives.length];
         for (int i = 0; i < nbActives.length; i++) {
@@ -99,7 +78,7 @@ public class AESApp {
         }
         if (constraintsOf != null) {
             solver.setSearch(
-                    Search.inputOrderUBSearch(invNbActives),
+                    Search.minDomLBSearch(invNbActives),
                     new WDeg(sBoxes, 0L, new IntDomainMin(), constraintsOf)
             );
         } else {
@@ -113,20 +92,49 @@ public class AESApp {
         );
         solver.plugMonitor(new EnumFilterRound(m, nbActives, objStep1));
         int nbSolutions = 0;
+        long nbNodes = 0L;
         while (solver.solve()) {
             display(nbActives);
             solver.printShortStatistics();
 
             AESGlobal midoriGlobalFull = new AESGlobal(r, objStep1, keyBits, nbActives);
-            nbSolutions += run(
+            Pair<Integer, Long> subResult = step1(
                     midoriGlobalFull.m,
                     midoriGlobalFull.sBoxes,
                     midoriGlobalFull.varsToAssign,
                     objStep1
             );
+
+            nbSolutions += subResult._0;
+            nbNodes += subResult._1;
+        }
+        nbNodes += solver.getMeasures().getNodeCount();
+        solver.printShortStatistics();
+        return new Pair<>(nbSolutions, nbNodes);
+    }
+
+    private static Pair<Integer, Long> step1(
+            Model model,
+            BoolVar[] sBoxes,
+            BoolVar[] varsToAssign,
+            int objStep1
+    ) {
+        Solver solver = model.getSolver();
+        solver.setSearch(
+                Search.intVarSearch(sBoxes),
+                Search.intVarSearch(varsToAssign)
+        );
+        solver.setSearch(
+                Search.lastConflict(solver.getSearch())
+        );
+        int nbSolutions = 0;
+        solver.plugMonitor(new EnumFilter(model, sBoxes, objStep1));
+        while (solver.solve()) {
+            display(sBoxes);
+            nbSolutions += 1;
         }
         solver.printShortStatistics();
-        return nbSolutions;
+        return new Pair<>(nbSolutions, solver.getMeasures().getNodeCount());
     }
 
     private static int parseIntOrDefault(String str, int def) {
