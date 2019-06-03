@@ -9,6 +9,7 @@ import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
 import com.github.rloic.wip.WeightedConstraint;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.solver.Model;
+import org.chocosolver.solver.Solution;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
@@ -38,6 +39,8 @@ public class MidoriFullSteps {
     private final Byte[][][] δK;
     private final Byte[][] δCipherText;
 
+    public final IntVar[] nbActives;
+
     public MidoriFullSteps(
             int version,
             int r,
@@ -56,8 +59,8 @@ public class MidoriFullSteps {
         δSX = em.byteVar("SX", MAX_VALUE, r, 4, 4);
         δY = em.byteVar("Y", MAX_VALUE, r - 1, 4, 4);
         δZ = em.byteVar("Z", MAX_VALUE, r - 1, 4, 4);
-        δK = em.byteVar("Z", MAX_VALUE, KEY_MATRIX_SIZE, 4, 4);
-        δCipherText = em.byteVar("Z", MAX_VALUE, 4, 4);
+        δK = em.byteVar("K", MAX_VALUE, KEY_MATRIX_SIZE, 4, 4);
+        δCipherText = em.byteVar("CipherText", MAX_VALUE, 4, 4);
 
         IntVar[][][] probabilities = new IntVar[r][4][4];
         IntVar[] flattenedProbabilities = new IntVar[r * 4 * 4];
@@ -70,6 +73,28 @@ public class MidoriFullSteps {
                 }
             }
         }
+
+        nbActives = new IntVar[r];
+        for (int i = 0; i < r; i++) {
+            nbActives[i] = em.intVar("nbActives[" + i + "]", 0, numberOfActiveSBoxes);
+            if (i >= 3) {
+                IntVar[] activesUntilRoundI = new IntVar[i];
+                System.arraycopy(nbActives, 0, activesUntilRoundI, 0, i);
+                em.sum(activesUntilRoundI, ">=", i);
+            }
+        }
+
+        for (int i = 0; i < r; i++) {
+            IntVar[] currentRound = new IntVar[16];
+            int sbCpt = 0;
+            for (int j = 0; j < 4; j++) {
+                for (int k = 0; k < 4; k++) {
+                    currentRound[sbCpt++] = δX[i][j][k].abstraction;
+                }
+            }
+            em.sum(currentRound, "=", nbActives[i]);
+        }
+        em.sum(nbActives, "=", numberOfActiveSBoxes);
 
         // δX[0] = δPlainText xor δWK
         ark(δX[0], δPlainText, δWK);
@@ -210,5 +235,108 @@ public class MidoriFullSteps {
         return ΔVars;
     }
 
+    public void prettyPrint(Solution solution) {
+        System.out.println("δPlainText\t\t\tδWK");
+        for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+                System.out.print(String.format("% 3d", solution.getIntVal(δPlainText[j][k].realization)));
+            }
+            System.out.print("\t\t");
+            for (int k = 0; k < 4; k++) {
+                System.out.print(String.format("% 3d", solution.getIntVal(δWK[j][k].realization)));
+            }
+            System.out.println();
+        }
+
+        System.out.println("--------------------------------");
+        System.out.println("--------------------------------");
+
+        for (int i = 0; i < r - 1; i++) {
+            System.out.println("δX[" + i + "]");
+            for (int j = 0; j < 4; j++) {
+                for (int k = 0; k < 4; k++) {
+                    System.out.print(String.format("% 3d", solution.getIntVal(δX[i][j][k].realization)));
+                }
+                System.out.println();
+            }
+
+            System.out.println("δSX[" + i + "]");
+            for (int j = 0; j < 4; j++) {
+                for (int k = 0; k < 4; k++) {
+                    System.out.print(String.format("% 3d", solution.getIntVal(δSX[i][j][k].realization)));
+                }
+                System.out.println();
+            }
+
+            System.out.println("δY[" + i + "]");
+            for (int j = 0; j < 4; j++) {
+                for (int k = 0; k < 4; k++) {
+                    System.out.print(String.format("% 3d", solution.getIntVal(δY[i][j][k].realization)));
+                }
+                System.out.println();
+            }
+
+            System.out.println("δZ[" + i + "]\t\t\t\tδK[" + i + "]");
+            for (int j = 0; j < 4; j++) {
+                for (int k = 0; k < 4; k++) {
+                    System.out.print(String.format("% 3d", solution.getIntVal(δZ[i][j][k].realization)));
+                }
+                System.out.print("\t\t");
+                for (int k = 0; k < 4; k++) {
+                    if (version == 64)
+                        System.out.print(String.format("% 3d", solution.getIntVal(δK[i % 2][j][k].realization)));
+                    else
+                        System.out.print(String.format("% 3d", solution.getIntVal(δK[0][j][k].realization)));
+                }
+                System.out.println();
+            }
+
+            System.out.println("--------------------------------");
+        }
+
+        System.out.println("--------------------------------");
+
+        System.out.println("δX[" + (r - 1) + "]");
+        for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+                System.out.print(String.format("% 3d", solution.getIntVal(δX[(r - 1)][j][k].realization)));
+            }
+            System.out.println();
+        }
+
+        System.out.println("δSX[" + (r - 1) + "]");
+        for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+                System.out.print(String.format("% 3d", solution.getIntVal(δSX[(r - 1)][j][k].realization)));
+            }
+            System.out.println();
+        }
+
+        System.out.println("δCipherText");
+        for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+                System.out.print(String.format("% 3d", solution.getIntVal(δCipherText[j][k].realization)));
+            }
+            System.out.println();
+        }
+
+        System.out.println("δCipherText\t\t\tδWK");
+        for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+                System.out.print(String.format("% 3d", solution.getIntVal(δCipherText[j][k].realization)));
+            }
+            System.out.print("\t\t");
+            for (int k = 0; k < 4; k++) {
+                if (version == 64)
+                    System.out.print(String.format("% 3d", solution.getIntVal(δWK[j][k].realization)));
+                else
+                    System.out.print(String.format("% 3d", solution.getIntVal(δK[0][j][k].realization)));
+            }
+            System.out.println();
+        }
+
+        System.out.println("obj_{step2} = 2^{-" + solution.getIntVal(objective) + "}");
+        System.out.println();
+    }
 
 }

@@ -353,7 +353,7 @@ public class ExtendedModel {
 
       Byte(String name, int max) {
          realization = intVar("δ" + name, 0, max);
-         abstraction = boolVar("ΔX" + name);
+         abstraction = boolVar("Δ" + name);
          delegate.arithm(realization, "!=", 0).reifyWith(abstraction);
       }
    }
