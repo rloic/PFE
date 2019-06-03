@@ -1,6 +1,6 @@
 package com.github.rloic.aes;
 
-import com.github.rloic.aes.advanced.AdvancedModelPaper;
+import com.github.rloic.aes.advanced.AESAdvanced;
 import com.github.rloic.filter.EnumFilter;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.variables.BoolVar;
@@ -17,7 +17,7 @@ import static com.github.rloic.aes.KeyBits.AES128.AES_128;
 import static com.github.rloic.aes.KeyBits.AES192.AES_192;
 import static com.github.rloic.aes.KeyBits.AES256.AES_256;
 
-class AdvancedModelPaperTest {
+class AESAdvancedTest {
 
     @Test
     void should_succeed_for_aes128_3_5() throws IOException {
@@ -67,7 +67,7 @@ class AdvancedModelPaperTest {
     }
 
     private void runTest(KeyBits kBits, int r, int objStep1) throws IOException {
-        AdvancedModelPaper model = new AdvancedModelPaper(r, objStep1, kBits);
+        AESAdvanced model = new AESAdvanced(r, objStep1, kBits);
         String lcKeyBits = "";
         if (kBits == AES_128) {
             lcKeyBits = "aes128";

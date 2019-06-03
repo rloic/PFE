@@ -3,6 +3,8 @@ package com.github.rloic;
 import com.github.rloic.aes.abstractxor.AESGlobal;
 import com.github.rloic.aes.abstractxor.stepround.AESGlobalRound;
 import com.github.rloic.aes.KeyBits;
+import com.github.rloic.aes.advanced.AESAdvanced;
+import com.github.rloic.aes.advanced.stepround.AESAdvancedRound;
 import com.github.rloic.filter.EnumFilter;
 import com.github.rloic.filter.EnumFilterRound;
 import com.github.rloic.strategy.WDeg;
@@ -48,12 +50,12 @@ public class AESApp {
 
         System.out.println(key + " " + nbRounds + " " + nbSBoxes);
 
-        AESGlobalRound aesGlobalRound = new AESGlobalRound(nbRounds, nbSBoxes, key);
+        AESAdvancedRound aesGlobalRound = new AESAdvancedRound(nbRounds, nbSBoxes, key);
         Pair<Integer, Long> stats = step0(
                 aesGlobalRound.m,
                 aesGlobalRound.nbActives,
                 aesGlobalRound.sBoxes,
-                aesGlobalRound.constraintsOf,
+                null,
                 nbRounds,
                 nbSBoxes,
                 key

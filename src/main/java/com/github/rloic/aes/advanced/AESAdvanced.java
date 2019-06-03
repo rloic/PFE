@@ -23,19 +23,19 @@ import static com.github.rloic.common.collections.ArrayExtensions.arrayOf;
 import static com.github.rloic.common.collections.ArrayExtensions.intArrayOf;
 
 @SuppressWarnings("NonAsciiCharacters")
-public class AdvancedModelPaper {
+public class AESAdvanced {
 
     public final Model m;
     public final BoolVar[] sBoxes;
     private final int r;
     private final KeyBits KEY_BITS;
 
-    public AdvancedModelPaper(
+    public AESAdvanced(
             int r,
             int objStep1,
             KeyBits keyBits
     ) {
-        this.m = new Model("Advanced Model(r=" + r + ", objStep=" + objStep1 + ")");
+        this.m = new Model("AESAdvanced(r=" + r + ", objStep=" + objStep1 + ")");
         this.r = r;
         this.KEY_BITS = keyBits;
 

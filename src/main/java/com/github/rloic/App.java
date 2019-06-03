@@ -1,7 +1,7 @@
 package com.github.rloic;
 
 import com.github.rloic.aes.*;
-import com.github.rloic.aes.advanced.AdvancedModelPaper;
+import com.github.rloic.aes.advanced.AESAdvanced;
 import com.github.rloic.filter.EnumFilter;
 import com.github.rloic.util.Logger;
 import org.apache.commons.cli.*;
@@ -66,7 +66,7 @@ public class App {
                                 throw new IllegalArgumentException("Invalid parameter AES-Version, accepted: [AES-128, AES-192, AES-256], given: " + aesVersion);
                         }
 
-                        AdvancedModelPaper model = new AdvancedModelPaper(rounds, objStep1, version);
+                        AESAdvanced model = new AESAdvanced(rounds, objStep1, version);
                         benchModel(model.m, model.sBoxes, objStep1);
                     } else {
                         formatter.printHelp(" ", options);
