@@ -6,7 +6,6 @@ import com.github.rloic.common.abstraction.XOREquation;
 import com.github.rloic.common.collections.BytePosition;
 import com.github.rloic.util.Logger;
 import com.github.rloic.util.Pair;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
@@ -25,7 +24,7 @@ import static com.github.rloic.common.collections.ArrayExtensions.arrayOf;
 import static com.github.rloic.common.collections.ArrayExtensions.intArrayOf;
 
 @SuppressWarnings("NonAsciiCharacters")
-public class AESAdvancedRound {
+public class AESAdvancedRoundTransit {
 
     public final Model m;
     public final BoolVar[] sBoxes;
@@ -39,12 +38,12 @@ public class AESAdvancedRound {
 
     public final IntVar[] nbActives;
 
-    public AESAdvancedRound(
+    public AESAdvancedRoundTransit(
             int r,
             int objStep1,
             KeyBits keyBits
     ) {
-        this.m = new Model("AES Advanced Round(r=" + r + ", objStep=" + objStep1 + ")");
+        this.m = new Model("AES Advanced Round[Transit](r=" + r + ", objStep=" + objStep1 + ")");
         this.r = r;
         this.KEY_BITS = keyBits;
 
@@ -64,10 +63,10 @@ public class AESAdvancedRound {
         BoolVar[][][][][] diffY = c7DiffY();
         BoolVar[][][][][] diffZ = c7DiffZ();
         c8c9(diffK, ΔK, xorEql);
-        //c8c9(diffY, ΔY, diffZ, ΔZ);
+        c8c9(diffY, ΔY, diffZ, ΔZ);
         c10c11(diffK, ΔK, xorEql);
-        //c12(diffY, diffZ);
-        //c13(diffK, diffZ, ΔX);
+        c12(diffY, diffZ);
+        c13(diffK, diffZ, ΔX);
 
         nbActives = new IntVar[r];
         for (int i = 0; i < r; i++) {

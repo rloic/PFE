@@ -1,10 +1,9 @@
 package com.github.rloic;
 
 import com.github.rloic.aes.abstractxor.AESGlobal;
-import com.github.rloic.aes.abstractxor.stepround.AESGlobalRound;
 import com.github.rloic.aes.KeyBits;
-import com.github.rloic.aes.advanced.AESAdvanced;
-import com.github.rloic.aes.advanced.stepround.AESAdvancedRound;
+import com.github.rloic.aes.advanced.stepround.AESAdvancedRoundNoTransit;
+import com.github.rloic.aes.advanced.stepround.AESAdvancedRoundTransit;
 import com.github.rloic.filter.EnumFilter;
 import com.github.rloic.filter.EnumFilterRound;
 import com.github.rloic.strategy.WDeg;
@@ -50,11 +49,11 @@ public class AESApp {
 
         System.out.println(key + " " + nbRounds + " " + nbSBoxes);
 
-        AESAdvancedRound aesGlobalRound = new AESAdvancedRound(nbRounds, nbSBoxes, key);
+        AESAdvancedRoundTransit aesRound = new AESAdvancedRoundTransit(nbRounds, nbSBoxes, key);
         Pair<Integer, Long> stats = step0(
-                aesGlobalRound.m,
-                aesGlobalRound.nbActives,
-                aesGlobalRound.sBoxes,
+                aesRound.m,
+                aesRound.nbActives,
+                aesRound.sBoxes,
                 null,
                 nbRounds,
                 nbSBoxes,
@@ -99,11 +98,11 @@ public class AESApp {
             display(nbActives);
             solver.printShortStatistics();
 
-            AESGlobal midoriGlobalFull = new AESGlobal(r, objStep1, keyBits, nbActives);
+            AESGlobal aes = new AESGlobal(r, objStep1, keyBits, nbActives);
             Pair<Integer, Long> subResult = step1(
-                    midoriGlobalFull.m,
-                    midoriGlobalFull.sBoxes,
-                    midoriGlobalFull.varsToAssign,
+                    aes.m,
+                    aes.sBoxes,
+                    aes.varsToAssign,
                     objStep1
             );
 
