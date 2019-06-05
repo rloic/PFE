@@ -6,7 +6,6 @@ import com.github.rloic.common.abstraction.XOREquation;
 import com.github.rloic.common.collections.BytePosition;
 import com.github.rloic.util.Logger;
 import com.github.rloic.util.Pair;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.BoolVar;
