@@ -49,7 +49,7 @@ public class AESApp {
 
         System.out.println(key + " " + nbRounds + " " + nbSBoxes);
 
-        AESAdvancedRoundNoTransit aesRound = new AESAdvancedRoundNoTransit(nbRounds, nbSBoxes, key);
+        AESAdvancedRoundTransit aesRound = new AESAdvancedRoundTransit(nbRounds, nbSBoxes, key);
         Pair<Integer, Long> stats = step0(
                 aesRound.m,
                 aesRound.nbActives,
