@@ -40,6 +40,7 @@ public class MidoriFullSteps {
     private final Byte[][] δCipherText;
 
     public final IntVar[] nbActives;
+    public final IntVar[] flattenedProbabilities;
 
     public MidoriFullSteps(
             int version,
@@ -51,7 +52,6 @@ public class MidoriFullSteps {
         this.version = version;
 
         final int MAX_VALUE = (version == 64) ? 15 : 255;
-        final int KEY_MATRIX_SIZE = (version == 64) ? 2 : 1;
 
         δPlainText = em.byteVar("PlainText", MAX_VALUE, 4, 4);
         δWK = em.byteVar("WK", MAX_VALUE, 4, 4);
@@ -59,11 +59,11 @@ public class MidoriFullSteps {
         δSX = em.byteVar("SX", MAX_VALUE, r, 4, 4);
         δY = em.byteVar("Y", MAX_VALUE, r - 1, 4, 4);
         δZ = em.byteVar("Z", MAX_VALUE, r - 1, 4, 4);
-        δK = em.byteVar("K", MAX_VALUE, KEY_MATRIX_SIZE, 4, 4);
+        δK = new ExtendedModel.Byte[][][]{δWK,δWK};
         δCipherText = em.byteVar("CipherText", MAX_VALUE, 4, 4);
 
         IntVar[][][] probabilities = new IntVar[r][4][4];
-        IntVar[] flattenedProbabilities = new IntVar[r * 4 * 4];
+        flattenedProbabilities = new IntVar[r * 4 * 4];
         int cpt = 0;
         for (int i = 0; i < r; i++) {
             for (int j = 0; j < 4; j++) {
@@ -120,7 +120,7 @@ public class MidoriFullSteps {
         objective = em.intVar(2 * numberOfActiveSBoxes, 6 * numberOfActiveSBoxes);
         em.sum(flattenedProbabilities, "=", objective);
 
-        DeconstructedModel d = em.buildWithWeightedConstraintsGeneration(new FullInferenceEngine(), new FullRulesApplier());
+        DeconstructedModel d = em.build(new FullInferenceEngine(), new FullRulesApplier());
         model = d.model;
         solver = model.getSolver();
         constraintsOf = d.constraintsOf;
@@ -308,14 +308,6 @@ public class MidoriFullSteps {
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
                 System.out.print(String.format("% 3d", solution.getIntVal(δSX[(r - 1)][j][k].realization)));
-            }
-            System.out.println();
-        }
-
-        System.out.println("δCipherText");
-        for (int j = 0; j < 4; j++) {
-            for (int k = 0; k < 4; k++) {
-                System.out.print(String.format("% 3d", solution.getIntVal(δCipherText[j][k].realization)));
             }
             System.out.println();
         }

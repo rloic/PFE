@@ -82,10 +82,6 @@ public class ExtendedModel {
       globalXorEquations.add(equation);
    }
 
-   public void byteXor(IntVar... equation) {
-      delegate.post(new Constraint("Realisation XOR", new ByteXORPropagator(equation)));
-   }
-
    public void equals(BoolVar lhs, BoolVar rhs) {
       BoolVar[] vars = new BoolVar[]{lhs, rhs};
       WeightedConstraint equalityConstraint = new WeightedConstraint<>(vars, this::oneDifferent);
@@ -96,7 +92,7 @@ public class ExtendedModel {
    }
 
    public void equals(BoolVar... vars) {
-      for(int i = 0; i < vars.length; i++) {
+      for (int i = 0; i < vars.length; i++) {
          for (int j = i + 1; j < vars.length; j++) {
             WeightedConstraint equalityConstraint = new WeightedConstraint<>(new BoolVar[]{vars[i], vars[j]}, this::oneDifferent);
             constraintsOf.get(vars[i].getId()).add(equalityConstraint);
@@ -109,7 +105,7 @@ public class ExtendedModel {
    private WeightedConstraint<Variable> post(Constraint constraint, Variable[] variables) {
       constraint.post();
       WeightedConstraint<Variable> wConstraint = WeightedConstraint.wrap(constraint);
-      for(Variable v : variables) {
+      for (Variable v : variables) {
          constraintsOf.get(v.getId()).add(wConstraint);
       }
       return wConstraint;
@@ -117,7 +113,7 @@ public class ExtendedModel {
 
    private void post(Constraint constraint, Variable[] variables, Variable... other) {
       WeightedConstraint<Variable> wConstraint = post(constraint, variables);
-      for (Variable v: other) {
+      for (Variable v : other) {
          if (constraintsOf.containsKey(v.getId())) {
             constraintsOf.get(v.getId()).add(wConstraint);
          }
@@ -125,22 +121,22 @@ public class ExtendedModel {
    }
 
    public void sum(BoolVar[] sum, String operator, int value) {
-      Constraint cSum  = delegate.sum(sum, operator, value);
+      Constraint cSum = delegate.sum(sum, operator, value);
       post(cSum, sum);
    }
 
    public void sum(IntVar[] sum, String operator, IntVar value) {
-      Constraint cSum  = delegate.sum(sum, operator, value);
+      Constraint cSum = delegate.sum(sum, operator, value);
       post(cSum, sum, value);
    }
 
    public void sum(IntVar[] sum, String operator, int value) {
-      Constraint cSum  = delegate.sum(sum, operator, value);
+      Constraint cSum = delegate.sum(sum, operator, value);
       post(cSum, sum);
    }
 
    public void sum(BoolVar[] sum, String operator, IntVar value) {
-      Constraint cSum  = delegate.sum(sum, operator, value);
+      Constraint cSum = delegate.sum(sum, operator, value);
       post(cSum, sum, value);
    }
 
@@ -168,6 +164,12 @@ public class ExtendedModel {
 
    public IntVar intVar(int[] domain) {
       IntVar var = delegate.intVar(domain);
+      constraintsOf.put(var.getId(), new ArrayList<>());
+      return var;
+   }
+
+   public IntVar intVar(String name, int[] domain) {
+      IntVar var = delegate.intVar(name, domain);
       constraintsOf.put(var.getId(), new ArrayList<>());
       return var;
    }
@@ -299,18 +301,45 @@ public class ExtendedModel {
       return false;
    }
 
-   public void xor(Byte... bytes) {
-      IntVar[] realizations = new IntVar[bytes.length];
-      BoolVar[] abstractions = new BoolVar[bytes.length];
-
-      for (int i = 0; i < bytes.length; i++) {
-         Byte b = bytes[i];
-         realizations[i] = b.realization;
-         abstractions[i] = b.abstraction;
+   private boolean notXor(IntVar[] vars) {
+      int value = 0;
+      for (int i = 0; i < vars.length; i++) {
+         value ^= vars[i].getValue();
       }
+      return value != 0;
+   }
 
-      byteXor(realizations);
-      abstractXor(abstractions);
+   public void byteXor(IntVar δA, IntVar δB, IntVar δC) {
+      IntVar[] variables = new IntVar[]{δA, δB, δC};
+      WeightedConstraint equalityConstraint = new WeightedConstraint<>(variables, this::notXor);
+      for (IntVar var : variables) {
+         constraintsOf.get(var.getId()).add(equalityConstraint);
+      }
+      delegate.post(new Constraint("byte xor", new ByteXORPropagator(δA, δB, δC)));
+      delegate.table(new IntVar[]{δA, δB, δC}, xor3_128bits, "FC").post();
+   }
+
+   public void byteXor(IntVar δA, IntVar δB, IntVar δC, IntVar δD) {
+      //delegate.post(new Constraint("byte xor", new ByteXORPropagator(δA, δB, δC, δD)));
+      IntVar diffAB_CD = intVar("diff_AB_CD", 0, 255);
+      IntVar diffAC_BD = intVar("diff_AC_BD", 0, 255);
+      IntVar diffAD_BC = intVar("diff_AD_BC", 0, 255);
+      byteXor(diffAB_CD, δA, δB);
+      byteXor(diffAB_CD, δC, δD);
+      byteXor(diffAC_BD, δA, δC);
+      byteXor(diffAC_BD, δB, δD);
+      byteXor(diffAD_BC, δA, δD);
+      byteXor(diffAD_BC, δB, δC);
+   }
+
+   public void xor(Byte δA, Byte δB, Byte δC) {
+      byteXor(δA.realization, δB.realization, δC.realization);
+      abstractXor(δA.abstraction, δB.abstraction, δC.abstraction);
+   }
+
+   public void xor(Byte δA, Byte δB, Byte δC, Byte δD) {
+      byteXor(δA.realization, δB.realization, δC.realization, δD.realization);
+      abstractXor(δA.abstraction, δB.abstraction, δC.abstraction, δD.abstraction);
    }
 
    public void equals(Byte lhs, Byte rhs) {
@@ -333,7 +362,7 @@ public class ExtendedModel {
    public Byte[][] byteVar(String name, int max, int dimA, int dimB) {
       Byte[][] bytes = new Byte[dimA][];
       for (int i = 0; i < dimA; i++) {
-         bytes[i] = byteVar(name, max, dimB);
+         bytes[i] = byteVar(name + "[" + i + "]", max, dimB);
       }
       return bytes;
    }
@@ -356,6 +385,35 @@ public class ExtendedModel {
          abstraction = boolVar("Δ" + name);
          delegate.arithm(realization, "!=", 0).reifyWith(abstraction);
       }
+   }
+
+   private Tuples xor3_128bits = xor3(256);
+   /*private Tuples xor4_128bits = xor4(256);
+   private Tuples xor3_64bits = xor3(16);
+   private Tuples xor4_64bits = xor4(16);*/
+
+   private Tuples xor3(int max) {
+      int[][] xor3 = new int[max * max][3];
+      int cpt = 0;
+      for (int i = 0; i < max; i++) {
+         for (int j = 0; j < max; j++) {
+            xor3[cpt++] = new int[]{i, j, i ^ j};
+         }
+      }
+      return new Tuples(xor3, true);
+   }
+
+   private Tuples xor4(int max) {
+      int[][] xor4 = new int[max * max * max][4];
+      int cpt = 0;
+      for (int i = 0; i < max; i++) {
+         for (int j = 0; j < max; j++) {
+            for (int k = 0; k < max; k++) {
+               xor4[cpt++] = new int[]{i, j, k, i ^ j ^ k};
+            }
+         }
+      }
+      return new Tuples(xor4, true);
    }
 
 }

@@ -1,8 +1,7 @@
 package com.github.rloic;
 
-import com.github.rloic.aes.abstractxor.AESGlobal;
 import com.github.rloic.aes.KeyBits;
-import com.github.rloic.aes.advanced.stepround.AESAdvancedRoundNoTransit;
+import com.github.rloic.aes.abstractxor.AESGlobal;
 import com.github.rloic.aes.advanced.stepround.AESAdvancedRoundTransit;
 import com.github.rloic.filter.EnumFilter;
 import com.github.rloic.filter.EnumFilterRound;
