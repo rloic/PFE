@@ -20,8 +20,6 @@ import java.util.List;
 import static com.github.rloic.aes.KeyBits.AES128.AES_128;
 import static com.github.rloic.aes.KeyBits.AES192.AES_192;
 import static com.github.rloic.aes.KeyBits.AES256.AES_256;
-import static com.github.rloic.common.collections.ArrayExtensions.arrayOf;
-import static com.github.rloic.common.collections.ArrayExtensions.intArrayOf;
 
 @SuppressWarnings("NonAsciiCharacters")
 public class AESGlobalRoundMC {
@@ -50,10 +48,10 @@ public class AESGlobalRoundMC {
       this.em = new ExtendedModel("AES Global[1-5]");
       this.keyBits = keyBits;
 
-      ΔX = em.boolVar("ΔX", r, 4, 4);
-      ΔY = em.boolVar("ΔY/ΔSX", r, 4, 4);
+      ΔX = em.boolVarTensor3("ΔX", r, 4, 4);
+      ΔY = em.boolVarTensor3("ΔY/ΔSX", r, 4, 4);
       ΔZ = new BoolVar[r][4][4];
-      ΔK = em.boolVar("ΔK", r, 4, 5);
+      ΔK = em.boolVarTensor3("ΔK", r, 4, 5);
 
       // ΔY = SR(SBoxPropagator(ΔX)) = SR(ΔX)
       for (int i = 0; i < r; i++) {
@@ -65,7 +63,7 @@ public class AESGlobalRoundMC {
       }
 
       for (int i = 0; i < r - 1; i++) {
-         ΔZ[i] = em.boolVar("ΔZ[" + i + "]", 4, 4);
+         ΔZ[i] = em.boolVarMatrix("ΔZ[" + i + "]", 4, 4);
       }
       ΔZ[r - 1] = ΔY[r - 1];
 
@@ -106,8 +104,8 @@ public class AESGlobalRoundMC {
          }
       }
 
-      BoolVar[][][] Δ2Y = em.boolVar("Δ2Y/diff_δY_δ3Y", r - 1, 4, 4);
-      BoolVar[][][] Δ3Y = em.boolVar("Δ3Y/diff_δY_δ2Y", r - 1, 4, 4);
+      BoolVar[][][] Δ2Y = em.boolVarTensor3("Δ2Y/diff_δY_δ3Y", r - 1, 4, 4);
+      BoolVar[][][] Δ3Y = em.boolVarTensor3("Δ3Y/diff_δY_δ2Y", r - 1, 4, 4);
 
       for (int i = 0; i <= r - 2; i++) {
          for (int k = 0; k <= 3; k++) {

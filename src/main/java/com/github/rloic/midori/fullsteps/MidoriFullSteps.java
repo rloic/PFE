@@ -53,14 +53,14 @@ public class MidoriFullSteps {
 
         final int MAX_VALUE = (version == 64) ? 15 : 255;
 
-        δPlainText = em.byteVar("PlainText", MAX_VALUE, 4, 4);
-        δWK = em.byteVar("WK", MAX_VALUE, 4, 4);
-        δX = em.byteVar("X", MAX_VALUE, r, 4, 4);
-        δSX = em.byteVar("SX", MAX_VALUE, r, 4, 4);
-        δY = em.byteVar("Y", MAX_VALUE, r - 1, 4, 4);
-        δZ = em.byteVar("Z", MAX_VALUE, r - 1, 4, 4);
+        δPlainText = em.byteVarMatrix("PlainText", 4, 4, MAX_VALUE);
+        δWK = em.byteVarMatrix("WK", 4, 4, MAX_VALUE);
+        δX = em.byteVarTensor3("X", r, 4, 4, MAX_VALUE);
+        δSX = em.byteVarTensor3("SX", r, 4, 4, MAX_VALUE);
+        δY = em.byteVarTensor3("Y", r - 1, 4, 4, MAX_VALUE);
+        δZ = em.byteVarTensor3("Z", r - 1, 4, 4, MAX_VALUE);
         δK = new ExtendedModel.Byte[][][]{δWK,δWK};
-        δCipherText = em.byteVar("CipherText", MAX_VALUE, 4, 4);
+        δCipherText = em.byteVarMatrix("CipherText", 4, 4, MAX_VALUE);
 
         IntVar[][][] probabilities = new IntVar[r][4][4];
         flattenedProbabilities = new IntVar[r * 4 * 4];

@@ -11,7 +11,6 @@ import org.chocosolver.solver.Solution;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 
-import java.text.DecimalFormat;
 import java.util.List;
 
 import static com.github.rloic.common.collections.ArrayExtensions.arrayOf;
@@ -62,7 +61,7 @@ public class Skinny {
         }
         em.sum(flattenedProbabilities, "=", objective);
 
-        δX[0] = em.byteVar("X[0]", BOUND, 4, 4);
+        δX[0] = em.byteVarMatrix("X[0]", 4, 4, BOUND);
         for (int i = 0; i < r; i++) {
             δSX[i] = subCells(δX[i], probabilities[i]);
             δAC[i] = addConstants(δSX[i]);
@@ -87,7 +86,7 @@ public class Skinny {
     }
 
     private ExtendedModel.Byte[][] subCells(ExtendedModel.Byte[][] δX, IntVar[][] probabilities) {
-        ExtendedModel.Byte[][] δSX = em.byteVar("SX", BOUND, 4, 4);
+        ExtendedModel.Byte[][] δSX = em.byteVarMatrix("SX", 4, 4, BOUND);
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
                 em.table(

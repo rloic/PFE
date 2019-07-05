@@ -21,7 +21,10 @@ import java.util.*;
 /**
  * Extended model designed for AbstractXOR problems with utility methods
  */
+@SuppressWarnings("NonAsciiCharacters")
 public class ExtendedModel {
+
+   private static final int DEFAULT_UPPER_BOUND = 255;
 
    /* The true model */
    private Model delegate;
@@ -40,48 +43,119 @@ public class ExtendedModel {
       return delegate;
    }
 
+   // Variables
    public BoolVar boolVar(String name) {
-      BoolVar var = delegate.boolVar(name);
-      constraintsOf.put(var.getId(), new ArrayList<>());
-      return var;
+      return declare(delegate.boolVar(name));
    }
-
-   public BoolVar[] boolVar(String name, int len) {
+   public BoolVar[] boolVarArray(String name, int len) {
       BoolVar[] vars = new BoolVar[len];
       for (int i = 0; i < len; i++) {
          vars[i] = boolVar(name + "[" + i + "]");
       }
       return vars;
    }
-
-   public BoolVar[][] boolVar(String name, int dimA, int dimB) {
+   public BoolVar[][] boolVarMatrix(String name, int dimA, int dimB) {
       BoolVar[][] vars = new BoolVar[dimA][dimB];
       for (int i = 0; i < dimA; i++) {
-         vars[i] = boolVar(name + "[" + i + "]", dimB);
+         vars[i] = boolVarArray(name + "[" + i + "]", dimB);
       }
       return vars;
    }
-
-   public BoolVar[][][] boolVar(String name, int dimA, int dimB, int dimC) {
+   public BoolVar[][][] boolVarTensor3(String name, int dimA, int dimB, int dimC) {
       BoolVar[][][] vars = new BoolVar[dimA][dimB][dimC];
       for (int i = 0; i < dimA; i++) {
-         vars[i] = boolVar(name + "[" + i + "]", dimB, dimC);
+         vars[i] = boolVarMatrix(name + "[" + i + "]", dimB, dimC);
       }
       return vars;
    }
 
-   public void abstractXor(BoolVar... equation) {
-      WeightedConstraint xorConstraint = new WeightedConstraint<>(equation, this::sumEqualsOne);
-      for (BoolVar var : equation) {
-         constraintsOf.get(var.getId()).add(xorConstraint);
-
-         if (!globalXorVariables.contains(var)) {
-            globalXorVariables.add(var);
-         }
-      }
-      globalXorEquations.add(equation);
+   public IntVar intVar(int[] domain) {
+      return declare(delegate.intVar(domain));
    }
 
+   public IntVar intVar(String name, int[] domain) {
+      return declare(delegate.intVar(name, domain));
+   }
+
+   public IntVar intVar(int lb, int ub) {
+      return declare(delegate.intVar(lb, ub));
+   }
+
+   public IntVar intVar(String name, int lb, int ub) {
+      return declare(delegate.intVar(name, lb, ub));
+   }
+
+   public IntVar constant(String name, int value) {
+      return declare(delegate.intVar(name, value));
+   }
+
+   public Byte byteVar(String name) {
+      return new Byte(name, DEFAULT_UPPER_BOUND);
+   }
+
+   public Byte byteVar(String name, int max) {
+      return new Byte(name, max);
+   }
+
+   public Byte[] byteVarArray(String name, int dimA) {
+      return byteVarArray(name, dimA, DEFAULT_UPPER_BOUND);
+   }
+
+   public Byte[] byteVarArray(String name, int dimA, int max) {
+      Byte[] bytes = new Byte[dimA];
+      for (int i = 0; i < dimA; i++) {
+         bytes[i] = new Byte(name + "[" + i + "]", max);
+      }
+      return bytes;
+   }
+
+   public Byte[][] byteVarMatrix(String name, int dimA, int dimB) {
+      return byteVarMatrix(name, dimA, dimB, DEFAULT_UPPER_BOUND);
+   }
+
+   public Byte[][] byteVarMatrix(String name, int dimA, int dimB, int max) {
+      Byte[][] bytes = new Byte[dimA][];
+      for (int i = 0; i < dimA; i++) {
+         bytes[i] = byteVarArray(name + "[" + i + "]", dimB, max);
+      }
+      return bytes;
+   }
+
+   public Byte[][][] byteVarTensor3(String name, int dimA, int dimB, int dimC) {
+      return byteVarTensor3(name, dimA, dimB, dimC, DEFAULT_UPPER_BOUND);
+   }
+
+   public Byte[][][] byteVarTensor3(String name, int dimA, int dimB, int dimC, int max) {
+      Byte[][][] bytes = new Byte[dimA][][];
+      for (int i = 0; i < dimA; i++) {
+         bytes[i] = byteVarMatrix(name, dimB, dimC, max);
+      }
+      return bytes;
+   }
+
+   public Byte xorVar(Byte δA, Byte δB) {
+      return xorVar(δA, δB, DEFAULT_UPPER_BOUND);
+   }
+
+   public Byte xorVar(Byte δA, Byte δB, int upperBound) {
+      ExtendedModel.Byte xorVar = byteVar("(" + δA.name + " xor " + δB.name + ")", upperBound);
+      xor(xorVar, δA, δB);
+      return xorVar;
+   }
+
+   public Byte xorVar(Byte δA, Byte δB, Byte δC, Byte δD) {
+      return xorVar(δA, δB, δC, δD, DEFAULT_UPPER_BOUND);
+   }
+
+   public Byte xorVar(Byte δA, Byte δB, Byte δC, Byte δD, int upperBound) {
+      ExtendedModel.Byte diffAB = xorVar(δA, δB, upperBound);
+      ExtendedModel.Byte diffCD = xorVar(δC, δD, upperBound);
+      ExtendedModel.Byte result = byteVar("(" + δA.name + " xor " + δB.name + " xor " + δC.name + " xor " + δD.name + ")", upperBound);
+      xor(result, diffAB, diffCD);
+      return result;
+   }
+
+   // Constraints
    public void equals(BoolVar lhs, BoolVar rhs) {
       BoolVar[] vars = new BoolVar[]{lhs, rhs};
       WeightedConstraint equalityConstraint = new WeightedConstraint<>(vars, this::oneDifferent);
@@ -102,22 +176,9 @@ public class ExtendedModel {
       }
    }
 
-   private WeightedConstraint<Variable> post(Constraint constraint, Variable[] variables) {
-      constraint.post();
-      WeightedConstraint<Variable> wConstraint = WeightedConstraint.wrap(constraint);
-      for (Variable v : variables) {
-         constraintsOf.get(v.getId()).add(wConstraint);
-      }
-      return wConstraint;
-   }
-
-   private void post(Constraint constraint, Variable[] variables, Variable... other) {
-      WeightedConstraint<Variable> wConstraint = post(constraint, variables);
-      for (Variable v : other) {
-         if (constraintsOf.containsKey(v.getId())) {
-            constraintsOf.get(v.getId()).add(wConstraint);
-         }
-      }
+   public void equals(Byte lhs, Byte rhs) {
+      arithm(lhs.realization, "=", rhs.realization);
+      arithm(lhs.abstraction, "=", rhs.abstraction);
    }
 
    public void sum(BoolVar[] sum, String operator, int value) {
@@ -156,36 +217,52 @@ public class ExtendedModel {
       delegate.table(vars, tuples).post();
    }
 
-   public IntVar intVar(String name, int lb, int ub) {
-      IntVar var = delegate.intVar(name, lb, ub);
-      constraintsOf.put(var.getId(), new ArrayList<>());
-      return var;
+   public void byteXor(IntVar δA, IntVar δB, IntVar δC) {
+      IntVar[] variables = new IntVar[]{δA, δB, δC};
+      WeightedConstraint equalityConstraint = new WeightedConstraint<>(variables, this::notXor);
+      for (IntVar var : variables) {
+         constraintsOf.get(var.getId()).add(equalityConstraint);
+      }
+      delegate.post(new Constraint("byte xor", new ByteXORPropagator(δA, δB, δC)));
+      delegate.table(new IntVar[]{δA, δB, δC}, xor3_128bits, "FC").post();
    }
 
-   public IntVar intVar(int[] domain) {
-      IntVar var = delegate.intVar(domain);
-      constraintsOf.put(var.getId(), new ArrayList<>());
-      return var;
+   public void xor(Byte δA, Byte δB, Byte δC) {
+      byteXor(δA.realization, δB.realization, δC.realization);
+      abstractXor(δA.abstraction, δB.abstraction, δC.abstraction);
    }
 
-   public IntVar intVar(String name, int[] domain) {
-      IntVar var = delegate.intVar(name, domain);
-      constraintsOf.put(var.getId(), new ArrayList<>());
-      return var;
+   public void xor(Byte δA, Byte δB, Byte δC, Byte δD) {
+      byteXor(δA.realization, δB.realization, δC.realization, δD.realization);
+      abstractXor(δA.abstraction, δB.abstraction, δC.abstraction, δD.abstraction);
    }
 
-   public IntVar intVar(int lb, int ub) {
-      IntVar var = delegate.intVar(lb, ub);
-      constraintsOf.put(var.getId(), new ArrayList<>());
-      return var;
+   public void byteXor(IntVar δA, IntVar δB, IntVar δC, IntVar δD) {
+      //delegate.post(new Constraint("byte xor", new ByteXORPropagator(δA, δB, δC, δD)));
+      IntVar diffAB_CD = intVar("diff_AB_CD", 0, DEFAULT_UPPER_BOUND);
+      IntVar diffAC_BD = intVar("diff_AC_BD", 0, DEFAULT_UPPER_BOUND);
+      IntVar diffAD_BC = intVar("diff_AD_BC", 0, DEFAULT_UPPER_BOUND);
+      byteXor(diffAB_CD, δA, δB);
+      byteXor(diffAB_CD, δC, δD);
+      byteXor(diffAC_BD, δA, δC);
+      byteXor(diffAC_BD, δB, δD);
+      byteXor(diffAD_BC, δA, δD);
+      byteXor(diffAD_BC, δB, δC);
    }
 
-   public IntVar constant(String name, int value) {
-      IntVar var = delegate.intVar(name, value);
-      constraintsOf.put(var.getId(), new ArrayList<>());
-      return var;
+   public void abstractXor(BoolVar... equation) {
+      WeightedConstraint xorConstraint = new WeightedConstraint<>(equation, this::sumEqualsOne);
+      for (BoolVar var : equation) {
+         constraintsOf.get(var.getId()).add(xorConstraint);
+
+         if (!globalXorVariables.contains(var)) {
+            globalXorVariables.add(var);
+         }
+      }
+      globalXorEquations.add(equation);
    }
 
+   // Generate custom WDeg utilities
    public DeconstructedModel build(InferenceEngine inferenceEngine, RulesApplier rulesApplier) {
       if (globalXorVariables.size() != 0) {
          BoolVar[] vars = new BoolVar[globalXorVariables.size()];
@@ -237,6 +314,25 @@ public class ExtendedModel {
          }
       }
       return model;
+   }
+
+   // Constraints utils
+   private WeightedConstraint<Variable> post(Constraint constraint, Variable[] variables) {
+      constraint.post();
+      WeightedConstraint<Variable> wConstraint = WeightedConstraint.wrap(constraint);
+      for (Variable v : variables) {
+         constraintsOf.get(v.getId()).add(wConstraint);
+      }
+      return wConstraint;
+   }
+
+   private void post(Constraint constraint, Variable[] variables, Variable... other) {
+      WeightedConstraint<Variable> wConstraint = post(constraint, variables);
+      for (Variable v : other) {
+         if (constraintsOf.containsKey(v.getId())) {
+            constraintsOf.get(v.getId()).add(wConstraint);
+         }
+      }
    }
 
    private MathSet<Set<BoolVar>> combineXor(MathSet<Set<BoolVar>> lhs, MathSet<Set<BoolVar>> rhs) {
@@ -309,88 +405,25 @@ public class ExtendedModel {
       return value != 0;
    }
 
-   public void byteXor(IntVar δA, IntVar δB, IntVar δC) {
-      IntVar[] variables = new IntVar[]{δA, δB, δC};
-      WeightedConstraint equalityConstraint = new WeightedConstraint<>(variables, this::notXor);
-      for (IntVar var : variables) {
-         constraintsOf.get(var.getId()).add(equalityConstraint);
-      }
-      delegate.post(new Constraint("byte xor", new ByteXORPropagator(δA, δB, δC)));
-      delegate.table(new IntVar[]{δA, δB, δC}, xor3_128bits, "FC").post();
-   }
-
-   public void byteXor(IntVar δA, IntVar δB, IntVar δC, IntVar δD) {
-      //delegate.post(new Constraint("byte xor", new ByteXORPropagator(δA, δB, δC, δD)));
-      IntVar diffAB_CD = intVar("diff_AB_CD", 0, 255);
-      IntVar diffAC_BD = intVar("diff_AC_BD", 0, 255);
-      IntVar diffAD_BC = intVar("diff_AD_BC", 0, 255);
-      byteXor(diffAB_CD, δA, δB);
-      byteXor(diffAB_CD, δC, δD);
-      byteXor(diffAC_BD, δA, δC);
-      byteXor(diffAC_BD, δB, δD);
-      byteXor(diffAD_BC, δA, δD);
-      byteXor(diffAD_BC, δB, δC);
-   }
-
-   public void xor(Byte δA, Byte δB, Byte δC) {
-      byteXor(δA.realization, δB.realization, δC.realization);
-      abstractXor(δA.abstraction, δB.abstraction, δC.abstraction);
-   }
-
-   public void xor(Byte δA, Byte δB, Byte δC, Byte δD) {
-      byteXor(δA.realization, δB.realization, δC.realization, δD.realization);
-      abstractXor(δA.abstraction, δB.abstraction, δC.abstraction, δD.abstraction);
-   }
-
-   public void equals(Byte lhs, Byte rhs) {
-      arithm(lhs.realization, "=", rhs.realization);
-      arithm(lhs.abstraction, "=", rhs.abstraction);
-   }
-
-   public Byte byteVar(String name, int max) {
-      return new Byte(name, max);
-   }
-
-   public Byte[] byteVar(String name, int max, int dimA) {
-      Byte[] bytes = new Byte[dimA];
-      for (int i = 0; i < dimA; i++) {
-         bytes[i] = new Byte(name + "[" + i + "]", max);
-      }
-      return bytes;
-   }
-
-   public Byte[][] byteVar(String name, int max, int dimA, int dimB) {
-      Byte[][] bytes = new Byte[dimA][];
-      for (int i = 0; i < dimA; i++) {
-         bytes[i] = byteVar(name + "[" + i + "]", max, dimB);
-      }
-      return bytes;
-   }
-
-   public Byte[][][] byteVar(String name, int max, int dimA, int dimB, int dimC) {
-      Byte[][][] bytes = new Byte[dimA][][];
-      for (int i = 0; i < dimA; i++) {
-         bytes[i] = byteVar(name, max, dimB, dimC);
-      }
-      return bytes;
-   }
-
-
    public class Byte {
+      public final String name;
       public final IntVar realization;
       public final BoolVar abstraction;
 
       Byte(String name, int max) {
+         this.name = name;
          realization = intVar("δ" + name, 0, max);
          abstraction = boolVar("Δ" + name);
          delegate.arithm(realization, "!=", 0).reifyWith(abstraction);
       }
+
+      @Override
+      public String toString() {
+         return name;
+      }
    }
 
    private Tuples xor3_128bits = xor3(256);
-   /*private Tuples xor4_128bits = xor4(256);
-   private Tuples xor3_64bits = xor3(16);
-   private Tuples xor4_64bits = xor4(16);*/
 
    private Tuples xor3(int max) {
       int[][] xor3 = new int[max * max][3];
@@ -414,6 +447,11 @@ public class ExtendedModel {
          }
       }
       return new Tuples(xor4, true);
+   }
+
+   private <V extends Variable> V  declare(V variable) {
+      constraintsOf.put(variable.getId(), new ArrayList<>());
+      return variable;
    }
 
 }

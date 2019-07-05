@@ -50,10 +50,10 @@ public class AESGlobalRound {
       this.em = new ExtendedModel("AES Global[1-5]");
       this.keyBits = keyBits;
 
-      ΔX = em.boolVar("ΔX", r, 4, 4);
-      ΔY = em.boolVar("ΔY/ΔSX", r, 4, 4);
+      ΔX = em.boolVarTensor3("ΔX", r, 4, 4);
+      ΔY = em.boolVarTensor3("ΔY/ΔSX", r, 4, 4);
       ΔZ = new BoolVar[r][4][4];
-      ΔK = em.boolVar("ΔK", r, 4, 5);
+      ΔK = em.boolVarTensor3("ΔK", r, 4, 5);
 
       // ΔY = SR(SBoxPropagator(ΔX)) = SR(ΔX)
       for (int i = 0; i < r; i++) {
@@ -65,7 +65,7 @@ public class AESGlobalRound {
       }
 
       for (int i = 0; i < r - 1; i++) {
-         ΔZ[i] = em.boolVar("ΔZ[" + i + "]", 4, 4);
+         ΔZ[i] = em.boolVarMatrix("ΔZ[" + i + "]", 4, 4);
       }
       ΔZ[r - 1] = ΔY[r - 1];
 
