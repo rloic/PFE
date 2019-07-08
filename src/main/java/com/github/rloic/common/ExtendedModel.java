@@ -25,6 +25,7 @@ import java.util.*;
 public class ExtendedModel {
 
    private static final int DEFAULT_UPPER_BOUND = 255;
+   private int tmpCounter = 0;
 
    /* The true model */
    private Model delegate;
@@ -47,6 +48,7 @@ public class ExtendedModel {
    public BoolVar boolVar(String name) {
       return declare(delegate.boolVar(name));
    }
+
    public BoolVar[] boolVarArray(String name, int len) {
       BoolVar[] vars = new BoolVar[len];
       for (int i = 0; i < len; i++) {
@@ -54,6 +56,7 @@ public class ExtendedModel {
       }
       return vars;
    }
+
    public BoolVar[][] boolVarMatrix(String name, int dimA, int dimB) {
       BoolVar[][] vars = new BoolVar[dimA][dimB];
       for (int i = 0; i < dimA; i++) {
@@ -61,6 +64,7 @@ public class ExtendedModel {
       }
       return vars;
    }
+
    public BoolVar[][][] boolVarTensor3(String name, int dimA, int dimB, int dimC) {
       BoolVar[][][] vars = new BoolVar[dimA][dimB][dimC];
       for (int i = 0; i < dimA; i++) {
@@ -95,6 +99,10 @@ public class ExtendedModel {
 
    public Byte byteVar(String name, int max) {
       return new Byte(name, max);
+   }
+
+   public Byte byteVar(String name, int max, String eq) {
+      return new Byte(name, max, eq);
    }
 
    public Byte[] byteVarArray(String name, int dimA) {
@@ -138,7 +146,11 @@ public class ExtendedModel {
    }
 
    public Byte xorVar(Byte δA, Byte δB, int upperBound) {
-      ExtendedModel.Byte xorVar = byteVar("(" + δA.name + " xor " + δB.name + ")", upperBound);
+      ExtendedModel.Byte xorVar = byteVar(
+            "tmp_xor2_" + tmpCounter++,
+            upperBound,
+            "(" + δA.name + " xor " + δB.name + ")"
+      );
       xor(xorVar, δA, δB);
       return xorVar;
    }
@@ -150,7 +162,11 @@ public class ExtendedModel {
    public Byte xorVar(Byte δA, Byte δB, Byte δC, Byte δD, int upperBound) {
       ExtendedModel.Byte diffAB = xorVar(δA, δB, upperBound);
       ExtendedModel.Byte diffCD = xorVar(δC, δD, upperBound);
-      ExtendedModel.Byte result = byteVar("(" + δA.name + " xor " + δB.name + " xor " + δC.name + " xor " + δD.name + ")", upperBound);
+      ExtendedModel.Byte result = byteVar(
+            "tmp_xor4_" + tmpCounter++,
+            upperBound,
+            "(" + δA.name + " xor " + δB.name + " xor " + δC.name + " xor " + δD.name + ")"
+      );
       xor(result, diffAB, diffCD);
       return result;
    }
@@ -202,19 +218,20 @@ public class ExtendedModel {
    }
 
    public void arithm(IntVar varA, String operator, IntVar varB) {
-      delegate.arithm(varA, operator, varB).post();
+      post(delegate.arithm(varA, operator, varB), new Variable[]{varA, varB});
    }
 
    public void arithm(BoolVar varA, String operator, BoolVar varB) {
-      delegate.arithm(varA, operator, varB).post();
+      post(delegate.arithm(varA, operator, varB), new Variable[]{varA, varB});
    }
 
    public void table(IntVar[] vars, Tuples tuples, String strategy) {
-      delegate.table(vars, tuples, strategy).post();
+      post(delegate.table(vars, tuples, strategy), vars);
    }
 
    public void table(IntVar[] vars, Tuples tuples) {
-      delegate.table(vars, tuples).post();
+      post(delegate.table(vars, tuples), vars);
+      // delegate.table(vars, tuples).post();
    }
 
    public void byteXor(IntVar δA, IntVar δB, IntVar δC) {
@@ -238,7 +255,7 @@ public class ExtendedModel {
    }
 
    public void byteXor(IntVar δA, IntVar δB, IntVar δC, IntVar δD) {
-      //delegate.post(new Constraint("byte xor", new ByteXORPropagator(δA, δB, δC, δD)));
+      // delegate.post(new Constraint("byte xor", new ByteXORPropagator(δA, δB, δC, δD)));
       IntVar diffAB_CD = intVar("diff_AB_CD", 0, DEFAULT_UPPER_BOUND);
       IntVar diffAC_BD = intVar("diff_AC_BD", 0, DEFAULT_UPPER_BOUND);
       IntVar diffAD_BC = intVar("diff_AD_BC", 0, DEFAULT_UPPER_BOUND);
@@ -407,11 +424,21 @@ public class ExtendedModel {
 
    public class Byte {
       public final String name;
+      public final String equation;
       public final IntVar realization;
       public final BoolVar abstraction;
 
       Byte(String name, int max) {
          this.name = name;
+         this.equation = null;
+         realization = intVar("δ" + name, 0, max);
+         abstraction = boolVar("Δ" + name);
+         delegate.arithm(realization, "!=", 0).reifyWith(abstraction);
+      }
+
+      Byte(String name, int max, String equation) {
+         this.name = name;
+         this.equation = equation;
          realization = intVar("δ" + name, 0, max);
          abstraction = boolVar("Δ" + name);
          delegate.arithm(realization, "!=", 0).reifyWith(abstraction);
@@ -419,7 +446,11 @@ public class ExtendedModel {
 
       @Override
       public String toString() {
-         return name;
+         if (equation == null) {
+            return name;
+         } else {
+            return name + " = " + equation;
+         }
       }
    }
 
@@ -449,7 +480,7 @@ public class ExtendedModel {
       return new Tuples(xor4, true);
    }
 
-   private <V extends Variable> V  declare(V variable) {
+   private <V extends Variable> V declare(V variable) {
       constraintsOf.put(variable.getId(), new ArrayList<>());
       return variable;
    }

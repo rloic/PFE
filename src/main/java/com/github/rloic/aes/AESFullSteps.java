@@ -54,24 +54,21 @@ public class AESFullSteps {
       ExtendedModel.Byte[][] δWK = keyExpansion(δCipherKey, Nk, Nr);
 
       // Initial round
-      δX[0] = addRoundKey("X_0", δPlainText, subKey(δWK, 0));
+      δX[0] = addRoundKey(δPlainText, subKey(δWK, 0));
 
       // Main rounds
       for (int i = 0; i < Nr - 1; i++) {
          δSX[i] = subBytes(δX[i]);
-         δY[i] =  shiftRows(δSX[i]);
-         δZ[i] =  mixColumn(δY[i]);
-         δX[i + 1] = addRoundKey("X_i", δZ[i], subKey(δWK, i + 1));
+         δY[i] = shiftRows(δSX[i]);
+         δZ[i] = mixColumn(δY[i]);
+         δX[i + 1] = addRoundKey(δZ[i], subKey(δWK, i + 1));
       }
 
       // Last round
       δSX[Nr - 1] = subBytes(δX[Nr - 1]);
       δY[Nr - 1] = shiftRows(δSX[Nr - 1]);
       @SuppressWarnings("unused")
-      ExtendedModel.Byte[][] δCipherText = addRoundKey("CipherText", δY[Nr - 1], subKey(δWK, Nr));
-
-      IntVar[] probabilities = new IntVar[_probabilities.size()];
-      _probabilities.toArray(probabilities);
+      ExtendedModel.Byte[][] δCipherText = addRoundKey(δY[Nr - 1], subKey(δWK, Nr));
 
       ΔX = abstraction(δX);
       ΔSX = abstraction(δSX);
@@ -82,7 +79,9 @@ public class AESFullSteps {
       _sBoxes.toArray(sBoxes);
       em.sum(sBoxes, "=", sb);
 
-      objective = em.intVar("objective", new int[]{6 * sb, 7 * sb});
+      IntVar[] probabilities = new IntVar[_probabilities.size()];
+      _probabilities.toArray(probabilities);
+      objective = em.intVar("objective", 6 * sb, 7 * sb);
       em.sum(probabilities, "=", objective);
 
       DeconstructedModel dm = em.build(new FullInferenceEngine(), new FullRulesApplier());
@@ -93,27 +92,25 @@ public class AESFullSteps {
    // KeySchedule
    private ExtendedModel.Byte[][] keyExpansion(ExtendedModel.Byte[][] δCipherKey, int Nk, int Nr) {
       ExtendedModel.Byte[][] δWK = new ExtendedModel.Byte[4][(Nr + 1) * 4];
-
-      for(int k = 0; k < Nk; k++) {
-         for (int j = 0; j < 4; j++) {
-            δWK[j][k] = δCipherKey[j][k];
-         }
+      for (int k = 0; k < Nk; k++) {
+         // WK[*][k] = δCipherKey[*][k]
+         setColumn(δWK, k, getColumn(δCipherKey, k));
       }
       for (int k = Nk; k < (Nr + 1) * 4; k++) {
          if (k % Nk == 0) {
             // WK[*][k] = WK[*][k-Nk] xor SubWord(RotWord(WK[*][k-1]))
             setColumn(δWK, k,
-                  columnXor(getColumn(δWK, k - Nk), subWord(rotWord(getColumn(δWK, k - 1))))
+                  elementsWiseXor(getColumn(δWK, k - Nk), subWord(rotWord(getColumn(δWK, k - 1))))
             );
          } else if (Nk > 6 && k % Nk == 4) {
             // WK[*][k] = WK[*][k-Nk] xor SubWord(WK[*][k-1])
             setColumn(δWK, k,
-                  columnXor(getColumn(δWK, k - Nk), subWord(getColumn(δWK, k - 1)))
+                  elementsWiseXor(getColumn(δWK, k - Nk), subWord(getColumn(δWK, k - 1)))
             );
          } else {
             // WK[*][k] = WK[*][k-Nk] xor WK[*][k-1]
             setColumn(δWK, k,
-                  columnXor(getColumn(δWK, k - Nk), getColumn(δWK, k - 1))
+                  elementsWiseXor(getColumn(δWK, k - Nk), getColumn(δWK, k - 1))
             );
          }
       }
@@ -121,131 +118,76 @@ public class AESFullSteps {
    }
 
    private ExtendedModel.Byte[][] subKey(ExtendedModel.Byte[][] δWK, int i) {
-      ExtendedModel.Byte[][] subKey = new ExtendedModel.Byte[4][4];
-      for (int j = 0; j < 4; j++) {
-         for (int k = 0; k < 4; k++) {
-            subKey[j][k] = δWK[j][i * 4 + k];
-         }
-      }
-      return subKey;
+      return block((j, k) -> δWK[j][i * 4 + k]);
    }
 
    // KeySchedule sub-process
    private ExtendedModel.Byte[] rotWord(ExtendedModel.Byte[] column) {
-      return new ExtendedModel.Byte[]{
-            column[1],
-            column[2],
-            column[3],
-            column[0]
-      };
+      return column((j) -> column[(j + 1) % 4]);
    }
 
    private ExtendedModel.Byte[] subWord(ExtendedModel.Byte[] K_i) {
-      return new ExtendedModel.Byte[] {
-            subBytes(K_i[0]),
-            subBytes(K_i[1]),
-            subBytes(K_i[2]),
-            subBytes(K_i[3])
-      };
+      return column((j) -> subBytes("SK_i", K_i[j]));
    }
 
-   // Main process
+   // Encryption process
    private ExtendedModel.Byte[][] addRoundKey(
-         String name,
          ExtendedModel.Byte[][] block,
-         ExtendedModel.Byte[][] δSubKey_i
+         ExtendedModel.Byte[][] subKey_i
    ) {
-      ExtendedModel.Byte[][] ark = new ExtendedModel.Byte[4][4];
-      for (int j = 0; j < 4; j++) {
-         for (int k = 0; k < 4; k++) {
-            ark[j][k] = em.byteVar(name + "[" + j + "][" + k + "]");
-            em.xor(ark[j][k], block[j][k], δSubKey_i[j][k]);
-         }
-      }
-      return ark;
+      return block((j, k) -> em.xorVar(block[j][k], subKey_i[j][k]));
    }
 
    private ExtendedModel.Byte[][] subBytes(ExtendedModel.Byte[][] δX_i) {
-      ExtendedModel.Byte[][] δSX_i = new ExtendedModel.Byte[4][4];
-      for (int j = 0; j < 4; j++) {
-         for (int k = 0; k < 4; k++) {
-            δSX_i[j][k] = subBytes(δX_i[j][k]);
-         }
-      }
-      return δSX_i;
+      return block((j, k) -> subBytes("SX_i", δX_i[j][k]));
    }
 
    private ExtendedModel.Byte[][] shiftRows(ExtendedModel.Byte[][] δSX_i) {
-      ExtendedModel.Byte[][] δY_i = new ExtendedModel.Byte[4][4];
-      for (int j = 0; j < 4; j++) {
-         for (int k = 0; k < 4; k++) {
-            δY_i[j][k] = δSX_i[j][(j + k) % 4];
-         }
-      }
-      return δY_i;
+      return block((j, k) -> δSX_i[j][(j + k) % 4]);
    }
 
-   private ExtendedModel.Byte[][] mixColumn(ExtendedModel.Byte[][] δ1Y_i) {
+   private ExtendedModel.Byte[][] mixColumn(ExtendedModel.Byte[][] _1Y_i) {
+      ExtendedModel.Byte[][] _2Y_i = block((j, k) -> mul2(_1Y_i[j][k]));
+      ExtendedModel.Byte[][] _3Y_i = block((j, k) -> em.xorVar(_1Y_i[j][k], _2Y_i[j][k]));
+
       ExtendedModel.Byte[][] δZ_i = new ExtendedModel.Byte[4][4];
-
-      ExtendedModel.Byte[][] δ2Y_i = new ExtendedModel.Byte[4][4];
-      ExtendedModel.Byte[][] δ3Y_i = new ExtendedModel.Byte[4][4];
-      for (int j = 0; j < 4; j++) {
-         for (int k = 0; k < 4; k++) {
-            δ2Y_i[j][k] = times2(δ1Y_i[j][k]);
-            δ3Y_i[j][k] = em.xorVar(δ1Y_i[j][k], δ2Y_i[j][k]);
-         }
-      }
-
-      ExtendedModel.Byte[][] δ09Z_i = new ExtendedModel.Byte[4][4];
-      ExtendedModel.Byte[][] δ11Z_i = new ExtendedModel.Byte[4][4];
-      ExtendedModel.Byte[][] δ13Z_i = new ExtendedModel.Byte[4][4];
-      ExtendedModel.Byte[][] δ14Z_i = new ExtendedModel.Byte[4][4];
-      for (int j = 0; j < 4; j++) {
-         for (int k = 0; k < 4; k++) {
-            δ09Z_i[j][k] = times9(δ1Y_i[j][k]);
-            δ11Z_i[j][k] = times11(δ1Y_i[j][k]);
-            δ13Z_i[j][k] = times13(δ1Y_i[j][k]);
-            δ14Z_i[j][k] = times14(δ1Y_i[j][k]);
-         }
-      }
-
       for (int k = 0; k < 4; k++) {
-         δZ_i[0][k] = em.xorVar(δ2Y_i[0][k], δ3Y_i[1][k], δ1Y_i[2][k], δ1Y_i[3][k]);  // 2 3 1 1
-         δZ_i[1][k] = em.xorVar(δ1Y_i[0][k], δ2Y_i[1][k], δ3Y_i[2][k], δ1Y_i[3][k]);  // 1 2 3 1
-         δZ_i[2][k] = em.xorVar(δ1Y_i[0][k], δ1Y_i[1][k], δ2Y_i[2][k], δ3Y_i[3][k]);  // 1 1 2 3
-         δZ_i[3][k] = em.xorVar(δ3Y_i[0][k], δ1Y_i[1][k], δ1Y_i[2][k], δ2Y_i[3][k]);  // 3 1 1 2
+         δZ_i[0][k] = em.xorVar(_2Y_i[0][k], _3Y_i[1][k], _1Y_i[2][k], _1Y_i[3][k]);  // 2 3 1 1
+         δZ_i[1][k] = em.xorVar(_1Y_i[0][k], _2Y_i[1][k], _3Y_i[2][k], _1Y_i[3][k]);  // 1 2 3 1
+         δZ_i[2][k] = em.xorVar(_1Y_i[0][k], _1Y_i[1][k], _2Y_i[2][k], _3Y_i[3][k]);  // 1 1 2 3
+         δZ_i[3][k] = em.xorVar(_3Y_i[0][k], _1Y_i[1][k], _1Y_i[2][k], _2Y_i[3][k]);  // 3 1 1 2
+      }
 
-         ExtendedModel.Byte[] δinvY_i = new ExtendedModel.Byte[]{
-               em.xorVar(δ14Z_i[0][k], δ11Z_i[1][k], δ13Z_i[2][k], δ09Z_i[3][k]),    // 14 11 13  9
-               em.xorVar(δ09Z_i[0][k], δ14Z_i[1][k], δ11Z_i[2][k], δ13Z_i[3][k]),    //  9 14 11 13
-               em.xorVar(δ13Z_i[0][k], δ09Z_i[1][k], δ14Z_i[2][k], δ11Z_i[3][k]),    // 13  9 14 11
-               em.xorVar(δ11Z_i[0][k], δ13Z_i[1][k], δ09Z_i[2][k], δ14Z_i[3][k])     // 11 13  9 14
-         };
-         em.equals(δ1Y_i[0][k], δinvY_i[0]);
-         em.equals(δ1Y_i[1][k], δinvY_i[1]);
-         em.equals(δ1Y_i[2][k], δinvY_i[2]);
-         em.equals(δ1Y_i[3][k], δinvY_i[3]);
+      ExtendedModel.Byte[][] _09Z_i = block((j, k) -> mul9(δZ_i[j][k]));
+      ExtendedModel.Byte[][] _11Z_i = block((j, k) -> mul11(δZ_i[j][k]));
+      ExtendedModel.Byte[][] _13Z_i = block((j, k) -> mut13(δZ_i[j][k]));
+      ExtendedModel.Byte[][] _14Z_i = block((j, k) -> mul14(δZ_i[j][k]));
+      for (int j = 0; j < 4; j++) {
+         for (int k = 0; k < 4; k++) {
+            // _rY_i = _1Y_i but using the reverse matrix (_rY_i is computed from Z_i)
+            ExtendedModel.Byte[] _rY_i = new ExtendedModel.Byte[]{
+                  em.xorVar(_14Z_i[0][k], _11Z_i[1][k], _13Z_i[2][k], _09Z_i[3][k]),    // 14 11 13  9
+                  em.xorVar(_09Z_i[0][k], _14Z_i[1][k], _11Z_i[2][k], _13Z_i[3][k]),    //  9 14 11 13
+                  em.xorVar(_13Z_i[0][k], _09Z_i[1][k], _14Z_i[2][k], _11Z_i[3][k]),    // 13  9 14 11
+                  em.xorVar(_11Z_i[0][k], _13Z_i[1][k], _09Z_i[2][k], _14Z_i[3][k])     // 11 13  9 14
+            };
+            em.equals(_1Y_i[0][k], _rY_i[0]);
+            em.equals(_1Y_i[1][k], _rY_i[1]);
+            em.equals(_1Y_i[2][k], _rY_i[2]);
+            em.equals(_1Y_i[3][k], _rY_i[3]);
+         }
       }
 
       return δZ_i;
    }
 
    // KeySchedule utils
-   private ExtendedModel.Byte[] columnXor(ExtendedModel.Byte[] vecA, ExtendedModel.Byte[] vecB) {
-      ExtendedModel.Byte[] result = new ExtendedModel.Byte[vecA.length];
-      for (int i = 0; i < result.length; i++) {
-         result[i] = em.xorVar(vecA[i], vecB[i]);
-      }
-      return result;
+   private ExtendedModel.Byte[] elementsWiseXor(ExtendedModel.Byte[] vecA, ExtendedModel.Byte[] vecB) {
+      return column((j) -> em.xorVar(vecA[j], vecB[j]));
    }
 
    private ExtendedModel.Byte[] getColumn(ExtendedModel.Byte[][] M, int k) {
-      ExtendedModel.Byte[] column = new ExtendedModel.Byte[M.length];
-      for (int j = 0; j < M.length; j++) {
-         column[j] = M[j][k];
-      }
-      return column;
+      return column((j) -> M[j][k]);
    }
 
    private void setColumn(ExtendedModel.Byte[][] M, int k, ExtendedModel.Byte[] column) {
@@ -255,57 +197,54 @@ public class AESFullSteps {
    }
 
    // Main utils
-   private ExtendedModel.Byte subBytes(ExtendedModel.Byte δ) {
-      ExtendedModel.Byte Sδ = em.byteVar("SB(" + δ.name + ")");
-      IntVar p = newProbability();
+   private ExtendedModel.Byte subBytes(String name, ExtendedModel.Byte δ) {
+      ExtendedModel.Byte SBδ = em.byteVar(name, 255, "SB(" + δ.name + ")");
       em.table(
             arrayOf(
                   δ.realization,
-                  Sδ.realization,
-                  p
+                  SBδ.realization,
+                  newProbability()
             ),
             SBox.aes,
             STRATEGY
       );
-      em.equals(δ.abstraction, Sδ.abstraction);
-      if (!_sBoxes.contains(δ.abstraction)) {
-         _sBoxes.add(δ.abstraction);
-      }
-      return Sδ;
+      em.equals(δ.abstraction, SBδ.abstraction);
+      _sBoxes.add(δ.abstraction);
+      return SBδ;
    }
 
-   private ExtendedModel.Byte times2(ExtendedModel.Byte δ) {
+   private ExtendedModel.Byte mul2(ExtendedModel.Byte δ) {
       ExtendedModel.Byte δx2 = em.byteVar("2 * " + δ.name);
-      em.table(arrayOf(δ.realization, δx2.realization), GaloisFieldMultiplication.times2, STRATEGY);
-      //em.equals(δ.abstraction, δx2.abstraction);
+      em.table(arrayOf(δ.realization, δx2.realization), GaloisFieldMultiplication.mul2, STRATEGY);
+      em.equals(δ.abstraction, δx2.abstraction);
       return δx2;
    }
 
-   private ExtendedModel.Byte times9(ExtendedModel.Byte δ) {
+   private ExtendedModel.Byte mul9(ExtendedModel.Byte δ) {
       ExtendedModel.Byte δx9 = em.byteVar("9 * " + δ.name);
-      em.table(arrayOf(δ.realization, δx9.realization), GaloisFieldMultiplication.times9, STRATEGY);
-      //em.equals(δ.abstraction, δx9.abstraction);
+      em.table(arrayOf(δ.realization, δx9.realization), GaloisFieldMultiplication.mul9, STRATEGY);
+      em.equals(δ.abstraction, δx9.abstraction);
       return δx9;
    }
 
-   private ExtendedModel.Byte times11(ExtendedModel.Byte δ) {
+   private ExtendedModel.Byte mul11(ExtendedModel.Byte δ) {
       ExtendedModel.Byte δx11 = em.byteVar("11 * " + δ.name);
-      em.table(arrayOf(δ.realization, δx11.realization), GaloisFieldMultiplication.times11, STRATEGY);
-      //em.equals(δ.abstraction, δx11.abstraction);
+      em.table(arrayOf(δ.realization, δx11.realization), GaloisFieldMultiplication.mul11, STRATEGY);
+      em.equals(δ.abstraction, δx11.abstraction);
       return δx11;
    }
 
-   private ExtendedModel.Byte times13(ExtendedModel.Byte δ) {
+   private ExtendedModel.Byte mut13(ExtendedModel.Byte δ) {
       ExtendedModel.Byte δx13 = em.byteVar("13 * " + δ.name);
-      em.table(arrayOf(δ.realization, δx13.realization), GaloisFieldMultiplication.times13, STRATEGY);
-      //em.equals(δ.abstraction, δx13.abstraction);
+      em.table(arrayOf(δ.realization, δx13.realization), GaloisFieldMultiplication.mul13, STRATEGY);
+      em.equals(δ.abstraction, δx13.abstraction);
       return δx13;
    }
 
-   private ExtendedModel.Byte times14(ExtendedModel.Byte δ) {
+   private ExtendedModel.Byte mul14(ExtendedModel.Byte δ) {
       ExtendedModel.Byte δx14 = em.byteVar("14 * " + δ.name);
-      em.table(arrayOf(δ.realization, δx14.realization), GaloisFieldMultiplication.times14, STRATEGY);
-      //em.equals(δ.abstraction, δx14.abstraction);
+      em.table(arrayOf(δ.realization, δx14.realization), GaloisFieldMultiplication.mul14, STRATEGY);
+      em.equals(δ.abstraction, δx14.abstraction);
       return δx14;
    }
 
@@ -313,6 +252,32 @@ public class AESFullSteps {
       IntVar p = em.intVar("probability[" + _probabilities.size() + "]", PROBABILITIES);
       _probabilities.add(p);
       return p;
+   }
+
+   private interface MatrixInitializer<T> {
+      T get(int row, int col);
+   }
+
+   private interface ColumnInitializer<T> {
+      T get(int row);
+   }
+
+   private ExtendedModel.Byte[] column(ColumnInitializer<ExtendedModel.Byte> initializer) {
+      ExtendedModel.Byte[] matrix = new ExtendedModel.Byte[4];
+      for (int j = 0; j < 4; j++) {
+         matrix[j] = initializer.get(j);
+      }
+      return matrix;
+   }
+
+   private ExtendedModel.Byte[][] block(MatrixInitializer<ExtendedModel.Byte> initializer) {
+      ExtendedModel.Byte[][] matrix = new ExtendedModel.Byte[4][4];
+      for (int j = 0; j < 4; j++) {
+         for (int k = 0; k < 4; k++) {
+            matrix[j][k] = initializer.get(j, k);
+         }
+      }
+      return matrix;
    }
 
    private BoolVar[] abstraction(ExtendedModel.Byte[][][] bytes) {
