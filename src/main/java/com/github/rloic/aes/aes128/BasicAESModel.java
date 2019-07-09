@@ -42,7 +42,7 @@ class BasicAESModel extends Model {
     }
 
     private BoolVar[] linkSBoxes(BoolVar[][][] ΔX, BoolVar[][][] ΔK) {
-        // Link sBoxes with deepAll variables that pass through an S-box (variables of ∆X, and variables in the last column of ∆K)
+        // Link sBoxes with deepAll variables that pass through an `$`-box (variables of ∆X, and variables in the last column of ∆K)
         // Link ΔSR with ∆X according to ShiftRows operation
         BoolVar[] sBoxes = new BoolVar[20 * r];
         int cpt = 0;

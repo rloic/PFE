@@ -19,9 +19,9 @@ public abstract class KeyBits {
 
     abstract public Pair<BytePosition, BytePosition> xorKeySchedulePi(int i, int j, int k);
 
-    public abstract boolean isSBRound(int i);
+    abstract int getSubByteColumnInRoundKey(int i);
 
-    abstract int getNbCol(int i);
+    public abstract boolean isSBRound(int i);
 
     public static class AES128 extends KeyBits {
 
@@ -56,13 +56,13 @@ public abstract class KeyBits {
         }
 
         @Override
-        int getNbCol(int i) {
-            return 4;
+        public boolean isSBRound(int i) {
+            return true;
         }
 
         @Override
-        public boolean isSBRound(int i) {
-            return true;
+        int getSubByteColumnInRoundKey(int i) {
+            return 3;
         }
 
         @Override
@@ -121,8 +121,12 @@ public abstract class KeyBits {
         }
 
         @Override
-        int getNbCol(int i) {
-            return (i % 3 == 1) ? 1 : 3;
+        int getSubByteColumnInRoundKey(int i) {
+            if (!isSBRound(i)) return -1;
+            else {
+                if (i % 3 == 1) return 1;
+                else return 3;
+            }
         }
 
         @Override
@@ -171,8 +175,9 @@ public abstract class KeyBits {
         }
 
         @Override
-        int getNbCol(int i) {
-            return 3;
+        int getSubByteColumnInRoundKey(int i) {
+            if (!isSBRound(i)) return -1;
+            else return 3;
         }
 
         @Override

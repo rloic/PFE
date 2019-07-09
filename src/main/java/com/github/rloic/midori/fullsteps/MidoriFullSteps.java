@@ -2,7 +2,7 @@ package com.github.rloic.midori.fullsteps;
 
 import com.github.rloic.common.DeconstructedModel;
 import com.github.rloic.common.ExtendedModel;
-import com.github.rloic.common.ExtendedModel.Byte;
+import com.github.rloic.common.ExtendedModel.ByteVar;
 import com.github.rloic.midori.sbox.SBox;
 import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEngine;
 import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
@@ -30,14 +30,14 @@ public class MidoriFullSteps {
     public final Solver solver;
     public final Int2ObjectMap<List<WeightedConstraint>> constraintsOf;
 
-    private final Byte[][] δPlainText;
-    private final Byte[][] δWK;
-    private final Byte[][][] δX;
-    private final Byte[][][] δSX;
-    private final Byte[][][] δY;
-    private final Byte[][][] δZ;
-    private final Byte[][][] δK;
-    private final Byte[][] δCipherText;
+    private final ExtendedModel.ByteVar[][] δPlainText;
+    private final ExtendedModel.ByteVar[][] δWK;
+    private final ExtendedModel.ByteVar[][][] δX;
+    private final ByteVar[][][] δSX;
+    private final ExtendedModel.ByteVar[][][] δY;
+    private final ExtendedModel.ByteVar[][][] δZ;
+    private final ByteVar[][][] δK;
+    private final ByteVar[][] δCipherText;
 
     public final IntVar[] nbActives;
     public final IntVar[] flattenedProbabilities;
@@ -45,7 +45,7 @@ public class MidoriFullSteps {
     public MidoriFullSteps(
             int version,
             int r,
-            int numberOfActiveSBoxes
+            Integer numberOfActiveSBoxes
     ) {
         em = new ExtendedModel("MidoriFullSteps");
         this.r = r;
@@ -59,7 +59,7 @@ public class MidoriFullSteps {
         δSX = em.byteVarTensor3("SX", r, 4, 4, MAX_VALUE);
         δY = em.byteVarTensor3("Y", r - 1, 4, 4, MAX_VALUE);
         δZ = em.byteVarTensor3("Z", r - 1, 4, 4, MAX_VALUE);
-        δK = new ExtendedModel.Byte[][][]{δWK,δWK};
+        δK = new ExtendedModel.ByteVar[][][]{δWK,δWK};
         δCipherText = em.byteVarMatrix("CipherText", 4, 4, MAX_VALUE);
 
         IntVar[][][] probabilities = new IntVar[r][4][4];
@@ -68,33 +68,37 @@ public class MidoriFullSteps {
         for (int i = 0; i < r; i++) {
             for (int j = 0; j < 4; j++) {
                 for (int k = 0; k < 4; k++) {
-                    probabilities[i][j][k] = em.intVar("probability[" + i + "][" + j + "][" + k + "]", 0, 6);
+                    probabilities[i][j][k] = em.intVar("probability[" + i + "][" + j + "][" + k + "]", new int[]{0, 2, 3, 4, 5, 6});
                     flattenedProbabilities[cpt++] = probabilities[i][j][k];
                 }
             }
         }
 
-        nbActives = new IntVar[r];
-        for (int i = 0; i < r; i++) {
-            nbActives[i] = em.intVar("nbActives[" + i + "]", 0, numberOfActiveSBoxes);
-            if (i >= 3) {
-                IntVar[] activesUntilRoundI = new IntVar[i];
-                System.arraycopy(nbActives, 0, activesUntilRoundI, 0, i);
-                em.sum(activesUntilRoundI, ">=", i);
-            }
-        }
-
-        for (int i = 0; i < r; i++) {
-            IntVar[] currentRound = new IntVar[16];
-            int sbCpt = 0;
-            for (int j = 0; j < 4; j++) {
-                for (int k = 0; k < 4; k++) {
-                    currentRound[sbCpt++] = δX[i][j][k].abstraction;
+        if (numberOfActiveSBoxes != null) {
+            nbActives = new IntVar[r];
+            for (int i = 0; i < r; i++) {
+                nbActives[i] = em.intVar("nbActives[" + i + "]", 0, numberOfActiveSBoxes);
+                if (i >= 3) {
+                    IntVar[] activesUntilRoundI = new IntVar[i];
+                    System.arraycopy(nbActives, 0, activesUntilRoundI, 0, i);
+                    em.sum(activesUntilRoundI, ">=", i);
                 }
             }
-            em.sum(currentRound, "=", nbActives[i]);
+
+            for (int i = 0; i < r; i++) {
+                IntVar[] currentRound = new IntVar[16];
+                int sbCpt = 0;
+                for (int j = 0; j < 4; j++) {
+                    for (int k = 0; k < 4; k++) {
+                        currentRound[sbCpt++] = δX[i][j][k].abstraction;
+                    }
+                }
+                em.sum(currentRound, "=", nbActives[i]);
+            }
+            em.sum(nbActives, "=", numberOfActiveSBoxes);
+        } else {
+            nbActives = null;
         }
-        em.sum(nbActives, "=", numberOfActiveSBoxes);
 
         // δX[0] = δPlainText xor δWK
         ark(δX[0], δPlainText, δWK);
@@ -117,7 +121,11 @@ public class MidoriFullSteps {
         // δCipherText = δSX[r - 1] xor δWK
         ark(δCipherText, δSX[r - 1], δWK);
 
-        objective = em.intVar(2 * numberOfActiveSBoxes, 6 * numberOfActiveSBoxes);
+        if (numberOfActiveSBoxes != null) {
+            objective = em.intVar(2 * numberOfActiveSBoxes, 6 * numberOfActiveSBoxes);
+        } else {
+            objective = em.intVar(2, 128/6);
+        }
         em.sum(flattenedProbabilities, "=", objective);
 
         DeconstructedModel d = em.build(new FullInferenceEngine(), new FullRulesApplier());
@@ -127,7 +135,7 @@ public class MidoriFullSteps {
     }
 
     // δSX_{i} = sBox(δX_{i}) with a probability p
-    private void sBox(Byte[][] δSX, Byte[][] δX, IntVar[][] probabilities) {
+    private void sBox(ByteVar[][] δSX, ByteVar[][] δX, IntVar[][] probabilities) {
         if (version == 64) {
             for (int j = 0; j < 4; j++) {
                 for (int k = 0; k < 4; k++) {
@@ -161,7 +169,7 @@ public class MidoriFullSteps {
     }
 
     // δY_{i} = shuffleCell(δSX_{i})
-    private void shuffleCell(Byte[][] δY, Byte[][] δSX) {
+    private void shuffleCell(ExtendedModel.ByteVar[][] δY, ExtendedModel.ByteVar[][] δSX) {
         em.equals(δY[0][0], δSX[0][0]);
         em.equals(δY[1][0], δSX[2][2]);
         em.equals(δY[2][0], δSX[1][1]);
@@ -184,7 +192,7 @@ public class MidoriFullSteps {
     }
 
     // δZ_{i} = mixColumns(δY_{i})
-    private void mixColumns(Byte[][] δZ, Byte[][] δY) {
+    private void mixColumns(ExtendedModel.ByteVar[][] δZ, ExtendedModel.ByteVar[][] δY) {
         for (int k = 0; k < 4; k++) {
             em.xor(δY[0][k], δY[1][k], δY[2][k], δZ[3][k]);
             em.xor(δY[1][k], δY[2][k], δY[3][k], δZ[0][k]);
@@ -194,7 +202,7 @@ public class MidoriFullSteps {
     }
 
     // δX_{i+1} = ark(δZ_{i}, δK_{i})
-    private void ark(Byte[][] δX1, Byte[][] δZ, Byte[][] δWK) {
+    private void ark(ExtendedModel.ByteVar[][] δX1, ExtendedModel.ByteVar[][] δZ, ByteVar[][] δWK) {
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
                 em.xor(δX1[j][k], δZ[j][k], δWK[j][k]);

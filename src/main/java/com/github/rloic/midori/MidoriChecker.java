@@ -154,7 +154,7 @@ public class MidoriChecker {
    }
 
    private static void xor(Model m, IntVar... variables) {
-      m.post(new Constraint("XOR Byte", new ByteXORPropagator(variables)));
+      m.post(new Constraint("XOR ByteVar", new ByteXORPropagator(variables)));
    }
 
    private static void println(IntVar... variables) {

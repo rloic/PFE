@@ -13,20 +13,30 @@ public class MidoriAppFullSteps {
    public static void main(String[] args) {
 
       int r = (args.length == 2) ? Integer.parseInt(args[0]) : 3;
-      int numberOfActiveSBoxes = (args.length == 2) ? Integer.parseInt(args[1]) : 3;
+      Integer numberOfActiveSBoxes = (args.length == 2) ? Integer.parseInt(args[1]) : null;
 
       MidoriFullSteps midoriFullSteps = new MidoriFullSteps(128, r, numberOfActiveSBoxes);
       Solver solver = midoriFullSteps.solver;
 
-      solver.setSearch(
-            Search.inputOrderLBSearch(midoriFullSteps.nbActives),
-            new WDeg(midoriFullSteps.ΔSBoxes(), 0L, new IntDomainMin(), midoriFullSteps.constraintsOf),
-            new WDeg(midoriFullSteps.abstractVars(), 0L, new IntDomainMin(), midoriFullSteps.constraintsOf),
-            Search.intVarSearch(midoriFullSteps.model.retrieveIntVars(true))
-      );
-      solver.setSearch(
-            Search.lastConflict(solver.getSearch())
-      );
+      if (midoriFullSteps.nbActives != null) {
+         solver.setSearch(
+               Search.inputOrderLBSearch(midoriFullSteps.nbActives),
+               new WDeg(midoriFullSteps.ΔSBoxes(), 0L, new IntDomainMin(), midoriFullSteps.constraintsOf),
+               new WDeg(midoriFullSteps.abstractVars(), 0L, new IntDomainMin(), midoriFullSteps.constraintsOf),
+               Search.intVarSearch(midoriFullSteps.model.retrieveIntVars(true))
+         );
+         solver.setSearch(
+               Search.lastConflict(solver.getSearch())
+         );
+      } else {
+         solver.setSearch(
+               Search.intVarSearch(midoriFullSteps.model.retrieveIntVars(true))
+         );
+         solver.setSearch(
+               Search.lastConflict(solver.getSearch())
+         );
+      }
+
 
       Solution bestSolution = solver.findOptimalSolution(midoriFullSteps.objective, Model.MINIMIZE);
 

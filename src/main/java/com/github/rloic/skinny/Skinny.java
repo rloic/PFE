@@ -2,6 +2,7 @@ package com.github.rloic.skinny;
 
 import com.github.rloic.common.DeconstructedModel;
 import com.github.rloic.common.ExtendedModel;
+import com.github.rloic.common.ExtendedModel.ByteVar;
 import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEngine;
 import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
 import com.github.rloic.wip.WeightedConstraint;
@@ -26,10 +27,10 @@ public class Skinny {
     public final Model m;
     public final Int2ObjectMap<List<WeightedConstraint>> constraintsOf;
 
-    private final ExtendedModel.Byte[][][] δX;
-    private final ExtendedModel.Byte[][][] δSX;
-    private final ExtendedModel.Byte[][][] δAC;
-    private final ExtendedModel.Byte[][][] δSR;
+    private final ByteVar[][][] δX;
+    private final ByteVar[][][] δSX;
+    private final ByteVar[][][] δAC;
+    private final ByteVar[][][] δSR;
     private final IntVar[][][] probabilities;
     public final IntVar[] nbActives;
     private final int BOUND;
@@ -44,10 +45,10 @@ public class Skinny {
         BOUND = (version == 64) ? 15 : 255;
         objective = em.intVar(20 * objStep1, 70 * objStep1);
 
-        δX = new ExtendedModel.Byte[r + 1][4][4];
-        δSX = new ExtendedModel.Byte[r][][];
-        δAC = new ExtendedModel.Byte[r][][];
-        δSR = new ExtendedModel.Byte[r][][];
+        δX = new ByteVar[r + 1][4][4];
+        δSX = new ByteVar[r][][];
+        δAC = new ByteVar[r][][];
+        δSR = new ByteVar[r][][];
         probabilities = new IntVar[r][4][4];
         IntVar[] flattenedProbabilities = new IntVar[r * 4 * 4];
         int cptP = 0;
@@ -85,8 +86,8 @@ public class Skinny {
 
     }
 
-    private ExtendedModel.Byte[][] subCells(ExtendedModel.Byte[][] δX, IntVar[][] probabilities) {
-        ExtendedModel.Byte[][] δSX = em.byteVarMatrix("SX", 4, 4, BOUND);
+    private ByteVar[][] subCells(ByteVar[][] δX, IntVar[][] probabilities) {
+        ByteVar[][] δSX = em.byteVarMatrix("SX", 4, 4, BOUND);
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
                 em.table(
@@ -104,12 +105,12 @@ public class Skinny {
         return δSX;
     }
 
-    private ExtendedModel.Byte[][] addConstants(ExtendedModel.Byte[][] δSCX) {
+    private ByteVar[][] addConstants(ByteVar[][] δSCX) {
         return δSCX;
     }
 
-    private ExtendedModel.Byte[][] shiftRows(ExtendedModel.Byte[][] δAC) {
-        ExtendedModel.Byte[][] δSR = new ExtendedModel.Byte[4][4];
+    private ByteVar[][] shiftRows(ByteVar[][] δAC) {
+        ByteVar[][] δSR = new ByteVar[4][4];
         for (int k = 0; k < 4; k++) {
             δSR[0][k] = δAC[0][k];
             δSR[1][k] = δAC[1][(k + 3) % 4];
@@ -119,8 +120,8 @@ public class Skinny {
         return δSR;
     }
 
-    private ExtendedModel.Byte[][] mixColumns(ExtendedModel.Byte[][] δSR) {
-        ExtendedModel.Byte[][] δMC = new ExtendedModel.Byte[4][4];
+    private ByteVar[][] mixColumns(ByteVar[][] δSR) {
+        ByteVar[][] δMC = new ByteVar[4][4];
         for (int k = 0; k < 4; k++) {
             δMC[1][k] = δSR[0][k];
             δMC[2][k] = xor("MC[2][" + k + "]", δSR[1][k], δSR[2][k]);
@@ -154,8 +155,8 @@ public class Skinny {
         return sBoxes;
     }
 
-    private ExtendedModel.Byte xor(String name, ExtendedModel.Byte lhs, ExtendedModel.Byte rhs) {
-        ExtendedModel.Byte res = em.byteVar(name, BOUND);
+    private ByteVar xor(String name, ByteVar lhs, ByteVar rhs) {
+        ByteVar res = em.byteVar(name, BOUND);
         em.byteXor(res.realization, lhs.realization, rhs.realization);
         em.abstractXor(res.abstraction, lhs.abstraction, rhs.abstraction);
         return res;

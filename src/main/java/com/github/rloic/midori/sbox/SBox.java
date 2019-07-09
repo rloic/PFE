@@ -2,6 +2,11 @@ package com.github.rloic.midori.sbox;
 
 import org.chocosolver.solver.constraints.extension.Tuples;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 public class SBox {
 
     public static Tuples[] midori128 = buildSBoxForMidori128();

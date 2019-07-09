@@ -83,7 +83,40 @@ public class AESAdvancedRoundTransit {
             m.sum(asArray(round), "=", nbActives[i]).post();
         }
 
+        if (keyBits == AES_128) {
+            if (r >= 3) m.sum(take(nbActives, 3), ">=", 5).post();
+            if (r >= 4) m.sum(take(nbActives, 4), ">=", 12).post();
+        } else if (keyBits == AES_192) {
+            if (r >= 3) m.sum(take(nbActives, 3), ">=", 1).post();
+            if (r >= 4) m.sum(take(nbActives, 4), ">=", 4).post();
+            if (r >= 5) m.sum(take(nbActives, 5), ">=", 5).post();
+            if (r >= 6) m.sum(take(nbActives, 6), ">=", 10).post();
+            if (r >= 7) m.sum(take(nbActives, 7), ">=", 13).post();
+            if (r >= 8) m.sum(take(nbActives, 8), ">=", 18).post();
+            if (r >= 9) m.sum(take(nbActives, 9), ">=", 24).post();
+        } else if (keyBits == AES_256) {
+            if (r >= 3) m.sum(take(nbActives, 3), ">=", 1).post();
+            if (r >= 4) m.sum(take(nbActives, 4), ">=", 3).post();
+            if (r >= 5) m.sum(take(nbActives, 5), ">=", 3).post();
+            if (r >= 6) m.sum(take(nbActives, 6), ">=", 5).post();
+            if (r >= 7) m.sum(take(nbActives, 7), ">=", 5).post();
+            if (r >= 8) m.sum(take(nbActives, 8), ">=", 10).post();
+            if (r >= 8) m.sum(take(nbActives, 8), ">=", 15).post();
+            if (r >= 10) m.sum(take(nbActives, 10), ">=", 16).post();
+            if (r >= 11) m.sum(take(nbActives, 11), ">=", 20).post();
+            if (r >= 12) m.sum(take(nbActives, 12), ">=", 20).post();
+            if (r >= 13) m.sum(take(nbActives, 13), ">=", 24).post();
+            if (r >= 14) m.sum(take(nbActives, 14), ">=", 24).post();
+        }
+
+
         m.sum(nbActives, "=", objStep1).post();
+    }
+
+    private IntVar[] take(IntVar[] array, int n) {
+        IntVar[] result = new IntVar[n];
+        System.arraycopy(array, 0, result, 0, n);
+        return result;
     }
 
     private BoolVar[] asArray(List<BoolVar> collection) {

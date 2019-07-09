@@ -29,7 +29,7 @@ public class App {
             Options options = new Options();
             Option solve = Option.builder()
                     .longOpt("solve")
-                    .argName("ROUNDS> <NB ACTIVE S-BOXES> <AES-VERSION")
+                    .argName("ROUNDS> <NB ACTIVE `$`-BOXES> <AES-VERSION")
                     .desc("Solve the problem with given arguments")
                     .numberOfArgs(3)
                     .valueSeparator(' ')
