@@ -61,7 +61,10 @@ public class AESAppFullSteps {
 
       Solution bestSolution = s.findOptimalSolution(model.objective, Model.MINIMIZE);
       if (bestSolution != null) {
-         s.printShortStatistics();
+         System.out.println("2^{" + bestSolution.getIntVal(model.objective) + "}," +
+               s.getMeasures().getSolutionCount() + "," +
+               s.getMeasures().getNodeCount()
+         );
       } else {
          throw new RuntimeException("Not solution found");
       }
