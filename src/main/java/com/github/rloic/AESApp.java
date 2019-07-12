@@ -2,6 +2,7 @@ package com.github.rloic;
 
 import com.github.rloic.aes.KeyBits;
 import com.github.rloic.aes.abstractxor.AESGlobal;
+import com.github.rloic.aes.abstractxor.stepround.AESGlobalRoundMC;
 import com.github.rloic.aes.advanced.stepround.AESAdvancedRoundTransit;
 import com.github.rloic.filter.EnumFilter;
 import com.github.rloic.filter.EnumFilterRound;
@@ -26,9 +27,9 @@ import static com.github.rloic.aes.KeyBits.AES256.AES_256;
 
 public class AESApp {
 
-   private final static int DEFAULT_NB_ROUNDS = 6;
-   private final static int DEFAULT_NB_SBOXES = 10;
-   private final static KeyBits DEFAULT_AES_KEY = AES_192;
+   private final static int DEFAULT_NB_ROUNDS = 3;
+   private final static int DEFAULT_NB_SBOXES = 5;
+   private final static KeyBits DEFAULT_AES_KEY = AES_128;
 
    public static void main(String[] args) {
 
@@ -48,7 +49,7 @@ public class AESApp {
 
       System.out.println(key + " " + nbRounds + " " + nbSBoxes);
 
-      AESAdvancedRoundTransit aesRound = new AESAdvancedRoundTransit(nbRounds, nbSBoxes, key);
+      AESGlobalRoundMC aesRound = new AESGlobalRoundMC(nbRounds, nbSBoxes, key);
       Pair<Integer, Long> stats = step0(
             aesRound.m,
             aesRound.nbActives,
