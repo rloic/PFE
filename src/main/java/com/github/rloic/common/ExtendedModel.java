@@ -1,12 +1,12 @@
 package com.github.rloic.common;
 
 import com.github.rloic.common.abstraction.MathSet;
-import com.github.rloic.xorconstraint.ByteXORPropagator;
-import com.github.rloic.paper.dancinglinks.inferenceengine.InferenceEngine;
-import com.github.rloic.paper.dancinglinks.rulesapplier.RulesApplier;
-import com.github.rloic.util.Logger;
+import com.github.rloic.constraints.ByteXORPropagator;
+import com.github.rloic.constraints.abstractxor.inferenceengine.InferenceEngine;
+import com.github.rloic.constraints.abstractxor.rulesapplier.RulesApplier;
+import com.github.rloic.common.utils.Logger;
 import com.github.rloic.wip.WeightedConstraint;
-import com.github.rloic.xorconstraint.AbstractXORPropagator;
+import com.github.rloic.constraints.abstractxor.AbstractXORPropagator;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.solver.Model;

@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static com.github.rloic.util.LexComparator.LEX_COMPARATOR;
+import static com.github.rloic.common.utils.LexComparator.LEX_COMPARATOR;
 
 public class XOREquation extends MathSet<BytePosition> {
 

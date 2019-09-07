@@ -1,9 +1,9 @@
 package com.github.rloic;
 
-import com.github.rloic.aes.*;
-import com.github.rloic.aes.advanced.AESAdvanced;
-import com.github.rloic.filter.EnumFilter;
-import com.github.rloic.util.Logger;
+import com.github.rloic.aes.models.advanced.AESAdvanced;
+import com.github.rloic.aes.utils.KeyBits;
+import com.github.rloic.filters.EnumFilter;
+import com.github.rloic.common.utils.Logger;
 import org.apache.commons.cli.*;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
@@ -15,10 +15,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.github.rloic.util.Logger.DebugLogger.DEBUG;
-import static com.github.rloic.aes.KeyBits.AES128.AES_128;
-import static com.github.rloic.aes.KeyBits.AES192.AES_192;
-import static com.github.rloic.aes.KeyBits.AES256.AES_256;
+import static com.github.rloic.common.utils.Logger.DebugLogger.DEBUG;
+import static com.github.rloic.aes.utils.KeyBits.AES128.AES_128;
+import static com.github.rloic.aes.utils.KeyBits.AES192.AES_192;
+import static com.github.rloic.aes.utils.KeyBits.AES256.AES_256;
 
 public class App {
 

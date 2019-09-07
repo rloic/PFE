@@ -1,13 +1,13 @@
 package com.github.rloic;
 
-import com.github.rloic.filter.EnumFilter;
-import com.github.rloic.filter.EnumFilterRound;
-import com.github.rloic.midori.global.MidoriGlobal;
-import com.github.rloic.midori.global.gac.MidoriGlobalFull;
-import com.github.rloic.midori.global.round.MidoriGlobalRound;
-import com.github.rloic.midori.global.gac.round.MidoriGlobalRoundFull;
+import com.github.rloic.filters.EnumFilter;
+import com.github.rloic.filters.EnumFilterRound;
+import com.github.rloic.midori.models.global.MidoriGlobal;
+import com.github.rloic.midori.models.global.gac.MidoriGlobalFull;
+import com.github.rloic.midori.models.global.round.MidoriGlobalRound;
+import com.github.rloic.midori.models.global.gac.round.MidoriGlobalRoundFull;
 import com.github.rloic.strategy.WDeg;
-import com.github.rloic.util.Pair;
+import com.github.rloic.common.utils.Pair;
 import com.github.rloic.wip.WeightedConstraint;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.solver.Model;

@@ -1,7 +1,8 @@
 package com.github.rloic.aes;
 
-import com.github.rloic.aes.advanced.AESAdvanced;
-import com.github.rloic.filter.EnumFilter;
+import com.github.rloic.aes.models.advanced.AESAdvanced;
+import com.github.rloic.aes.utils.KeyBits;
+import com.github.rloic.filters.EnumFilter;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.variables.BoolVar;
 import org.junit.jupiter.api.Assertions;
@@ -13,9 +14,9 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.github.rloic.aes.KeyBits.AES128.AES_128;
-import static com.github.rloic.aes.KeyBits.AES192.AES_192;
-import static com.github.rloic.aes.KeyBits.AES256.AES_256;
+import static com.github.rloic.aes.utils.KeyBits.AES128.AES_128;
+import static com.github.rloic.aes.utils.KeyBits.AES192.AES_192;
+import static com.github.rloic.aes.utils.KeyBits.AES256.AES_256;
 
 class AESAdvancedTest {
 

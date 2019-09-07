@@ -1,7 +1,7 @@
 package com.github.rloic;
 
-import com.github.rloic.aes.AESFullSteps;
-import com.github.rloic.aes.KeyBits;
+import com.github.rloic.aes.models.AESFullSteps;
+import com.github.rloic.aes.utils.KeyBits;
 import com.github.rloic.strategy.WDeg;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solution;
@@ -10,9 +10,9 @@ import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin;
 import org.chocosolver.solver.variables.BoolVar;
 
-import static com.github.rloic.aes.KeyBits.AES128.AES_128;
-import static com.github.rloic.aes.KeyBits.AES192.AES_192;
-import static com.github.rloic.aes.KeyBits.AES256.AES_256;
+import static com.github.rloic.aes.utils.KeyBits.AES128.AES_128;
+import static com.github.rloic.aes.utils.KeyBits.AES192.AES_192;
+import static com.github.rloic.aes.utils.KeyBits.AES256.AES_256;
 
 public class AESAppFullSteps {
    public static void main(String[] args) {

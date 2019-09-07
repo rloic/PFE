@@ -1,6 +1,6 @@
 package com.github.rloic;
 
-import com.github.rloic.midori.fullsteps.MidoriFullSteps;
+import com.github.rloic.midori.models.fullsteps.MidoriFullSteps;
 import com.github.rloic.strategy.WDeg;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solution;

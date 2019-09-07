@@ -1,7 +1,7 @@
 package com.github.rloic.common;
 
 import com.github.rloic.wip.WeightedConstraint;
-import com.github.rloic.xorconstraint.AbstractXORPropagator;
+import com.github.rloic.constraints.abstractxor.AbstractXORPropagator;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.chocosolver.solver.Model;
 

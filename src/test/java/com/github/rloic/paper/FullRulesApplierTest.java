@@ -1,10 +1,10 @@
 package com.github.rloic.paper;
 
-import com.github.rloic.paper.dancinglinks.inferenceengine.impl.FullInferenceEngine;
-import com.github.rloic.paper.dancinglinks.rulesapplier.impl.FullRulesApplier;
-import com.github.rloic.util.Logger;
-import com.github.rloic.util.Pair;
-import com.github.rloic.xorconstraint.AbstractXORPropagator;
+import com.github.rloic.constraints.abstractxor.inferenceengine.impl.FullInferenceEngine;
+import com.github.rloic.constraints.abstractxor.rulesapplier.impl.FullRulesApplier;
+import com.github.rloic.common.utils.Logger;
+import com.github.rloic.common.utils.Pair;
+import com.github.rloic.constraints.abstractxor.AbstractXORPropagator;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Constraint;
@@ -17,7 +17,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.github.rloic.util.Logger.TraceLogger.TRACE;
+import static com.github.rloic.common.utils.Logger.TraceLogger.TRACE;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FullRulesApplierTest {

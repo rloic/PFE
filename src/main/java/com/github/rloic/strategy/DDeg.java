@@ -1,7 +1,7 @@
 package com.github.rloic.strategy;
 
-import com.github.rloic.paper.dancinglinks.IDancingLinksMatrix;
-import com.github.rloic.xorconstraint.AbstractXORPropagator;
+import com.github.rloic.dancinglinks.IDancingLinksMatrix;
+import com.github.rloic.constraints.abstractxor.AbstractXORPropagator;
 import org.chocosolver.solver.search.strategy.assignments.DecisionOperatorFactory;
 import org.chocosolver.solver.search.strategy.decision.Decision;
 import org.chocosolver.solver.search.strategy.selectors.values.IntValueSelector;

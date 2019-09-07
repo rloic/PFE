@@ -1,6 +1,6 @@
 package com.github.rloic;
 
-import com.github.rloic.skinny.Skinny;
+import com.github.rloic.skinny.models.Skinny;
 import com.github.rloic.strategy.WDeg;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solution;
